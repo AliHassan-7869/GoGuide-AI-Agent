@@ -4,7 +4,7 @@ import requests
 
 app = FastAPI()
 
-# Allow any frontend to call your API
+# Allow any frontend to call this API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,21 +13,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# HuggingFace Space URL (your AI travel agent)
 HF_URL = "https://ali7869-goguidetrip.hf.space/predict"
+
+@app.get("/")
+def root():
+    return {"message": "FastAPI AI Travel API is live! Use /chat POST endpoint."}
 
 @app.post("/chat")
 async def chat(data: dict):
-    # 1️⃣ Check if 'message' key exists
+    # Check that the message exists
     user_input = data.get("message")
     if not user_input:
         return {"response": "Error: 'message' key is required in JSON."}
 
     try:
-        # 2️⃣ Call HuggingFace agent safely
-        hf_response = requests.post(HF_URL, json={"data":[user_input]}, timeout=15)
-        hf_response.raise_for_status()  # raise error if status != 200
-        data_from_hf = hf_response.json().get("data", ["No response from agent"])
-        return {"response": data_from_hf[0]}
+        # Call HuggingFace Space safely
+        response = requests.post(HF_URL, json={"data":[user_input]}, timeout=15)
+        response.raise_for_status()  # Raises HTTPError if status != 200
+
+        hf_data = response.json().get("data", ["No response from HuggingFace"])
+        return {"response": hf_data[0]}
+
     except Exception as e:
-        # 3️⃣ Catch network / agent errors
+        # Return friendly error instead of 500
         return {"response": f"Error calling HuggingFace agent: {str(e)}"}
