@@ -1,11 +1,3 @@
-streamlit
-crewai[tools]
-pysqlite3-binary
-crewai
-groq
-langchain
-langchain_ollama
-langchain_community
-crewai_tools
-duckduckgo-search
-crewai[google-genai]
+fastapi
+uvicorn
+requests
