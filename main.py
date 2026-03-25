@@ -4,7 +4,7 @@ import requests
 
 app = FastAPI()
 
-# Allow any frontend to call this API
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,28 +13,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# HuggingFace Space URL (your AI travel agent)
 HF_URL = "https://ali7869-goguidetrip.hf.space/predict"
 
 @app.get("/")
 def root():
-    return {"message": "FastAPI AI Travel API is live! Use /chat POST endpoint."}
+    return {"message": "GoGuide API is running 🚀"}
 
 @app.post("/chat")
 async def chat(data: dict):
-    # Check that the message exists
     user_input = data.get("message")
+
     if not user_input:
-        return {"response": "Error: 'message' key is required in JSON."}
+        return {"error": "'message' is required"}
 
     try:
-        # Call HuggingFace Space safely
-        response = requests.post(HF_URL, json={"data":[user_input]}, timeout=15)
-        response.raise_for_status()  # Raises HTTPError if status != 200
+        response = requests.post(
+            HF_URL,
+            json={"data": [user_input]},
+            timeout=20
+        )
 
-        hf_data = response.json().get("data", ["No response from HuggingFace"])
-        return {"response": hf_data[0]}
+        response.raise_for_status()
+
+        hf_data = response.json().get("data", ["No response"])
+        
+        return {
+            "status": "success",
+            "user_input": user_input,
+            "response": hf_data[0]
+        }
+
+    except requests.exceptions.Timeout:
+        return {"error": "Request timeout. HuggingFace is slow."}
+
+    except requests.exceptions.RequestException as e:
+        return {"error": f"HuggingFace error: {str(e)}"}
 
     except Exception as e:
-        # Return friendly error instead of 500
-        return {"response": f"Error calling HuggingFace agent: {str(e)}"}
+        return {"error": f"Internal error: {str(e)}"}
