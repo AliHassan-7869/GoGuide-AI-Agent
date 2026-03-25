@@ -9,7 +9,7 @@ os.environ["DEEPSEEK_API_BASE"] = "https://api.deepseek.com"
 
 
 fast_llm = LLM(
-    model="deepseek-chat",                
+    model="openai/deepseek-chat",                
     base_url=os.environ["DEEPSEEK_API_BASE"],
     api_key=os.environ["DEEPSEEK_API_KEY"], 
     temperature=0.5,
