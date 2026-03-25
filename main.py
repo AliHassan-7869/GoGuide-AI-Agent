@@ -51,7 +51,7 @@ def generate_plan(request: TravelRequest, x_api_key: str = Header(None)):
 
     try:
         response = requests.post(
-            "https://api.deepseek.com/travel-plan",
+            "https://api.deepseek.com/chat/completions",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
             json=payload,
             timeout=25
