@@ -11,7 +11,7 @@ app = FastAPI(title="GoGuide AI API")
 # -------------------- CORS --------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow any frontend
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,10 +37,9 @@ def home():
 def health():
     return {"status": "ok"}
 
-# -------------------- MAIN ENDPOINT (POST) --------------------
+# -------------------- POST /plan (main functionality) --------------------
 @app.post("/plan")
 def generate_plan(request: TravelRequest, x_api_key: str = Header(None)):
-    # Optional API key check
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -52,7 +51,7 @@ def generate_plan(request: TravelRequest, x_api_key: str = Header(None)):
 
     try:
         response = requests.post(
-            "https://api.deepseek.ai/travel-plan",  # Replace with actual DeepSeek endpoint
+            "https://api.deepseek.ai/travel-plan",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
             json=payload,
             timeout=25
@@ -77,16 +76,16 @@ def generate_plan(request: TravelRequest, x_api_key: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-# -------------------- BROWSER-FRIENDLY GET --------------------
+# -------------------- GET /plan (browser-friendly) --------------------
 @app.get("/plan")
-def generate_plan_get(destination: str, days: int, budget: str, x_api_key: str = Header(None)):
+def generate_plan_get(x_api_key: str = Header(None)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    # Always instruct users to use POST
     return {
         "status": "success",
-        "message": "Send a POST request to /plan with JSON payload to generate the travel plan",
-        "input": {"destination": destination, "days": days, "budget": budget}
+        "message": "Please send a POST request to /plan with JSON payload to generate the travel plan."
     }
 
 # -------------------- GLOBAL EXCEPTION HANDLER --------------------
