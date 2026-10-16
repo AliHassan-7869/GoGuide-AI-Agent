@@ -1,0 +1,29 @@
+# Environment variables & secrets
+.env
+*.env
+!.env.example
+
+# Python virtual environments
+travel_env/
+ai_env/
+venv/
+env/
+ENV/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Generated markdown reports
+city_report.md
+guide_report.md
+travel_plan.md
+TravelPlan_*.md
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,12 @@
+streamlit
+python-dotenv
+crewai
+crewai[tools]
+crewai[litellm]
+langchain
+langchain_community
+duckduckgo-search
+fastapi
+uvicorn
+requests
+pydantic
