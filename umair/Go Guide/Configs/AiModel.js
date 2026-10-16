@@ -221,3 +221,91 @@ export const generateTripWithAgent = async (params) => {
 
   return callDeepSeekAPI(messages);
 };
+
+// Conversational Travel Assistant
+export const askTravelAssistant = async (userMessage, chatHistory = [], activeTrip = null) => {
+  const tripContext = activeTrip
+    ? `Current Planned Trip: Destination: ${activeTrip.destination || activeTrip.locationInfo?.name || "Not specified"}, Duration: ${activeTrip.days || activeTrip.totalDays || "N/A"} days, Budget: ${activeTrip.budget || "Flexible"}.`
+    : "No active trip selected yet.";
+
+  const systemInstruction = `You are "GoGuide AI Copilot", an elite, world-class AI travel guide and trip concierge.
+${tripContext}
+Your style:
+- Friendly, inspiring, crisp, and high-energy with relevant emojis (✈️, 🍜, 📍, 💡, 💰, 🏨).
+- Use clear bullet points and bold highlights for readability.
+- When asked about places or food, include names, vibes, and price estimates.
+- Keep responses compact, punchy, and easy to read on mobile screens (avoid huge text walls).
+- If the user writes in Urdu or Roman Urdu, reply warmly in Roman Urdu/English mix!`;
+
+  if (geminiApiKey) {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    
+    // Format conversation history for Gemini contents
+    const contents = [];
+    contents.push({
+      role: "user",
+      parts: [{ text: `[System Instruction: ${systemInstruction}]\n\nHello!` }]
+    });
+    contents.push({
+      role: "model",
+      parts: [{ text: "Hello! I am your GoGuide AI Copilot. Where are we heading next?" }]
+    });
+
+    chatHistory.slice(-6).forEach((msg) => {
+      contents.push({
+        role: msg.sender === "user" ? "user" : "model",
+        parts: [{ text: msg.text }]
+      });
+    });
+
+    contents.push({
+      role: "user",
+      parts: [{ text: userMessage }]
+    });
+
+    try {
+      const res = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature: 0.8,
+            top_p: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (reply) return reply.trim();
+      }
+    } catch (e) {
+      console.warn("[Copilot] Gemini API error, falling back:", e.message);
+    }
+  }
+
+  // Fallback to DeepSeek if Gemini fails or is not available
+  if (deepseekApiKey) {
+    const messages = [
+      { role: "system", content: systemInstruction },
+      ...chatHistory.slice(-6).map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text
+      })),
+      { role: "user", content: userMessage }
+    ];
+    try {
+      const dsRes = await callDeepSeekAPI(messages);
+      return dsRes.response.text();
+    } catch (e) {
+      console.warn("[Copilot] DeepSeek fallback error:", e.message);
+    }
+  }
+
+  // Graceful fallback response
+  return "I'm your GoGuide AI Copilot! Pack comfortable walking shoes, keep your passport handy, and don't forget to try the local street food! How else can I help customize your journey?";
+};
+
