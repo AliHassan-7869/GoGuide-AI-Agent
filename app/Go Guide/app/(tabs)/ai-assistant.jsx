@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -31,8 +32,10 @@ const QUICK_CHIPS = [
 
 export default function AiAssistant() {
   const theme = useTheme();
+  const { prompt } = useLocalSearchParams();
   const { tripData, userData } = useContext(CreateTripContext);
   const flatListRef = useRef(null);
+  const handledPromptRef = useRef(null);
 
   const activeDestination =
     tripData?.locationInfo?.name ||
@@ -71,6 +74,16 @@ export default function AiAssistant() {
       }
     })();
   }, []);
+
+  // Handle incoming prompt from recommendations or other screens
+  useEffect(() => {
+    if (prompt && handledPromptRef.current !== prompt) {
+      handledPromptRef.current = prompt;
+      setTimeout(() => {
+        handleSend(String(prompt));
+      }, 500);
+    }
+  }, [prompt]);
 
   // Save chat history
   const persistMessages = async (newMsgs) => {

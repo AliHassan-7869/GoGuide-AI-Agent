@@ -397,7 +397,13 @@ export default function Discover() {
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Categories</Text>
-              <TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/explore");
+                }}
+                activeOpacity={0.7}
+              >
                 <Text style={{ color: Colors.PRIMARY, fontFamily: "Outfit-Medium" }}>See all</Text>
               </TouchableOpacity>
             </View>
@@ -433,8 +439,14 @@ export default function Discover() {
             {/* Popular Destinations */}
             <View style={[styles.sectionHeader, { marginTop: 25 }]}>
               <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Trending Places</Text>
-              <TouchableOpacity>
-                <Text style={{ color: Colors.PRIMARY, fontFamily: "Outfit-Medium" }}>View map</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/explore");
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: Colors.PRIMARY, fontFamily: "Outfit-Medium" }}>See all</Text>
               </TouchableOpacity>
             </View>
 
