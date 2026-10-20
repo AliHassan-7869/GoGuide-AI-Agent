@@ -9,6 +9,7 @@ import { chatSession } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -87,6 +88,14 @@ export default function GenerateTrip() {
       };
       
       setTripData(completeTripData);
+
+      // Save to local storage for offline / flight mode access
+      try {
+        await AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(completeTripData));
+        console.log("[CACHE] Trip saved to local AsyncStorage for offline access!");
+      } catch (cacheErr) {
+        console.warn("Could not cache trip to local storage:", cacheErr);
+      }
 
       // Save to Firebase (non-blocking — don't let Firestore errors stop navigation)
       const user = auth.currentUser;

@@ -50,7 +50,7 @@ export default function SafetyAlerts() {
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
 
-  const destinationName = tripData?.toLocation?.name || tripData?.destination || "Popular Travel Spots";
+  const destinationName = tripData?.toLocation?.name || tripData?.destination || tripData?.aiTripPlan?.destination || "Popular Travel Spots";
 
   const loadAiAlerts = async () => {
     try {

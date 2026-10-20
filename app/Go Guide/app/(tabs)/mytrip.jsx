@@ -1,5 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { 
   ScrollView, 
   StyleSheet, 
@@ -8,10 +8,13 @@ import {
   View, 
   Image, 
   Linking, 
-  ActivityIndicator,
   Share,
-  Platform 
+  Platform,
+  Animated,
+  Modal,
+  Alert
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
@@ -38,15 +41,65 @@ export default function MyTrip() {
   const plan = tripData?.aiTripPlan;
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
+  const [isOfflineCached, setIsOfflineCached] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  // Smooth Shimmer pulse animation for skeleton loading
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    if (!plan && auth.currentUser) {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.85,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.3,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [loading]);
+
+  // Load from local AsyncStorage cache first for instant flight-mode access
+  useEffect(() => {
+    loadCachedTrip();
+    if (auth.currentUser) {
       GetMyTrips();
     }
   }, [auth.currentUser]);
 
+  // Save to AsyncStorage whenever tripData updates with an AI plan
+  useEffect(() => {
+    if (tripData?.aiTripPlan) {
+      AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(tripData))
+        .then(() => setIsOfflineCached(true))
+        .catch((e) => console.log("Failed to cache trip:", e));
+    }
+  }, [tripData]);
+
+  const loadCachedTrip = async () => {
+    try {
+      const cached = await AsyncStorage.getItem('@goguide_cached_trip');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.aiTripPlan) {
+          setIsOfflineCached(true);
+          if (!plan) {
+            setTripData(parsed);
+          }
+        }
+      }
+    } catch (e) {
+      console.log("Error loading cached trip:", e);
+    }
+  };
+
   const GetMyTrips = async () => {
-    setLoading(true);
+    if (!plan) setLoading(true);
     try {
       const q = query(
         collection(db, "UserTrips"),
@@ -57,10 +110,14 @@ export default function MyTrip() {
 
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
-        setTripData(doc.data().tripData);
+        const data = doc.data().tripData;
+        setTripData(data);
+        AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(data)).catch(() => {});
+        setIsOfflineCached(true);
       });
     } catch (e) {
-      console.log("Error fetching trips:", e);
+      console.log("Firestore offline or fetch error:", e);
+      // Fallback already handled via loadCachedTrip
     }
     setLoading(false);
   };
@@ -71,14 +128,153 @@ export default function MyTrip() {
     router.push("/create-trip/search-place");
   };
 
-  const shareItinerary = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  // 1. Add to Calendar Sync (Google & Apple Calendar)
+  const addToCalendar = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const message = `✈️ My Trip Plan for ${plan?.destination || "Vacation"}!\nDuration: ${plan?.duration || "N/A"}\nBudget: ${plan?.budget || "Moderate"}\n\nGenerated with GoGuide AI 🚀`;
-      await Share.share({ message });
+      const dest = plan?.destination || "Vacation";
+      const title = encodeURIComponent(`✈️ Trip to ${dest}`);
+
+      const scheduleLines = (plan?.itinerary || []).map((d) => {
+        const acts = (d.activities || []).map(a => `• ${a.time || ''}: ${a.placeName} - ${a.details || ''}`).join('\n');
+        return `Day ${d.day} (${d.theme || ''}):\n${acts}`;
+      }).join('\n\n');
+
+      const details = encodeURIComponent(
+        `GoGuide AI Itinerary for ${dest}\n` +
+        `Duration: ${plan?.duration || 'Multi-day'}\n` +
+        `Budget: ${plan?.budget || 'Moderate'}\n\n` +
+        `Daily Schedule:\n${scheduleLines}\n\n` +
+        `Generated with GoGuide AI Travel Agent 🚀`
+      );
+
+      const location = encodeURIComponent(dest);
+
+      // Format ISO dates to UTC format: YYYYMMDDTHHmmssZ
+      let startStr = "";
+      let endStr = "";
+      try {
+        const s = tripData?.startDate ? new Date(tripData.startDate) : new Date();
+        const e = tripData?.endDate ? new Date(tripData.endDate) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        startStr = fmt(s);
+        const nextDay = new Date(e.getTime() + 24 * 60 * 60 * 1000);
+        endStr = fmt(nextDay);
+      } catch (err) {
+        const today = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        startStr = today;
+        endStr = today;
+      }
+
+      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
+      Linking.openURL(calUrl);
+    } catch (e) {
+      console.log("Error syncing calendar:", e);
+      Alert.alert("Calendar Sync", "Unable to open calendar application. Try copying your itinerary text instead.");
+    }
+  };
+
+  // 2. Generate Clean Printable Itinerary Document
+  const generateFormattedItinerary = () => {
+    let text = `✈️ GOGUIDE AI TRAVEL ITINERARY\n`;
+    text += `========================================\n`;
+    text += `📍 Destination: ${plan?.destination || "Vacation"}\n`;
+    text += `⏱️ Duration: ${plan?.duration || "N/A"}\n`;
+    text += `💰 Budget: ${plan?.budget || "Moderate"}\n`;
+    text += `👥 Traveler: ${plan?.traveler || "Solo Explorer"}\n`;
+    if (plan?.weatherBrief) {
+      text += `🌤️ Weather: ${plan.weatherBrief}\n`;
+    }
+    text += `========================================\n\n`;
+
+    if (plan?.flights?.details) {
+      text += `✈️ FLIGHT LOGISTICS:\n`;
+      text += `${plan.flights.details} (Estimated: ${plan.flights.price || "N/A"})\n\n`;
+    }
+
+    if (plan?.hotels?.length > 0) {
+      text += `🏨 RECOMMENDED STAYS:\n`;
+      plan.hotels.forEach((h, idx) => {
+        text += `${idx + 1}. ${h.name} (${h.rating || "4.8"}★) - ${h.price || ""}\n`;
+        text += `   Address: ${h.address || h.details || "Central location"}\n`;
+      });
+      text += `\n`;
+    }
+
+    if (plan?.itinerary?.length > 0) {
+      text += `🗓️ DAILY SCHEDULE:\n`;
+      plan.itinerary.forEach((d) => {
+        text += `\n--- DAY ${d.day}: ${d.theme || "Exploration"} ---\n`;
+        (d.activities || []).forEach((act) => {
+          text += `• [${act.time || "Activity"}] ${act.placeName}\n`;
+          if (act.details) text += `  Details: ${act.details}\n`;
+          if (act.tickets) text += `  Tickets/Fee: ${act.tickets}\n`;
+        });
+      });
+      text += `\n`;
+    }
+
+    if (plan?.packingList?.length > 0) {
+      text += `🎒 PACKING CHECKLIST:\n`;
+      plan.packingList.forEach((p) => {
+        text += `• [ ] ${p.item || p} (${p.category || "Essential"})\n`;
+      });
+      text += `\n`;
+    }
+
+    text += `========================================\n`;
+    text += `Generated with GoGuide AI Travel Agent 🚀\n`;
+    return text;
+  };
+
+  const exportItinerary = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const fullDoc = generateFormattedItinerary();
+      await Share.share({
+        title: `Trip Itinerary - ${plan?.destination}`,
+        message: fullDoc,
+      });
     } catch (err) {
       console.log("Error sharing:", err);
     }
+  };
+
+  // 3. Interactive Multi-Stop Day Route in Maps
+  const openDayRouteInMaps = (dayObj) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const acts = dayObj?.activities || [];
+    if (!acts || acts.length === 0) return;
+
+    if (acts.length === 1) {
+      openInMaps(acts[0].placeName, acts[0].coordinates);
+      return;
+    }
+
+    const origin = encodeURIComponent(acts[0].placeName + " " + (plan?.destination || ""));
+    const destination = encodeURIComponent(acts[acts.length - 1].placeName + " " + (plan?.destination || ""));
+
+    let waypointsParam = "";
+    if (acts.length > 2) {
+      const waypoints = acts.slice(1, -1).map(a => a.placeName + " " + (plan?.destination || "")).join("|");
+      waypointsParam = `&waypoints=${encodeURIComponent(waypoints)}`;
+    }
+
+    const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}&travelmode=driving`;
+    Linking.openURL(routeUrl);
+  };
+
+  // 4. Direct Turn-by-Turn Navigation for individual place
+  const getDirectDirections = (placeName, coordinates) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    let dest = "";
+    if (coordinates?.lat && coordinates?.lng && coordinates.lat !== 0) {
+      dest = `${coordinates.lat},${coordinates.lng}`;
+    } else {
+      dest = encodeURIComponent(placeName + " " + (plan?.destination || ""));
+    }
+    const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+    Linking.openURL(dirUrl);
   };
 
   const openInMaps = (placeName, coordinates) => {
@@ -92,11 +288,42 @@ export default function MyTrip() {
     Linking.openURL(url);
   };
 
+  // Modern Shimmer Skeleton Loading State
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg, justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY} />
-        <Text style={{ marginTop: 20, fontFamily: "Outfit-Medium", color: theme.text }}>Loading your trip...</Text>
+      <View style={[styles.container, { backgroundColor: theme.bg }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Skeleton Header */}
+        <View style={styles.header}>
+          <View>
+            <Animated.View style={[styles.skeletonLine, { width: 140, height: 26, opacity: pulseAnim }]} />
+            <Animated.View style={[styles.skeletonLine, { width: 90, height: 16, marginTop: 6, opacity: pulseAnim }]} />
+          </View>
+          <View style={styles.headerActions}>
+            <View style={[styles.iconButton, { opacity: 0.5 }]} />
+            <View style={[styles.iconButton, { marginLeft: 10, opacity: 0.5 }]} />
+          </View>
+        </View>
+
+        {/* Skeleton Hero Banner */}
+        <Animated.View style={[styles.skeletonCard, { height: 220, opacity: pulseAnim }]} />
+
+        {/* Skeleton Widgets */}
+        <Animated.View style={[styles.skeletonCard, { height: 75, marginTop: 15, opacity: pulseAnim }]} />
+        <Animated.View style={[styles.skeletonCard, { height: 110, marginTop: 15, opacity: pulseAnim }]} />
+
+        {/* Skeleton Section Header */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25, marginBottom: 12 }}>
+          <Animated.View style={[styles.skeletonLine, { width: 150, height: 20, opacity: pulseAnim }]} />
+          <Animated.View style={[styles.skeletonLine, { width: 60, height: 16, opacity: pulseAnim }]} />
+        </View>
+
+        {/* Skeleton Hotel Row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, marginRight: 14, opacity: pulseAnim }]} />
+          <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, opacity: pulseAnim }]} />
+        </ScrollView>
       </View>
     );
   }
@@ -123,13 +350,36 @@ export default function MyTrip() {
       <View style={styles.header}>
         <View>
           <Text style={[styles.title, { color: theme.text }]}>My Itinerary</Text>
-          <Text style={[styles.subtitle, { color: theme.subtext }]}>{plan.destination}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={[styles.subtitle, { color: theme.subtext }]}>{plan.destination}</Text>
+            {isOfflineCached && (
+              <View style={styles.headerOfflinePill}>
+                <Ionicons name="cloud-done" size={11} color="#10B981" />
+                <Text style={styles.headerOfflineText}>Cached</Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconButton} onPress={shareItinerary}>
-            <Ionicons name="share-social-outline" size={22} color={theme.text} />
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowExportModal(true);
+            }}
+          >
+            <Ionicons name="document-text-outline" size={20} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, { marginLeft: 10 }]} onPress={createNewTrip}>
+          <TouchableOpacity 
+            style={[styles.iconButton, { marginLeft: 8 }]} 
+            onPress={addToCalendar}
+          >
+            <Ionicons name="calendar-outline" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.iconButton, { marginLeft: 8 }]} 
+            onPress={createNewTrip}
+          >
             <Ionicons name="add-circle" size={26} color={Colors.PRIMARY} />
           </TouchableOpacity>
         </View>
@@ -147,6 +397,11 @@ export default function MyTrip() {
           
           <View style={styles.heroGlassCard}>
             <View style={styles.badgeRow}>
+              {/* Offline Ready Badge */}
+              <View style={[styles.glassBadge, styles.offlineReadyBadge]}>
+                <Ionicons name="flash" size={12} color="#A7F3D0" />
+                <Text style={[styles.glassBadgeText, { color: "#A7F3D0", fontFamily: "Outfit-Bold" }]}>Offline Ready</Text>
+              </View>
               <View style={styles.glassBadge}>
                 <Ionicons name="time-outline" size={13} color="#FFF" />
                 <Text style={styles.glassBadgeText}>{plan.duration || "Multi-Day"}</Text>
@@ -162,6 +417,36 @@ export default function MyTrip() {
             </View>
             <Text style={styles.heroDestTitle}>{plan.destination}</Text>
           </View>
+        </View>
+
+        {/* Quick Action Bar (Calendar, Export, Safety Alerts) */}
+        <View style={styles.quickActionBar}>
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={addToCalendar}
+          >
+            <Ionicons name="calendar" size={18} color="#0284C7" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Add Calendar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => setShowExportModal(true)}
+          >
+            <Ionicons name="download-outline" size={18} color="#10B981" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Export Doc</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/safety-alerts");
+            }}
+          >
+            <Ionicons name="shield-checkmark" size={18} color="#F59E0B" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Live Safety</Text>
+          </TouchableOpacity>
         </View>
         
         {/* Weather & Packing Quick Widgets */}
@@ -220,13 +505,23 @@ export default function MyTrip() {
                       {hotel.address || hotel.details || "Convenient location"}
                     </Text>
 
-                    <TouchableOpacity 
-                      style={styles.hotelMapBtn}
-                      onPress={() => openInMaps(hotel.name, hotel.coordinates)}
-                    >
-                      <Ionicons name="navigate-circle-outline" size={16} color={Colors.PRIMARY} />
-                      <Text style={styles.hotelMapBtnText}>View on Map</Text>
-                    </TouchableOpacity>
+                    <View style={styles.hotelButtonRow}>
+                      <TouchableOpacity 
+                        style={styles.hotelMapBtn}
+                        onPress={() => openInMaps(hotel.name, hotel.coordinates)}
+                      >
+                        <Ionicons name="location-outline" size={15} color={Colors.PRIMARY} />
+                        <Text style={styles.hotelMapBtnText}>Map</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.hotelMapBtn, { backgroundColor: "rgba(16, 185, 129, 0.12)", marginLeft: 8 }]}
+                        onPress={() => getDirectDirections(hotel.name, hotel.coordinates)}
+                      >
+                        <Ionicons name="navigate-outline" size={15} color="#10B981" />
+                        <Text style={[styles.hotelMapBtnText, { color: "#10B981" }]}>Directions</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -288,7 +583,16 @@ export default function MyTrip() {
                 <View style={styles.dayBadge}>
                   <Text style={styles.dayBadgeText}>Day {day.day}</Text>
                 </View>
-                <Text style={[styles.dayThemeText, { color: theme.text }]}>{day.theme}</Text>
+                <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={1}>{day.theme}</Text>
+                
+                {/* 🗺️ Open Full Day Route in Maps */}
+                <TouchableOpacity 
+                  style={styles.dayRouteBtn}
+                  onPress={() => openDayRouteInMaps(day)}
+                >
+                  <Ionicons name="map" size={13} color="#FFF" />
+                  <Text style={styles.dayRouteBtnText}>Route</Text>
+                </TouchableOpacity>
               </View>
 
               {day.activities?.map((act, j) => {
@@ -321,13 +625,23 @@ export default function MyTrip() {
                           <Ionicons name={timeIcon} size={12} color={timeColor} />
                           <Text style={[styles.timeBadgeText, { color: timeColor }]}>{act.time}</Text>
                         </View>
-                        <TouchableOpacity 
-                          style={styles.mapQuickBtn}
-                          onPress={() => openInMaps(act.placeName, act.coordinates)}
-                        >
-                          <Ionicons name="location" size={13} color={Colors.PRIMARY} />
-                          <Text style={styles.mapQuickText}>Map</Text>
-                        </TouchableOpacity>
+                        
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <TouchableOpacity 
+                            style={styles.mapQuickBtn}
+                            onPress={() => openInMaps(act.placeName, act.coordinates)}
+                          >
+                            <Ionicons name="location" size={13} color={Colors.PRIMARY} />
+                            <Text style={styles.mapQuickText}>Map</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.mapQuickBtn, { marginLeft: 8 }]}
+                            onPress={() => getDirectDirections(act.placeName, act.coordinates)}
+                          >
+                            <Ionicons name="navigate" size={13} color="#10B981" />
+                            <Text style={[styles.mapQuickText, { color: "#10B981" }]}>Directions</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
 
                       <Text style={[styles.activityPlaceName, { color: theme.text }]}>{act.placeName}</Text>
@@ -353,6 +667,49 @@ export default function MyTrip() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* Printable / Formatted Itinerary Modal */}
+      <Modal
+        visible={showExportModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowExportModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Exported Itinerary</Text>
+              <Text style={[styles.modalSub, { color: theme.subtext }]}>Printable & shareable travel document</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.modalCloseBtn}
+              onPress={() => setShowExportModal(false)}
+            >
+              <Ionicons name="close" size={22} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={[styles.modalDocScroll, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalDocText, { color: theme.text }]}>
+              {generateFormattedItinerary()}
+            </Text>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity 
+              style={[styles.modalActionBtn, { backgroundColor: Colors.PRIMARY }]} 
+              onPress={() => {
+                setShowExportModal(false);
+                exportItinerary();
+              }}
+            >
+              <Ionicons name="share-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+              <Text style={styles.modalActionText}>Share / Print Document</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -363,18 +720,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginBottom: 20 
+    marginBottom: 16 
   },
   title: { fontSize: 28, fontFamily: "Outfit-Bold" },
   subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },
+  headerOfflinePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  headerOfflineText: {
+    color: "#10B981",
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 3,
+  },
   headerActions: { flexDirection: "row", alignItems: "center" },
   iconButton: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
+    width: 38, 
+    height: 38, 
+    borderRadius: 19, 
     backgroundColor: "rgba(150, 150, 150, 0.1)", 
     justifyContent: "center", 
     alignItems: "center" 
+  },
+
+  // Skeleton Shimmer Styles
+  skeletonCard: {
+    backgroundColor: "rgba(150, 150, 150, 0.15)",
+    borderRadius: 20,
+    width: "100%",
+  },
+  skeletonLine: {
+    backgroundColor: "rgba(150, 150, 150, 0.2)",
+    borderRadius: 8,
   },
 
   // Hero Section
@@ -383,7 +766,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
     position: 'relative',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
@@ -401,22 +784,54 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 18,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    padding: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   glassBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
   },
+  offlineReadyBadge: {
+    backgroundColor: "rgba(16, 185, 129, 0.35)",
+    borderColor: "#10B981",
+    borderWidth: 1,
+  },
   glassBadgeText: { color: "#FFF", fontSize: 11, fontFamily: "Outfit-Medium", marginLeft: 4 },
-  heroDestTitle: { color: '#FFF', fontSize: 24, fontFamily: 'Outfit-Bold' },
+  heroDestTitle: { color: '#FFF', fontSize: 23, fontFamily: 'Outfit-Bold' },
+
+  // Quick Action Bar
+  quickActionBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 20,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 6,
+  },
 
   // Sections
   section: { marginBottom: 20 },
@@ -449,7 +864,7 @@ const styles = StyleSheet.create({
 
   // Hotel Cards
   hotelCard: { 
-    width: 230, 
+    width: 240, 
     borderRadius: 20, 
     marginRight: 14,
     overflow: "hidden",
@@ -486,7 +901,12 @@ const styles = StyleSheet.create({
   hotelBody: { padding: 12 },
   hotelName: { fontSize: 15, fontFamily: 'Outfit-Bold', marginBottom: 2 },
   hotelAddress: { fontSize: 12, fontFamily: 'Outfit-Regular', marginBottom: 10 },
+  hotelButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   hotelMapBtn: { 
+    flex: 1,
     flexDirection: "row", 
     alignItems: "center", 
     justifyContent: "center",
@@ -494,7 +914,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "rgba(10, 126, 164, 0.08)"
   },
-  hotelMapBtnText: { color: Colors.PRIMARY, fontSize: 12, fontFamily: "Outfit-Medium", marginLeft: 4 },
+  hotelMapBtnText: { color: Colors.PRIMARY, fontSize: 11, fontFamily: "Outfit-Medium", marginLeft: 4 },
 
   // Day Tabs Filter
   dayTabsScroll: { marginBottom: 16 },
@@ -528,6 +948,21 @@ const styles = StyleSheet.create({
   },
   dayBadgeText: { color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold" },
   dayThemeText: { fontSize: 15, fontFamily: "Outfit-Bold", flex: 1 },
+  dayRouteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0284C7",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  dayRouteBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 4,
+  },
 
   timelineRow: { flexDirection: "row", marginBottom: 12 },
   timelineTrack: { width: 26, alignItems: "center" },
@@ -576,4 +1011,60 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   resetPlanText: { color: "#EF4444", fontSize: 14, fontFamily: "Outfit-Bold", marginLeft: 6 },
+
+  // Printable Itinerary Modal
+  modalContainer: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontFamily: "Outfit-Bold",
+  },
+  modalSub: {
+    fontSize: 13,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(150, 150, 150, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalDocScroll: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  modalDocText: {
+    fontFamily: "Courier",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  modalFooter: {
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+  },
+  modalActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    borderRadius: 16,
+  },
+  modalActionText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontFamily: "Outfit-Bold",
+  },
 });
