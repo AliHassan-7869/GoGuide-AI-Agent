@@ -216,6 +216,11 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = Field(default_factory=list, max_length=20)
     trip: TripContext | None = None
 
+
+class GenerateRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=8000)
+    json_output: bool = True
+
 # -------------------- ROOT --------------------
 @app.get("/")
 def home():
@@ -358,6 +363,32 @@ Your style:
     )
 
     return {"status": "success", "data": {"reply": reply.strip()}}
+
+# -------------------- POST /generate (interests, safety alerts) --------------------
+@app.post("/generate")
+def generate(request: GenerateRequest, client_id: str = Depends(require_client)):
+    generation_config = {"temperature": 0.7}
+    if request.json_output:
+        generation_config["responseMimeType"] = "application/json"
+
+    system_prompt = "You are a travel planning assistant."
+    if request.json_output:
+        system_prompt += " Always output your response as valid JSON only, with no extra text, no markdown, and no code blocks."
+
+    text = generate_with_fallback(
+        lambda: call_gemini([{"parts": [{"text": request.prompt}]}], generation_config),
+        lambda: call_deepseek(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": request.prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+            json_mode=request.json_output,
+        ),
+    )
+
+    return {"status": "success", "data": {"text": text.strip()}}
 
 # -------------------- GLOBAL EXCEPTION HANDLER --------------------
 @app.exception_handler(Exception)
