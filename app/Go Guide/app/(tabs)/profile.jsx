@@ -23,9 +23,10 @@ export default function Profile() {
     { id: "1", title: "Account & Security", icon: "shield-checkmark-outline", route: "/edit-profile" },
     { id: "2", title: "Personal Location", icon: "location-outline", route: "/location" },
     { id: "3", title: "My Bookings", icon: "briefcase-outline", route: "/my-bookings" },
-    { id: "4", title: "Preferences", icon: "settings-outline", route: "/preferences" },
-    { id: "5", title: "Help Center", icon: "help-circle-outline", route: "/help-center" },
-    { id: "6", title: "Sign Out", icon: "log-out-outline", route: "/auth/sign-in" },
+    { id: "4", title: "Smart Packing Checklist", icon: "bag-check-outline", route: "/packing-checklist" },
+    { id: "5", title: "Preferences", icon: "settings-outline", route: "/preferences" },
+    { id: "6", title: "Help Center", icon: "help-circle-outline", route: "/help-center" },
+    { id: "7", title: "Sign Out", icon: "log-out-outline", route: "/auth/sign-in" },
   ];
 
   const handleMenuPress = (route) => {

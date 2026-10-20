@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../constants/constants';
 import { useTheme } from '../constants/theme';
 
 export default function PackingList({ items }) {
+  const router = useRouter();
   const theme = useTheme();
   const [checkedItems, setCheckedItems] = useState({});
   const [expandedIndex, setExpandedIndex] = useState(null);
@@ -125,6 +127,20 @@ export default function PackingList({ items }) {
       </View>
       {displayItems.map((item, index) => renderItem({ item, index }))}
 
+      {/* Full Checklist Navigation Button */}
+      <TouchableOpacity 
+        style={[styles.manageListBtn, { borderColor: theme.border, backgroundColor: theme.card }]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/packing-checklist");
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="bag-check-outline" size={17} color={Colors.PRIMARY} style={{ marginRight: 8 }} />
+        <Text style={[styles.manageListText, { color: theme.text }]}>Open Smart Luggage Checklist</Text>
+        <Ionicons name="chevron-forward" size={14} color={theme.subtext} style={{ marginLeft: "auto" }} />
+      </TouchableOpacity>
+
       {allChecked && (
         <TouchableOpacity 
           style={[styles.confirmBtn, { backgroundColor: Colors.PRIMARY }]}
@@ -233,5 +249,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Outfit-Bold',
     marginLeft: 10,
+  },
+  manageListBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  manageListText: {
+    fontSize: 14,
+    fontFamily: 'Outfit-Medium',
   },
 });

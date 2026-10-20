@@ -43,9 +43,32 @@ export default function MyTrip() {
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [userTripsList, setUserTripsList] = useState([]);
+  const [activeTripId, setActiveTripId] = useState(null);
 
   // Smooth Shimmer pulse animation for skeleton loading
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+  // Slide & Fade animation for multi-trip carousel
+  const carouselSlideAnim = useRef(new Animated.Value(-20)).current;
+  const carouselFadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (userTripsList.length > 0) {
+      Animated.parallel([
+        Animated.timing(carouselSlideAnim, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(carouselFadeAnim, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [userTripsList.length]);
 
   useEffect(() => {
     Animated.loop(
@@ -105,21 +128,42 @@ export default function MyTrip() {
         collection(db, "UserTrips"),
         where("userEmail", "==", auth.currentUser.email),
         orderBy("createdAt", "desc"),
-        limit(1)
+        limit(10)
       );
 
       const querySnapshot = await getDocs(q);
+      const trips = [];
       querySnapshot.forEach((doc) => {
-        const data = doc.data().tripData;
-        setTripData(data);
-        AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(data)).catch(() => {});
-        setIsOfflineCached(true);
+        const d = doc.data();
+        trips.push({
+          id: doc.id,
+          ...d.tripData,
+          createdAt: d.createdAt,
+        });
       });
+
+      if (trips.length > 0) {
+        setUserTripsList(trips);
+        setActiveTripId(trips[0].id);
+        if (!plan) {
+          setTripData(trips[0]);
+          AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(trips[0])).catch(() => {});
+          setIsOfflineCached(true);
+        }
+      }
     } catch (e) {
       console.log("Firestore offline or fetch error:", e);
       // Fallback already handled via loadCachedTrip
     }
     setLoading(false);
+  };
+
+  const handleSelectTrip = (selectedTrip) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setActiveTripId(selectedTrip.id);
+    setTripData(selectedTrip);
+    setSelectedDay("all");
+    AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
   };
 
   const createNewTrip = () => {
@@ -387,6 +431,92 @@ export default function MyTrip() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         
+        {/* Animated Multi-Trip Slider (when user has trips) */}
+        {userTripsList.length > 0 && (
+          <Animated.View 
+            style={[
+              styles.carouselSection, 
+              { 
+                opacity: carouselFadeAnim, 
+                transform: [{ translateX: carouselSlideAnim }] 
+              }
+            ]}
+          >
+            <View style={styles.carouselHeaderRow}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="compass-outline" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+                <Text style={[styles.carouselTitle, { color: theme.text }]}>Your Trips</Text>
+                <View style={[styles.tripCountBadge, { backgroundColor: Colors.PRIMARY + "18" }]}>
+                  <Text style={[styles.tripCountText, { color: Colors.PRIMARY }]}>{userTripsList.length}</Text>
+                </View>
+              </View>
+              <Text style={[styles.carouselSwipeHint, { color: theme.subtext }]}>Slide to switch ➡️</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselContainer}
+            >
+              {userTripsList.map((t, idx) => {
+                const isSelected = activeTripId === t.id || (activeTripId === null && idx === 0);
+                const destTitle = t.aiTripPlan?.destination || t.destination || t.locationInfo?.name || "Trip";
+                const destImg = t.toLocationImage || t.locationInfo?.photoRef || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop";
+                const duration = t.aiTripPlan?.duration || `${t.totalDays || 3} Days`;
+
+                return (
+                  <TouchableOpacity
+                    key={t.id || idx}
+                    activeOpacity={0.85}
+                    onPress={() => handleSelectTrip(t)}
+                    style={[
+                      styles.tripCarouselCard,
+                      {
+                        borderColor: isSelected ? Colors.PRIMARY : theme.border,
+                        borderWidth: isSelected ? 2 : 1,
+                        backgroundColor: theme.card,
+                      },
+                    ]}
+                  >
+                    <Image source={{ uri: destImg }} style={styles.carouselCardImg} />
+                    <View style={styles.carouselOverlay} />
+
+                    {isSelected && (
+                      <View style={styles.activePill}>
+                        <View style={styles.activePillDot} />
+                        <Text style={styles.activePillText}>VIEWING</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.carouselCardBody}>
+                      <Text style={styles.carouselDestTitle} numberOfLines={1}>{destTitle}</Text>
+                      <View style={styles.carouselMetaRow}>
+                        <Ionicons name="time-outline" size={11} color="#E2E8F0" />
+                        <Text style={styles.carouselMetaText}>{duration}</Text>
+                        <Text style={styles.carouselMetaDot}>•</Text>
+                        <Ionicons name="wallet-outline" size={11} color="#E2E8F0" />
+                        <Text style={styles.carouselMetaText}>{t.aiTripPlan?.budget || t.budget || "Budget"}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Add Trip Quick Card */}
+              <TouchableOpacity
+                onPress={createNewTrip}
+                activeOpacity={0.8}
+                style={[styles.addTripCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={[styles.addTripIconWrap, { backgroundColor: Colors.PRIMARY + "15" }]}>
+                  <Ionicons name="add" size={24} color={Colors.PRIMARY} />
+                </View>
+                <Text style={[styles.addTripText, { color: theme.text }]}>New Trip</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Animated.View>
+        )}
+
         {/* Hero Banner with Modern Glassmorphism Overlay */}
         <View style={styles.heroContainer}>
           <Image 
@@ -419,21 +549,37 @@ export default function MyTrip() {
           </View>
         </View>
 
-        {/* Quick Action Bar (Calendar, Export, Safety Alerts) */}
-        <View style={styles.quickActionBar}>
+        {/* Quick Action Bar (Calendar, Packing, Export, Safety Alerts) */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={{ marginBottom: 20 }}
+          contentContainerStyle={{ gap: 10, paddingRight: 4 }}
+        >
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
             onPress={addToCalendar}
           >
-            <Ionicons name="calendar" size={18} color="#0284C7" />
+            <Ionicons name="calendar" size={17} color="#0284C7" />
             <Text style={[styles.quickActionLabel, { color: theme.text }]}>Add Calendar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/packing-checklist");
+            }}
+          >
+            <Ionicons name="bag-check" size={17} color="#8B5CF6" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Packing List</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
             onPress={() => setShowExportModal(true)}
           >
-            <Ionicons name="download-outline" size={18} color="#10B981" />
+            <Ionicons name="download-outline" size={17} color="#10B981" />
             <Text style={[styles.quickActionLabel, { color: theme.text }]}>Export Doc</Text>
           </TouchableOpacity>
 
@@ -444,10 +590,10 @@ export default function MyTrip() {
               router.push("/safety-alerts");
             }}
           >
-            <Ionicons name="shield-checkmark" size={18} color="#F59E0B" />
+            <Ionicons name="shield-checkmark" size={17} color="#F59E0B" />
             <Text style={[styles.quickActionLabel, { color: theme.text }]}>Live Safety</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
         
         {/* Weather & Packing Quick Widgets */}
         <WeatherCard weatherBrief={plan.weatherBrief} />
@@ -758,6 +904,133 @@ const styles = StyleSheet.create({
   skeletonLine: {
     backgroundColor: "rgba(150, 150, 150, 0.2)",
     borderRadius: 8,
+  },
+
+  // Carousel Section Styles
+  carouselSection: {
+    marginBottom: 16,
+  },
+  carouselHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  carouselTitle: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+  },
+  tripCountBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  tripCountText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+  },
+  carouselSwipeHint: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+  },
+  carouselContainer: {
+    gap: 12,
+    paddingRight: 10,
+    paddingVertical: 4,
+  },
+  tripCarouselCard: {
+    width: 170,
+    height: 110,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  carouselCardImg: {
+    width: "100%",
+    height: "100%",
+  },
+  carouselOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  activePill: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  activePillDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#FFF",
+    marginRight: 4,
+  },
+  activePillText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.5,
+  },
+  carouselCardBody: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    right: 8,
+  },
+  carouselDestTitle: {
+    color: "#FFF",
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+  },
+  carouselMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  carouselMetaText: {
+    color: "#E2E8F0",
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginLeft: 3,
+  },
+  carouselMetaDot: {
+    color: "#94A3B8",
+    fontSize: 10,
+    marginHorizontal: 4,
+  },
+  addTripCard: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addTripIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  addTripText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
   },
 
   // Hero Section
