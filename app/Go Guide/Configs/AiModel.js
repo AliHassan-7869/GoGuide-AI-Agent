@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { auth } from "./FirebaseConfig";
 
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
@@ -9,8 +10,15 @@ function resolveApiUrl() {
   const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
 
+  if (!__DEV__) return "";
+
+  // Browser: the backend runs on the same computer that serves the web app
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.hostname) {
+    return `http://${window.location.hostname}:8000`;
+  }
+
   const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.1.28:8081"
-  if (__DEV__ && hostUri) {
+  if (hostUri) {
     const host = hostUri.split(":")[0];
     return `http://${host}:8000`;
   }

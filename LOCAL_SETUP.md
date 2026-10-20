@@ -84,7 +84,15 @@ Scan the QR code with Expo Go. Then sign in. AI features need a signed in user.
 
 No Expo account is needed. The project is not linked to an EAS project, so Expo never asks you to log in.
 
-**iPhone:** scan the QR with the **Camera** app (not inside Expo Go), then tap "Open in Expo Go". Also allow Settings > Privacy & Security > Local Network > **Expo Go**.
+**iPhone:** since September 2026, Expo Go on a real iPhone only opens dev projects when you are logged in to the same Expo account on both Expo CLI (`npx expo login`) and Expo Go. Android, emulators and the web do not need an account. If you are logged in: scan the QR with the **Camera** app, tap "Open in Expo Go", and allow Settings > Privacy & Security > Local Network > **Expo Go**.
+
+### Test without an Expo account
+
+| Way | Command | Notes |
+|---|---|---|
+| Browser (any phone or computer) | `npm run web` | Open `http://<computer-ip>:8081` in Safari or Chrome on the same WiFi. Some native features (haptics, calendar) behave differently |
+| Android phone | `npm start`, scan with Expo Go | No login needed on Android |
+| Android emulator | `npm start`, then press `a` | Needs Android Studio and an emulator. Expo Go installs itself |
 
 **Expo Go version:** the store Expo Go only opens one SDK. This app uses SDK 57. If Expo Go says the project is incompatible, update Expo Go or upgrade the app SDK to match.
 
