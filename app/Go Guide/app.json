@@ -1,6 +1,5 @@
 {
   "expo": {
-    "owner": "stack2211",
     "name": "Ai-Travel_agent",
     "slug": "Ai-Travel_agent",
     "version": "1.0.0",
@@ -51,10 +50,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "9b704884-7e10-419f-a6d4-796492b9ed6d"
-      }
+      "router": {}
     }
   }
 }

@@ -82,7 +82,11 @@ npm start
 
 Scan the QR code with Expo Go. Then sign in. AI features need a signed in user.
 
-`npm start` runs Expo in `--offline` mode, so it never asks you to log in to an Expo account. Use `npm run start:online` only if you need Expo account features.
+No Expo account is needed. The project is not linked to an EAS project, so Expo never asks you to log in.
+
+**iPhone:** scan the QR with the **Camera** app (not inside Expo Go), then tap "Open in Expo Go". Also allow Settings > Privacy & Security > Local Network > **Expo Go**.
+
+**Expo Go version:** the store Expo Go only opens one SDK. This app uses SDK 57. If Expo Go says the project is incompatible, update Expo Go or upgrade the app SDK to match.
 
 The console shows `[Backend] Using http://<your-ip>:8000` so you can see which address the app picked.
 
@@ -147,7 +151,7 @@ Find the computer IP with `ip -4 -br addr` (Linux) or `ipconfig` (Windows, look 
 
 | Problem | Fix |
 |---|---|
-| Request timed out after scanning QR, and the terminal asks "log in with your Expo account" | Expo is waiting for your answer and holds the phone request. Pick **Proceed anonymously** (arrow down, Enter), or run `npx expo login` once |
+| Terminal asks "log in with your Expo account" | `app.json` has an `extra.eas.projectId` (or `owner`) from another account. Remove them, or log in to the account that owns that EAS project |
 | Request timed out after scanning QR | Firewall. See section 4 |
 | Both URLs above fail from the phone | Router has "AP isolation" / "client isolation" on. Turn it off, or connect the computer to the phone hotspot |
 | QR code shows a wrong IP (like `172.x.x.x` from Docker or a VPN) | Linux: `REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.28 npm start`. Windows PowerShell: `$env:REACT_NATIVE_PACKAGER_HOSTNAME="192.168.1.28"; npm start` |

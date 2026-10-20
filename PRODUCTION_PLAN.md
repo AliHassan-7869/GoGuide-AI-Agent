@@ -52,7 +52,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 | [ ] 13 | Data safety form | Me | Collected: email, name, location, trip data |
 | [ ] 14 | Closed testing: 12 testers for 14 days | Me | Required for new personal developer accounts before production. Start early |
 | [ ] 15 | Play Console account | Me | $25 one time |
-| [ ] 16 | Release build with EAS | Me + Claude | `eas build -p android --profile production` |
+| [ ] 16 | Release build with EAS | Me + Claude | Create my own Expo account, run `eas init` (links the app to my account), then `eas build -p android --profile production`. The old link to the `stack2211` account was removed on 2026-10-20 |
 
 ### 2.3 Should do (quality)
 
