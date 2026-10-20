@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import PlanIcon from "../images/svg";
 
@@ -15,12 +16,75 @@ const { width, height } = Dimensions.get("window");
 
 const responsiveFont = (size) => (size * width) / 390;
 
+const GENERATION_STEPS = [
+  { text: "Scanning flights & logistics...", icon: "airplane-outline" },
+  { text: "Finding top boutique stays & hotels...", icon: "business-outline" },
+  { text: "Designing day-by-day sightseeing plan...", icon: "calendar-outline" },
+  { text: "Curating hidden local food spots...", icon: "restaurant-outline" },
+  { text: "Polishing your personalized master plan...", icon: "sparkles-outline" },
+];
+
 export default function GenerateTrip() {
   const { tripData, setTripData } = useContext(CreateTripContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const router = useRouter();
   const hasGenerated = useRef(false);
+
+  // Animations
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const radarScale = useRef(new Animated.Value(0.8)).current;
+  const radarOpacity = useRef(new Animated.Value(0.7)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Hover floating loop
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -12,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 10,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Radar pulse expansion loop
+    Animated.loop(
+      Animated.parallel([
+        Animated.timing(radarScale, {
+          toValue: 2.1,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(radarOpacity, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Smooth progress bar fill
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 8000,
+      useNativeDriver: false,
+    }).start();
+
+    // Step cycler
+    const interval = setInterval(() => {
+      setCurrentStepIndex((prev) => (prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev));
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (tripData && !hasGenerated.current) {
@@ -101,7 +165,6 @@ export default function GenerateTrip() {
       const user = auth.currentUser;
       if (user) {
         try {
-          // addDoc gives a unique id, so two users saving at the same moment never collide
           await addDoc(collection(db, "UserTrips"), {
             userEmail: user.email,
             tripData: completeTripData,
@@ -110,7 +173,6 @@ export default function GenerateTrip() {
           console.log("Trip saved to Firebase!");
         } catch (firebaseError) {
           console.warn("⚠️ Could not save trip to Firebase:", firebaseError.message);
-          console.warn("Trip was generated successfully but not saved. Update your Firestore security rules to fix this.");
         }
       }
 
@@ -126,29 +188,62 @@ export default function GenerateTrip() {
     }
   };
 
+  const currentStep = GENERATION_STEPS[currentStepIndex];
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Text style={styles.title}>Please Wait...</Text>
+      {/* Animated Radar Pulse & Hovering Icon */}
+      <View style={styles.radarWrapper}>
+        <Animated.View
+          style={[
+            styles.radarRing,
+            {
+              transform: [{ scale: radarScale }],
+              opacity: radarOpacity,
+            },
+          ]}
+        />
+        <Animated.View style={[styles.svgContainer, { transform: [{ translateY: floatAnim }] }]}>
+          <PlanIcon width={width * 0.45} height={height * 0.22} />
+        </Animated.View>
+      </View>
 
+      <Text style={styles.title}>Crafting Your Journey</Text>
       <Text style={styles.subtitle}>
-        Generating your personalized trip ✈️
+        {tripData?.toLocation?.name || "Your Destination"}
       </Text>
 
-      <View style={styles.svgContainer}>
-        <PlanIcon width={width * 0.5} height={height * 0.25} />
+      {/* Dynamic Animated Status Step Pill */}
+      <View style={styles.stepBox}>
+        <Ionicons
+          name={currentStep.icon}
+          size={18}
+          color={Colors.PRIMARY}
+          style={{ marginRight: 8 }}
+        />
+        <Text style={styles.stepText}>{currentStep.text}</Text>
+      </View>
+
+      {/* Animated Progress Bar */}
+      <View style={styles.progressBarTrack}>
+        <Animated.View
+          style={[
+            styles.progressBarFill,
+            {
+              width: progressAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ["15%", "95%"],
+              }),
+            },
+          ]}
+        />
       </View>
 
       <Text style={styles.tip}>
-        Your trip is being prepared. Sit tight and get ready for adventure!
+        Gemini AI is analyzing itineraries, live hotel ratings, and local routes.
       </Text>
-
-      {loading && (
-        <Text style={{ marginTop: 20, color: Colors.GRAY, fontFamily: 'Outfit-Medium' }}>
-          AI is planning your trip...
-        </Text>
-      )}
 
       {error && (
         <View style={styles.errorContainer}>
@@ -168,41 +263,91 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: width * 0.05,
+    paddingHorizontal: width * 0.06,
+    paddingVertical: 40,
+  },
+  radarWrapper: {
+    width: width * 0.55,
+    height: width * 0.55,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginBottom: 20,
+  },
+  radarRing: {
+    position: "absolute",
+    width: width * 0.42,
+    height: width * 0.42,
+    borderRadius: (width * 0.42) / 2,
+    borderWidth: 2,
+    borderColor: Colors.PRIMARY,
+    backgroundColor: "rgba(10, 126, 164, 0.08)",
+  },
+  svgContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
-    fontSize: responsiveFont(28),
+    fontSize: responsiveFont(24),
     fontFamily: "Outfit-Bold",
     color: Colors.PRIMARY,
-    marginBottom: 10,
+    textAlign: "center",
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: responsiveFont(16),
     fontFamily: "Outfit-Medium",
     color: Colors.GRAY,
-    marginBottom: 40,
+    marginBottom: 25,
+    textAlign: "center",
   },
-  svgContainer: {
-    marginBottom: 40,
+  stepBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(10, 126, 164, 0.08)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  stepText: {
+    fontSize: responsiveFont(13),
+    fontFamily: "Outfit-Medium",
+    color: Colors.PRIMARY,
+  },
+  progressBarTrack: {
+    width: "85%",
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#E2E8F0",
+    overflow: "hidden",
+    marginBottom: 20,
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 3,
   },
   tip: {
-    fontSize: responsiveFont(14),
-    fontFamily: "Outfit-Medium",
+    fontSize: responsiveFont(13),
+    fontFamily: "Outfit-Regular",
     color: Colors.DARK_GRAY,
     textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: 10,
   },
   errorContainer: {
     marginTop: 30,
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: "#FFF5F5",
     borderRadius: 20,
   },
   errorText: {
     fontSize: responsiveFont(14),
     fontFamily: "Outfit-Medium",
-    color: '#FF4B4B',
-    textAlign: 'center',
+    color: "#FF4B4B",
+    textAlign: "center",
     marginBottom: 15,
   },
   retryBtn: {
@@ -213,7 +358,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: Colors.WHITE,
-    fontFamily: 'Outfit-Bold',
+    fontFamily: "Outfit-Bold",
     fontSize: 16,
   },
 });

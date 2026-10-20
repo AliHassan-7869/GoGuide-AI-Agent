@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -57,6 +58,71 @@ export default function AiAssistant() {
   ]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Pulsing orb & 3-dot typing wave animation
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const dot1Anim = useRef(new Animated.Value(0)).current;
+  const dot2Anim = useRef(new Animated.Value(0)).current;
+  const dot3Anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isLoading) {
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.22,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+
+      const createDotBounce = (anim, delay) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(anim, {
+              toValue: -5,
+              duration: 240,
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 240,
+              useNativeDriver: true,
+            }),
+            Animated.delay(300),
+          ])
+        );
+      };
+
+      const dot1Loop = createDotBounce(dot1Anim, 0);
+      const dot2Loop = createDotBounce(dot2Anim, 140);
+      const dot3Loop = createDotBounce(dot3Anim, 280);
+
+      dot1Loop.start();
+      dot2Loop.start();
+      dot3Loop.start();
+
+      return () => {
+        pulseLoop.stop();
+        dot1Loop.stop();
+        dot2Loop.stop();
+        dot3Loop.stop();
+      };
+    } else {
+      pulseAnim.setValue(1);
+      dot1Anim.setValue(0);
+      dot2Anim.setValue(0);
+      dot3Anim.setValue(0);
+    }
+  }, [isLoading]);
 
   // Load chat history from storage if available
   useEffect(() => {
@@ -353,12 +419,12 @@ export default function AiAssistant() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        {/* Typing / Loading Indicator */}
+        {/* Typing / Loading Indicator with Apple Intelligence Style Wave */}
         {isLoading && (
           <View style={styles.thinkingContainer}>
-            <View style={styles.aiAvatarBadgeSmall}>
+            <Animated.View style={[styles.aiAvatarBadgeSmall, { transform: [{ scale: pulseAnim }] }]}>
               <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-            </View>
+            </Animated.View>
             <View
               style={[
                 styles.thinkingBubble,
@@ -368,15 +434,19 @@ export default function AiAssistant() {
                 },
               ]}
             >
-              <ActivityIndicator size="small" color="#7C3AED" />
               <Text
                 style={[
                   styles.thinkingText,
-                  { color: theme.isDark ? "#94A3B8" : "#64748B" },
+                  { color: theme.isDark ? "#E2E8F0" : "#1E293B" },
                 ]}
               >
-                GoGuide AI is crafting advice...
+                GoGuide Copilot is thinking
               </Text>
+              <View style={styles.dotWaveContainer}>
+                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot1Anim }] }]} />
+                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot2Anim }] }]} />
+                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot3Anim }] }]} />
+              </View>
             </View>
           </View>
         )}
@@ -618,6 +688,18 @@ const styles = StyleSheet.create({
   thinkingText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
+  },
+  dotWaveContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 6,
+    gap: 4,
+  },
+  waveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#7C3AED",
   },
   inputContainer: {
     flexDirection: "row",
