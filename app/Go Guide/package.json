@@ -3,7 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "ELECTRON_DISABLE_SANDBOX=1 expo start --go",
+    "start": "expo start --go --offline",
+    "start:online": "expo start --go",
+    "start:tunnel": "expo start --go --tunnel",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

@@ -1,11 +1,28 @@
+import Constants from "expo-constants";
 import { auth } from "./FirebaseConfig";
 
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
-// Local dev: http://<your-laptop-ip>:8000   Production: https://<your-backend-domain>
-const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/+$/, "");
+// Production: set EXPO_PUBLIC_API_URL=https://<your-backend-domain>
+// Local dev: leave it unset. The app reuses the computer address Expo Go connected to,
+// on port 8000, so it works on any Windows or Linux machine and any WiFi.
+function resolveApiUrl() {
+  const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
+
+  const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.1.28:8081"
+  if (__DEV__ && hostUri) {
+    const host = hostUri.split(":")[0];
+    return `http://${host}:8000`;
+  }
+  return "";
+}
+
+const API_URL = resolveApiUrl();
 
 if (!API_URL) {
-  console.error("❌ EXPO_PUBLIC_API_URL is not set in .env!");
+  console.error("❌ Backend URL not found. Set EXPO_PUBLIC_API_URL in .env");
+} else {
+  console.log("[Backend] Using", API_URL);
 }
 
 export const generationConfig = {
