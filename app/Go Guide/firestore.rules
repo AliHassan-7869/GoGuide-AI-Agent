@@ -30,6 +30,12 @@ service cloud.firestore {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
 
+    // Support tickets can be submitted by users
+    match /SupportTickets/{ticketId} {
+      allow create: if true;
+      allow read: if signedIn();
+    }
+
     // Everything else is denied by default.
   }
 }
