@@ -20,7 +20,7 @@ export default function Profile() {
   const theme = useTheme();
 
   const menuOptions = [
-    { id: "1", title: "Edit Profile", icon: "person-outline", route: "/edit-profile" },
+    { id: "1", title: "Account & Security", icon: "shield-checkmark-outline", route: "/edit-profile" },
     { id: "2", title: "Personal Location", icon: "location-outline", route: "/location" },
     { id: "3", title: "My Bookings", icon: "briefcase-outline", route: "/mytrip" },
     { id: "4", title: "Preferences", icon: "settings-outline", route: "/preferences" },
