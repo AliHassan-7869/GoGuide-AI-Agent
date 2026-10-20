@@ -31,7 +31,7 @@ const QUICK_CHIPS = [
 
 export default function AiAssistant() {
   const theme = useTheme();
-  const { tripData, userData } = useContext(CreateTripContext);
+  const { tripData } = useContext(CreateTripContext);
   const flatListRef = useRef(null);
 
   const activeDestination =
@@ -41,8 +41,8 @@ export default function AiAssistant() {
     null;
 
   const initialGreeting = activeDestination
-    ? `Hey ${userData?.name || "Traveler"}! ✈️ I'm your GoGuide AI Copilot. I see you're planning a trip to **${activeDestination}**!\n\nAsk me anything: local halal food, packing essentials, budget tricks, or hidden spots.`
-    : `Hey ${userData?.name || "Traveler"}! 🌍 I'm your GoGuide AI Copilot.\n\nTell me where you want to travel or ask for advice on destinations, budgets, flights, and hidden gems!`;
+    ? `Hello! ✈️ I'm your GoGuide AI Copilot. I see you're planning a trip to **${activeDestination}**!\n\nAsk me anything: local halal food, packing essentials, budget tricks, or hidden spots.`
+    : `Hello! 🌍 I'm your GoGuide AI Copilot.\n\nTell me where you want to travel or ask for advice on destinations, budgets, flights, and hidden gems!`;
 
   const [messages, setMessages] = useState([
     {
