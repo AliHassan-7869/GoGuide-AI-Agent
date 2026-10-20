@@ -5,7 +5,6 @@ import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Modal,
   Platform,
   ScrollView,
@@ -63,7 +62,7 @@ const FAQS = [
     category: "Account & Offline",
     question: "How do I update my profile and dark mode?",
     answer:
-      "Go to the Profile tab in the bottom bar. Select 'Edit Profile' to change your name and photo, or go to 'Preferences' to toggle Dark Mode and push notifications.",
+      "Go to the Profile tab in the bottom bar. Select 'Account & Security' to change your credentials, or go to 'Preferences' to toggle Dark Mode, units, and dining preferences.",
   },
 ];
 
@@ -79,6 +78,10 @@ export default function HelpCenter() {
   const router = useRouter();
   const theme = useTheme();
   const { userData } = useContext(CreateTripContext);
+
+  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
+  const iconColor = theme.isDark ? "#CBD5E1" : "#475569";
 
   // Search & FAQ States
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,7 +119,7 @@ export default function HelpCenter() {
 
   const handleSubmitTicket = async () => {
     if (!ticketMessage.trim()) {
-      alert("Please describe your issue before submitting.");
+      Alert.alert("Notice", "Please describe your issue before submitting.");
       return;
     }
 
@@ -140,21 +143,21 @@ export default function HelpCenter() {
       }, 2000);
     } catch (e) {
       console.error("Error submitting ticket:", e);
-      alert("Could not submit ticket. Please check your internet connection.");
+      Alert.alert("Notice", "Could not submit ticket. Please check your internet connection.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.isDark ? "#0F0F14" : "#F8FAFC" }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
       <View
         style={[
           styles.header,
           {
-            backgroundColor: theme.isDark ? "#161622" : "#FFFFFF",
-            borderBottomColor: theme.isDark ? "#222233" : "#E2E8F0",
+            backgroundColor: theme.header,
+            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
           },
         ]}
       >
@@ -162,14 +165,14 @@ export default function HelpCenter() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={theme.isDark ? "#FFFFFF" : Colors.PRIMARY}
+            color={theme.isDark ? theme.text : activeAccent}
           />
         </TouchableOpacity>
         <View>
           <Text
             style={[
               styles.headerTitle,
-              { color: theme.isDark ? "#FFFFFF" : Colors.PRIMARY },
+              { color: theme.isDark ? theme.text : activeAccent },
             ]}
           >
             Help & Support
@@ -193,35 +196,30 @@ export default function HelpCenter() {
             style={[
               styles.channelCard,
               {
-                backgroundColor: theme.isDark ? "#1A1A28" : "#EDE9FE",
-                borderColor: theme.isDark ? "#2E2E45" : "#DDD6FE",
+                backgroundColor: theme.card,
+                borderColor: theme.isDark ? "#262638" : "#E2E8F0",
               },
             ]}
             onPress={() => router.push("/(tabs)/ai-assistant")}
             activeOpacity={0.8}
           >
-            <View style={styles.channelIconBoxPurple}>
-              <Ionicons name="sparkles" size={24} color="#7C3AED" />
+            <View style={[styles.channelIconBox, { backgroundColor: badgeBg }]}>
+              <Ionicons name="sparkles" size={20} color={iconColor} />
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.badgeRow}>
-                <Text style={[styles.channelTitle, { color: theme.isDark ? "#FFFFFF" : "#4C1D95" }]}>
+                <Text style={[styles.channelTitle, { color: theme.text }]}>
                   AI Copilot
                 </Text>
-                <View style={styles.instantPill}>
-                  <Text style={styles.instantText}>24/7 Instant</Text>
+                <View style={[styles.instantPill, { backgroundColor: badgeBg }]}>
+                  <Text style={[styles.instantText, { color: activeAccent }]}>24/7 Instant</Text>
                 </View>
               </View>
-              <Text
-                style={[
-                  styles.channelDesc,
-                  { color: theme.isDark ? "#94A3B8" : "#6D28D9" },
-                ]}
-              >
+              <Text style={[styles.channelDesc, { color: theme.subtext }]}>
                 Instant trip adjustments, packing tips & itinerary troubleshooting.
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#7C3AED" />
+            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
           </TouchableOpacity>
 
           {/* Channel 2: Submit Human Ticket */}
@@ -229,35 +227,30 @@ export default function HelpCenter() {
             style={[
               styles.channelCard,
               {
-                backgroundColor: theme.isDark ? "#1E1E2C" : "#FFFFFF",
-                borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
+                backgroundColor: theme.card,
+                borderColor: theme.isDark ? "#262638" : "#E2E8F0",
               },
             ]}
             onPress={() => setIsModalVisible(true)}
             activeOpacity={0.8}
           >
-            <View style={styles.channelIconBoxBlue}>
-              <Ionicons name="headset-outline" size={24} color="#2563EB" />
+            <View style={[styles.channelIconBox, { backgroundColor: badgeBg }]}>
+              <Ionicons name="headset-outline" size={20} color={iconColor} />
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.badgeRow}>
-                <Text style={[styles.channelTitle, { color: theme.isDark ? "#FFFFFF" : "#1E293B" }]}>
+                <Text style={[styles.channelTitle, { color: theme.text }]}>
                   Report Issue
                 </Text>
-                <View style={styles.ticketPill}>
-                  <Text style={styles.ticketPillText}>Direct to Developer</Text>
+                <View style={[styles.ticketPill, { backgroundColor: badgeBg }]}>
+                  <Text style={[styles.ticketPillText, { color: theme.subtext }]}>Developer Ticket</Text>
                 </View>
               </View>
-              <Text
-                style={[
-                  styles.channelDesc,
-                  { color: theme.isDark ? "#94A3B8" : "#64748B" },
-                ]}
-              >
+              <Text style={[styles.channelDesc, { color: theme.subtext }]}>
                 Found a bug or need account help? Send a support ticket directly to our database.
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
           </TouchableOpacity>
         </View>
 
@@ -266,29 +259,29 @@ export default function HelpCenter() {
           style={[
             styles.searchBar,
             {
-              backgroundColor: theme.isDark ? "#1E1E2C" : "#FFFFFF",
-              borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
             },
           ]}
         >
           <Ionicons
             name="search-outline"
-            size={20}
-            color={theme.isDark ? "#94A3B8" : "#64748B"}
+            size={18}
+            color={theme.subtext}
           />
           <TextInput
             style={[
               styles.searchInput,
-              { color: theme.isDark ? "#FFFFFF" : "#0F172A" },
+              { color: theme.text },
             ]}
             placeholder="Search FAQs (e.g. offline, budget, maps)..."
-            placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+            placeholderTextColor={theme.subtext}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              <Ionicons name="close-circle" size={18} color={theme.subtext} />
             </TouchableOpacity>
           )}
         </View>
@@ -307,10 +300,10 @@ export default function HelpCenter() {
                 style={[
                   styles.categoryPill,
                   isSelected
-                    ? { backgroundColor: Colors.PRIMARY || "#0F172A", borderColor: Colors.PRIMARY || "#0F172A" }
+                    ? { backgroundColor: activeAccent, borderColor: activeAccent }
                     : {
-                        backgroundColor: theme.isDark ? "#1E1E2C" : "#FFFFFF",
-                        borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
+                        backgroundColor: theme.card,
+                        borderColor: theme.isDark ? "#262638" : "#E2E8F0",
                       },
                 ]}
                 onPress={() => setSelectedCategory(cat)}
@@ -323,7 +316,7 @@ export default function HelpCenter() {
                       color: isSelected
                         ? "#FFFFFF"
                         : theme.isDark
-                        ? "#E2E8F0"
+                        ? "#CBD5E1"
                         : "#475569",
                     },
                   ]}
@@ -337,10 +330,10 @@ export default function HelpCenter() {
 
         {/* Section Header */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Frequently Asked Questions
           </Text>
-          <Text style={styles.resultsCount}>
+          <Text style={[styles.resultsCount, { color: theme.subtext }]}>
             {filteredFaqs.length} {filteredFaqs.length === 1 ? "answer" : "answers"}
           </Text>
         </View>
@@ -348,12 +341,12 @@ export default function HelpCenter() {
         {/* FAQs Accordion */}
         {filteredFaqs.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="help-circle-outline" size={48} color="#94A3B8" />
-            <Text style={[styles.emptyText, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+            <Ionicons name="help-circle-outline" size={44} color={theme.subtext} />
+            <Text style={[styles.emptyText, { color: theme.subtext }]}>
               No matching questions found.
             </Text>
             <TouchableOpacity
-              style={styles.askAiSmallBtn}
+              style={[styles.askAiSmallBtn, { backgroundColor: activeAccent }]}
               onPress={() => router.push("/(tabs)/ai-assistant")}
             >
               <Text style={styles.askAiSmallText}>Ask AI Copilot instead ✨</Text>
@@ -370,9 +363,9 @@ export default function HelpCenter() {
                 style={[
                   styles.faqCard,
                   {
-                    backgroundColor: theme.isDark ? "#1A1A26" : "#FFFFFF",
+                    backgroundColor: theme.card,
                     borderColor: isExpanded
-                      ? "#7C3AED"
+                      ? activeAccent
                       : theme.isDark
                       ? "#262638"
                       : "#E2E8F0",
@@ -389,24 +382,20 @@ export default function HelpCenter() {
                       style={[
                         styles.faqIconBadge,
                         {
-                          backgroundColor: isExpanded
-                            ? "rgba(124, 58, 237, 0.15)"
-                            : theme.isDark
-                            ? "#232334"
-                            : "#F1F5F9",
+                          backgroundColor: badgeBg,
                         },
                       ]}
                     >
                       <Ionicons
                         name="help"
-                        size={16}
-                        color={isExpanded ? "#7C3AED" : theme.isDark ? "#94A3B8" : "#64748B"}
+                        size={15}
+                        color={isExpanded ? activeAccent : iconColor}
                       />
                     </View>
                     <Text
                       style={[
                         styles.faqQuestion,
-                        { color: theme.isDark ? "#FFFFFF" : "#0F172A" },
+                        { color: theme.text },
                       ]}
                     >
                       {faq.question}
@@ -414,13 +403,13 @@ export default function HelpCenter() {
                   </View>
                   <Ionicons
                     name={isExpanded ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color={isExpanded ? "#7C3AED" : "#94A3B8"}
+                    size={18}
+                    color={isExpanded ? activeAccent : theme.subtext}
                   />
                 </TouchableOpacity>
 
                 {isExpanded && (
-                  <View style={styles.faqBody}>
+                  <View style={[styles.faqBody, { borderTopColor: theme.border }]}>
                     <Text
                       style={[
                         styles.faqAnswer,
@@ -431,11 +420,11 @@ export default function HelpCenter() {
                     </Text>
 
                     {/* Feedback Micro-Interaction */}
-                    <View style={styles.feedbackRow}>
+                    <View style={[styles.feedbackRow, { borderTopColor: theme.border }]}>
                       <Text
                         style={[
                           styles.feedbackPrompt,
-                          { color: theme.isDark ? "#64748B" : "#94A3B8" },
+                          { color: theme.subtext },
                         ]}
                       >
                         Was this helpful?
@@ -443,20 +432,22 @@ export default function HelpCenter() {
                       <TouchableOpacity
                         style={[
                           styles.feedbackBtn,
-                          currentFeedback === true && styles.feedbackBtnActive,
+                          { backgroundColor: badgeBg },
+                          currentFeedback === true && { backgroundColor: activeAccent },
                         ]}
                         onPress={() => handleFeedback(faq.id, true)}
                       >
-                        <Text style={styles.feedbackText}>👍 Yes</Text>
+                        <Text style={[styles.feedbackText, currentFeedback === true && { color: "#FFFFFF" }]}>👍 Yes</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[
                           styles.feedbackBtn,
-                          currentFeedback === false && styles.feedbackBtnActive,
+                          { backgroundColor: badgeBg },
+                          currentFeedback === false && { backgroundColor: activeAccent },
                         ]}
                         onPress={() => handleFeedback(faq.id, false)}
                       >
-                        <Text style={styles.feedbackText}>👎 No</Text>
+                        <Text style={[styles.feedbackText, currentFeedback === false && { color: "#FFFFFF" }]}>👎 No</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -478,43 +469,45 @@ export default function HelpCenter() {
           <View
             style={[
               styles.modalContent,
-              { backgroundColor: theme.isDark ? "#161622" : "#FFFFFF" },
+              { backgroundColor: theme.card },
             ]}
           >
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={styles.modalIconBox}>
-                  <Ionicons name="paper-plane-outline" size={20} color="#2563EB" />
+                <View style={[styles.modalIconBox, { backgroundColor: badgeBg }]}>
+                  <Ionicons name="paper-plane-outline" size={18} color={activeAccent} />
                 </View>
                 <View>
                   <Text
                     style={[
                       styles.modalTitle,
-                      { color: theme.isDark ? "#FFFFFF" : "#0F172A" },
+                      { color: theme.text },
                     ]}
                   >
                     Submit Support Ticket
                   </Text>
-                  <Text style={styles.modalSubtitle}>Direct report saved to developer database</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.subtext }]}>
+                    Direct report saved to developer database
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity
                 onPress={() => setIsModalVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={20} color={theme.isDark ? "#FFFFFF" : "#0F172A"} />
+                <Ionicons name="close" size={20} color={theme.text} />
               </TouchableOpacity>
             </View>
 
             {ticketSuccess ? (
               <View style={styles.successState}>
-                <Ionicons name="checkmark-circle" size={54} color="#10B981" />
-                <Text style={[styles.successTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Ionicons name="checkmark-circle" size={50} color="#10B981" />
+                <Text style={[styles.successTitle, { color: theme.text }]}>
                   Ticket Submitted Successfully!
                 </Text>
-                <Text style={styles.successDesc}>
-                  Your message has been logged in our Firestore database. Our team will look into it!
+                <Text style={[styles.successDesc, { color: theme.subtext }]}>
+                  Your message has been logged in our Firestore database. Our team will review this shortly!
                 </Text>
               </View>
             ) : (
@@ -523,7 +516,7 @@ export default function HelpCenter() {
                 <Text
                   style={[
                     styles.inputLabel,
-                    { color: theme.isDark ? "#E2E8F0" : "#334155" },
+                    { color: theme.text },
                   ]}
                 >
                   Issue Type
@@ -537,10 +530,10 @@ export default function HelpCenter() {
                         style={[
                           styles.ticketCatChip,
                           active
-                            ? { backgroundColor: "#2563EB", borderColor: "#2563EB" }
+                            ? { backgroundColor: activeAccent, borderColor: activeAccent }
                             : {
-                                backgroundColor: theme.isDark ? "#202030" : "#F1F5F9",
-                                borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
+                                backgroundColor: badgeBg,
+                                borderColor: theme.border,
                               },
                         ]}
                         onPress={() => setTicketCategory(cat)}
@@ -562,7 +555,7 @@ export default function HelpCenter() {
                 <Text
                   style={[
                     styles.inputLabel,
-                    { color: theme.isDark ? "#E2E8F0" : "#334155", marginTop: 14 },
+                    { color: theme.text, marginTop: 14 },
                   ]}
                 >
                   Your Email
@@ -571,13 +564,13 @@ export default function HelpCenter() {
                   style={[
                     styles.inputBox,
                     {
-                      backgroundColor: theme.isDark ? "#202030" : "#F8FAFC",
-                      borderColor: theme.isDark ? "#2E2E44" : "#E2E8F0",
-                      color: theme.isDark ? "#FFFFFF" : "#0F172A",
+                      backgroundColor: badgeBg,
+                      borderColor: theme.border,
+                      color: theme.text,
                     },
                   ]}
                   placeholder="name@example.com"
-                  placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+                  placeholderTextColor={theme.subtext}
                   value={ticketEmail}
                   onChangeText={setTicketEmail}
                   keyboardType="email-address"
@@ -588,7 +581,7 @@ export default function HelpCenter() {
                 <Text
                   style={[
                     styles.inputLabel,
-                    { color: theme.isDark ? "#E2E8F0" : "#334155", marginTop: 14 },
+                    { color: theme.text, marginTop: 14 },
                   ]}
                 >
                   Describe the Issue
@@ -598,13 +591,13 @@ export default function HelpCenter() {
                     styles.inputBox,
                     styles.textArea,
                     {
-                      backgroundColor: theme.isDark ? "#202030" : "#F8FAFC",
-                      borderColor: theme.isDark ? "#2E2E44" : "#E2E8F0",
-                      color: theme.isDark ? "#FFFFFF" : "#0F172A",
+                      backgroundColor: badgeBg,
+                      borderColor: theme.border,
+                      color: theme.text,
                     },
                   ]}
-                  placeholder="What happened? Steps to reproduce or feature details..."
-                  placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+                  placeholder="What happened? Steps to reproduce..."
+                  placeholderTextColor={theme.subtext}
                   value={ticketMessage}
                   onChangeText={setTicketMessage}
                   multiline={true}
@@ -615,7 +608,7 @@ export default function HelpCenter() {
                 <TouchableOpacity
                   style={[
                     styles.submitTicketBtn,
-                    { opacity: isSubmitting || !ticketMessage.trim() ? 0.6 : 1 },
+                    { backgroundColor: activeAccent, opacity: isSubmitting || !ticketMessage.trim() ? 0.6 : 1 },
                   ]}
                   onPress={handleSubmitTicket}
                   disabled={isSubmitting || !ticketMessage.trim()}
@@ -625,7 +618,7 @@ export default function HelpCenter() {
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="send" size={18} color="#FFFFFF" />
+                      <Ionicons name="send" size={16} color="#FFFFFF" />
                       <Text style={styles.submitTicketText}>Send Ticket to Developer</Text>
                     </>
                   )}
@@ -674,34 +667,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   channelsContainer: {
-    gap: 12,
-    marginBottom: 18,
+    gap: 10,
+    marginBottom: 16,
   },
   channelCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 15,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 1,
+    gap: 12,
   },
-  channelIconBoxPurple: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(124, 58, 237, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  channelIconBoxBlue: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+  channelIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -709,25 +689,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   channelTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "Outfit-Bold",
   },
   instantPill: {
-    backgroundColor: "rgba(124, 58, 237, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
   instantText: {
     fontSize: 10,
-    fontFamily: "Outfit-Medium",
-    color: "#7C3AED",
+    fontFamily: "Outfit-Bold",
   },
   ticketPill: {
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -735,26 +712,25 @@ const styles = StyleSheet.create({
   ticketPillText: {
     fontSize: 10,
     fontFamily: "Outfit-Medium",
-    color: "#2563EB",
   },
   channelDesc: {
     fontSize: 12,
     fontFamily: "Outfit-Regular",
-    lineHeight: 18,
+    lineHeight: 17,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    height: 46,
-    borderRadius: 23,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     gap: 10,
     marginBottom: 14,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Outfit-Regular",
   },
   categoryScroll: {
@@ -762,13 +738,13 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   categoryPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
     borderWidth: 1,
   },
   categoryText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   sectionHeaderRow: {
@@ -778,13 +754,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "Outfit-Bold",
   },
   resultsCount: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Outfit-Regular",
-    color: "#94A3B8",
   },
   faqCard: {
     borderRadius: 14,
@@ -796,40 +771,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    padding: 14,
   },
   faqIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   faqQuestion: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Outfit-Bold",
     flex: 1,
   },
   faqBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(148, 163, 184, 0.2)",
   },
   faqAnswer: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Outfit-Regular",
-    lineHeight: 22,
-    marginTop: 10,
+    lineHeight: 20,
+    marginTop: 8,
   },
   feedbackRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 14,
-    paddingTop: 10,
+    marginTop: 12,
+    paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(148, 163, 184, 0.15)",
   },
   feedbackPrompt: {
     fontSize: 11,
@@ -837,12 +810,8 @@ const styles = StyleSheet.create({
   },
   feedbackBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: "rgba(148, 163, 184, 0.12)",
-  },
-  feedbackBtnActive: {
-    backgroundColor: "#7C3AED",
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   feedbackText: {
     fontSize: 11,
@@ -856,20 +825,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Outfit-Regular",
   },
   askAiSmallBtn: {
-    backgroundColor: "#7C3AED",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    marginTop: 6,
+    marginTop: 4,
   },
   askAiSmallText: {
     color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "Outfit-Medium",
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
   modalOverlay: {
     flex: 1,
@@ -889,20 +857,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: "Outfit-Bold",
   },
   modalSubtitle: {
     fontSize: 11,
-    color: "#94A3B8",
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
@@ -910,9 +876,9 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ticketCategoryWrap: {
     flexDirection: "row",
@@ -922,7 +888,7 @@ const styles = StyleSheet.create({
   ticketCatChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
   },
   ticketCatText: {
@@ -934,27 +900,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Outfit-Regular",
   },
   textArea: {
-    height: 90,
+    height: 80,
     textAlignVertical: "top",
   },
   submitTicketBtn: {
-    backgroundColor: "#2563EB",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 22,
+    paddingVertical: 13,
+    borderRadius: 20,
     gap: 8,
-    marginTop: 20,
+    marginTop: 18,
     marginBottom: 10,
   },
   submitTicketText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Outfit-Bold",
   },
   successState: {
@@ -964,16 +929,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   successTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: "Outfit-Bold",
     textAlign: "center",
   },
   successDesc: {
-    fontSize: 13,
-    color: "#64748B",
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     textAlign: "center",
     paddingHorizontal: 20,
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

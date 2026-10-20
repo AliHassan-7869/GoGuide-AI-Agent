@@ -230,7 +230,7 @@ export default function AiAssistant() {
     <SafeAreaView
       style={[
         styles.safeContainer,
-        { backgroundColor: theme.isDark ? "#0F0F14" : "#F8FAFC" },
+        { backgroundColor: theme.bg },
       ]}
     >
       {/* Header Bar */}
@@ -238,8 +238,8 @@ export default function AiAssistant() {
         style={[
           styles.header,
           {
-            backgroundColor: theme.isDark ? "#16161F" : "#FFFFFF",
-            borderBottomColor: theme.isDark ? "#222230" : "#E2E8F0",
+            backgroundColor: theme.header,
+            borderBottomColor: theme.border,
           },
         ]}
       >

@@ -22,6 +22,8 @@ export default function Preferences() {
   const theme = useTheme();
   const [clearingCache, setClearingCache] = useState(false);
 
+  const activeAccent = Colors.PRIMARY || "#0F172A";
+
   const updatePreference = (key, value) => {
     setPreferences((prev) => ({
       ...prev,
@@ -61,14 +63,17 @@ export default function Preferences() {
     );
   };
 
+  const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
+  const iconColor = theme.isDark ? "#CBD5E1" : "#475569";
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.isDark ? "#0C0C12" : "#F8FAFC" }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
       <View
         style={[
           styles.header,
           {
-            backgroundColor: theme.isDark ? "#14141F" : "#FFFFFF",
+            backgroundColor: theme.header,
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
           },
         ]}
@@ -77,14 +82,14 @@ export default function Preferences() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={theme.isDark ? "#FFFFFF" : Colors.PRIMARY}
+            color={theme.isDark ? theme.text : activeAccent}
           />
         </TouchableOpacity>
         <View>
           <Text
             style={[
               styles.headerTitle,
-              { color: theme.isDark ? "#FFFFFF" : Colors.PRIMARY },
+              { color: theme.isDark ? theme.text : activeAccent },
             ]}
           >
             Preferences
@@ -112,22 +117,22 @@ export default function Preferences() {
           style={[
             styles.card,
             {
-              backgroundColor: theme.isDark ? "#161622" : "#FFFFFF",
-              borderColor: theme.isDark ? "#242436" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
             },
           ]}
         >
           {/* Dietary Preference */}
           <View style={styles.settingBlock}>
             <View style={styles.settingHeaderRow}>
-              <View style={styles.iconBadgePurple}>
-                <Ionicons name="restaurant-outline" size={18} color="#7C3AED" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="restaurant-outline" size={18} color={iconColor} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Dining & Dietary Filter
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   AI prioritizes restaurants matching this choice
                 </Text>
               </View>
@@ -146,10 +151,10 @@ export default function Preferences() {
                     style={[
                       styles.segmentPill,
                       isSelected
-                        ? { backgroundColor: "#7C3AED", borderColor: "#7C3AED" }
+                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
                         : {
-                            backgroundColor: theme.isDark ? "#212130" : "#F1F5F9",
-                            borderColor: theme.isDark ? "#2C2C40" : "#E2E8F0",
+                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
+                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
                           },
                     ]}
                     onPress={() => updatePreference("dietary", item.value)}
@@ -169,19 +174,19 @@ export default function Preferences() {
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.isDark ? "#222234" : "#F1F5F9" }]} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Travel Pace */}
           <View style={styles.settingBlock}>
             <View style={styles.settingHeaderRow}>
-              <View style={styles.iconBadgeBlue}>
-                <Ionicons name="speedometer-outline" size={18} color="#2563EB" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="speedometer-outline" size={18} color={iconColor} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Itinerary Pace
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Determines daily schedule density and free time
                 </Text>
               </View>
@@ -200,10 +205,10 @@ export default function Preferences() {
                     style={[
                       styles.segmentPill,
                       isSelected
-                        ? { backgroundColor: "#2563EB", borderColor: "#2563EB" }
+                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
                         : {
-                            backgroundColor: theme.isDark ? "#212130" : "#F1F5F9",
-                            borderColor: theme.isDark ? "#2C2C40" : "#E2E8F0",
+                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
+                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
                           },
                     ]}
                     onPress={() => updatePreference("travelPace", item.value)}
@@ -223,19 +228,19 @@ export default function Preferences() {
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.isDark ? "#222234" : "#F1F5F9" }]} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Preferred Currency */}
           <View style={styles.settingBlock}>
             <View style={styles.settingHeaderRow}>
-              <View style={styles.iconBadgeAmber}>
-                <Ionicons name="cash-outline" size={18} color="#D97706" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="cash-outline" size={18} color={iconColor} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Display Currency
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Estimated budget & hotel prices
                 </Text>
               </View>
@@ -255,10 +260,10 @@ export default function Preferences() {
                     style={[
                       styles.segmentPill,
                       isSelected
-                        ? { backgroundColor: "#D97706", borderColor: "#D97706" }
+                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
                         : {
-                            backgroundColor: theme.isDark ? "#212130" : "#F1F5F9",
-                            borderColor: theme.isDark ? "#2C2C40" : "#E2E8F0",
+                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
+                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
                           },
                     ]}
                     onPress={() => updatePreference("currency", item.value)}
@@ -287,57 +292,57 @@ export default function Preferences() {
           style={[
             styles.card,
             {
-              backgroundColor: theme.isDark ? "#161622" : "#FFFFFF",
-              borderColor: theme.isDark ? "#242436" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
             },
           ]}
         >
           {/* Dark Mode */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleLeft}>
-              <View style={styles.iconBadgeDark}>
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
                 <Ionicons
                   name={preferences?.darkMode ? "moon" : "moon-outline"}
                   size={18}
-                  color={theme.isDark ? "#F1F5F9" : "#334155"}
+                  color={iconColor}
                 />
               </View>
               <View>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Dark Mode
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-                  Deep obsidian palette for low light
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
+                  Deep palette for night reading
                 </Text>
               </View>
             </View>
             <Switch
               value={preferences?.darkMode ?? false}
               onValueChange={() => togglePreference("darkMode")}
-              trackColor={{ false: "#CBD5E1", true: "#7C3AED" }}
+              trackColor={{ false: "#CBD5E1", true: activeAccent }}
               thumbColor="#FFFFFF"
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.isDark ? "#222234" : "#F1F5F9" }]} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Temperature Units */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleLeft}>
-              <View style={styles.iconBadgeCyan}>
-                <Ionicons name="thermometer-outline" size={18} color="#0284C7" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="thermometer-outline" size={18} color={iconColor} />
               </View>
               <View>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Temperature Unit
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Used in destination weather cards
                 </Text>
               </View>
             </View>
 
-            <View style={styles.miniSegment}>
+            <View style={[styles.miniSegment, { backgroundColor: badgeBg }]}>
               {["C", "F"].map((unit) => {
                 const active = (preferences?.temperatureUnit || "C") === unit;
                 return (
@@ -345,14 +350,14 @@ export default function Preferences() {
                     key={unit}
                     style={[
                       styles.miniSegmentPill,
-                      active && { backgroundColor: "#0284C7" },
+                      active && { backgroundColor: activeAccent },
                     ]}
                     onPress={() => updatePreference("temperatureUnit", unit)}
                   >
                     <Text
                       style={[
                         styles.miniSegmentText,
-                        { color: active ? "#FFFFFF" : theme.isDark ? "#94A3B8" : "#64748B" },
+                        { color: active ? "#FFFFFF" : iconColor },
                       ]}
                     >
                       °{unit}
@@ -372,22 +377,22 @@ export default function Preferences() {
           style={[
             styles.card,
             {
-              backgroundColor: theme.isDark ? "#161622" : "#FFFFFF",
-              borderColor: theme.isDark ? "#242436" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
             },
           ]}
         >
           {/* Push Notifications */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleLeft}>
-              <View style={styles.iconBadgeEmerald}>
-                <Ionicons name="notifications-outline" size={18} color="#059669" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="notifications-outline" size={18} color={iconColor} />
               </View>
               <View>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Trip & Itinerary Updates
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Daily activity schedule reminders
                 </Text>
               </View>
@@ -395,24 +400,24 @@ export default function Preferences() {
             <Switch
               value={preferences?.notifications ?? true}
               onValueChange={() => togglePreference("notifications")}
-              trackColor={{ false: "#CBD5E1", true: "#059669" }}
+              trackColor={{ false: "#CBD5E1", true: activeAccent }}
               thumbColor="#FFFFFF"
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.isDark ? "#222234" : "#F1F5F9" }]} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Severe Weather & Safety */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleLeft}>
-              <View style={styles.iconBadgeRose}>
-                <Ionicons name="warning-outline" size={18} color="#E11D48" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="warning-outline" size={18} color={iconColor} />
               </View>
               <View>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Travel Safety Alerts
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Severe weather & local advisory warnings
                 </Text>
               </View>
@@ -420,24 +425,24 @@ export default function Preferences() {
             <Switch
               value={preferences?.weatherAlerts ?? true}
               onValueChange={() => togglePreference("weatherAlerts")}
-              trackColor={{ false: "#CBD5E1", true: "#E11D48" }}
+              trackColor={{ false: "#CBD5E1", true: activeAccent }}
               thumbColor="#FFFFFF"
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: theme.isDark ? "#222234" : "#F1F5F9" }]} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Location Services */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleLeft}>
-              <View style={styles.iconBadgeIndigo}>
-                <Ionicons name="navigate-outline" size={18} color="#4F46E5" />
+              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+                <Ionicons name="navigate-outline" size={18} color={iconColor} />
               </View>
               <View>
-                <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
                   Location Services
                 </Text>
-                <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                   Auto-detect nearby places & restaurants
                 </Text>
               </View>
@@ -445,7 +450,7 @@ export default function Preferences() {
             <Switch
               value={preferences?.locationServices ?? true}
               onValueChange={() => togglePreference("locationServices")}
-              trackColor={{ false: "#CBD5E1", true: "#4F46E5" }}
+              trackColor={{ false: "#CBD5E1", true: activeAccent }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -459,8 +464,8 @@ export default function Preferences() {
           style={[
             styles.card,
             {
-              backgroundColor: theme.isDark ? "#161622" : "#FFFFFF",
-              borderColor: theme.isDark ? "#242436" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
             },
           ]}
         >
@@ -470,18 +475,18 @@ export default function Preferences() {
             disabled={clearingCache}
             activeOpacity={0.7}
           >
-            <View style={styles.iconBadgeGray}>
-              <Ionicons name="trash-outline" size={18} color="#64748B" />
+            <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
+              <Ionicons name="trash-outline" size={18} color={iconColor} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingTitle, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
+              <Text style={[styles.settingTitle, { color: theme.text }]}>
                 Clear Travel & AI Cache
               </Text>
-              <Text style={[styles.settingDesc, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+              <Text style={[styles.settingDesc, { color: theme.subtext }]}>
                 Frees up local storage without deleting saved trips
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -589,7 +594,6 @@ const styles = StyleSheet.create({
   },
   miniSegment: {
     flexDirection: "row",
-    backgroundColor: "rgba(148, 163, 184, 0.15)",
     borderRadius: 10,
     padding: 3,
     gap: 2,
@@ -609,75 +613,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  iconBadgePurple: {
+  unifiedIconBadge: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(124, 58, 237, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeBlue: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeAmber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(217, 119, 6, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeDark: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(100, 116, 139, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeCyan: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(2, 132, 199, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeEmerald: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(5, 150, 105, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeRose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(225, 29, 72, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeIndigo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(79, 70, 229, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBadgeGray: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(100, 116, 139, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
