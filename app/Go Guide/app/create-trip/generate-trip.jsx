@@ -8,7 +8,7 @@ import { AI_PROMPT } from "../../Components/constants/Option";
 import { chatSession } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { auth, db } from "../../Configs/FirebaseConfig";
-import { doc, setDoc } from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
@@ -101,8 +101,8 @@ export default function GenerateTrip() {
       const user = auth.currentUser;
       if (user) {
         try {
-          const docId = Date.now().toString();
-          await setDoc(doc(db, "UserTrips", docId), {
+          // addDoc gives a unique id, so two users saving at the same moment never collide
+          await addDoc(collection(db, "UserTrips"), {
             userEmail: user.email,
             tripData: completeTripData,
             createdAt: new Date().toISOString()
