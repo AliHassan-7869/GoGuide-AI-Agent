@@ -20,6 +20,11 @@ export const CreateTripProvider = ({ children }) => {
     notifications: true,
     darkMode: false,
     locationServices: true,
+    dietary: "Halal",
+    travelPace: "Balanced",
+    currency: "USD",
+    temperatureUnit: "C",
+    weatherAlerts: true,
   });
 
   const tripStorageKey = uid ? `tripData:${uid}` : "tripData:guest";
@@ -109,6 +114,30 @@ export const CreateTripProvider = ({ children }) => {
       cancelled = true;
     };
   }, [tripData, tripStorageKey]);
+
+  // Load saved preferences
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem("@goguide_preferences");
+        if (saved) {
+          const parsed = safeJsonParse(saved);
+          if (parsed && typeof parsed === "object") {
+            setPreferences((prev) => ({ ...prev, ...parsed }));
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load preferences:", e);
+      }
+    })();
+  }, []);
+
+  // Persist preferences
+  useEffect(() => {
+    try {
+      AsyncStorage.setItem("@goguide_preferences", JSON.stringify(preferences));
+    } catch (e) {}
+  }, [preferences]);
 
   return (
     <CreateTripContext.Provider
