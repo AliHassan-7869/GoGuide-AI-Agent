@@ -1,0 +1,12 @@
+{
+  "name": "goguide-ai-agent-staging",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GoGuide AI Agent Workspace",
+  "scripts": {
+    "start": "npm start --prefix \"app/Go Guide\"",
+    "mobile": "npm start --prefix \"app/Go Guide\"",
+    "expo": "npm start --prefix \"app/Go Guide\"",
+    "web": "npm run web --prefix \"app/Go Guide\""
+  }
+}

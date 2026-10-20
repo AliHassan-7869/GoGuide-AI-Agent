@@ -44,7 +44,7 @@ export default function Login() {
       {/* Immersive Full-Screen Background Image */}
       <Image
         source={{ uri: "https://images.unsplash.com/photo-1495954484750-af469f2f9be5?q=80&w=800&auto=format&fit=crop" }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
 
@@ -52,7 +52,7 @@ export default function Login() {
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)", "#000000"]}
         locations={[0, 0.4, 0.8, 1]}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
 
       {/* Animated Bottom Content Area */}

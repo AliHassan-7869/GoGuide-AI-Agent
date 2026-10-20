@@ -3,10 +3,13 @@ python-dotenv
 crewai
 crewai[tools]
 crewai[litellm]
+crewai[google-genai]
+google-genai
 langchain
 langchain_community
 duckduckgo-search
 fastapi
 uvicorn
 requests
+google-auth
 pydantic

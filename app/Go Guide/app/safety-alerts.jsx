@@ -4,37 +4,38 @@ import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../Components/constants/constants';
 import { CreateTripContext } from '../context/CreateTripContext';
+import { fetchDestinationSafety } from '../Configs/AiModel';
 
-// Mock Data for Safety Alerts
+// Fallback Standard Data for Safety Alerts
 const safetyMockData = [
   {
     id: 1,
-    type: 'Weather Warning',
-    title: 'Heavy Rainfall Expected',
-    description: 'A severe weather warning has been issued for the coastal areas. Please avoid beach activities today.',
-    severity: 'High',
-    icon: 'thunderstorm-outline',
-    color: '#D32F2F', // Red
-    bgColor: '#FFEBEE',
+    type: 'Travel Advisory',
+    title: 'Keep Valuables Secure',
+    description: 'Keep your passport, cards, and primary phone secure in zipped pockets in busy public places.',
+    severity: 'Medium',
+    icon: 'shield-outline',
+    color: '#F57C00',
+    bgColor: '#FFF3E0',
   },
   {
     id: 2,
-    type: 'Travel Advisory',
-    title: 'Public Transport Delays',
-    description: 'Local train lines are experiencing delays up to 30 mins due to maintenance work. Consider alternative routes.',
+    type: 'Local Scam Warning',
+    title: 'Verify Taxi Meters & Fares',
+    description: 'Always confirm the meter is active or agree on the fare via an official ride-hailing app before departing.',
     severity: 'Medium',
-    icon: 'train-outline',
-    color: '#F57C00', // Orange
+    icon: 'warning-outline',
+    color: '#F57C00',
     bgColor: '#FFF3E0',
   },
   {
     id: 3,
-    type: 'Health Notice',
-    title: 'Standard Precaution',
-    description: 'Remember to carry insect repellent and stay hydrated if you are planning forest or mountain hikes.',
+    type: 'Health & Hydration',
+    title: 'Stay Hydrated & Weather-Ready',
+    description: 'Carry drinking water and check daily UV and rain forecasts before heading out on walking tours.',
     severity: 'Low',
     icon: 'medkit-outline',
-    color: '#388E3C', // Green
+    color: '#388E3C',
     bgColor: '#E8F5E9',
   }
 ];
@@ -45,7 +46,25 @@ export default function SafetyAlerts() {
   const isDark = preferences?.darkMode;
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [alerts, setAlerts] = useState(safetyMockData);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
+
+  const destinationName = tripData?.toLocation?.name || tripData?.destination || tripData?.aiTripPlan?.destination || "Popular Travel Spots";
+
+  const loadAiAlerts = async () => {
+    try {
+      setAlertsLoading(true);
+      const res = await fetchDestinationSafety(destinationName);
+      if (res && Array.isArray(res) && res.length > 0) {
+        setAlerts(res);
+      }
+    } catch (e) {
+      console.log("Error loading AI safety alerts:", e);
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
 
   const fetchWeather = async (isManual = false) => {
     const lat = tripData?.toLocation?.coordinates?.lat || "48.8566"; // Default to Paris if no trip
@@ -67,6 +86,7 @@ export default function SafetyAlerts() {
 
   useEffect(() => {
     fetchWeather();
+    loadAiAlerts();
   }, [tripData]);
 
   // Realistic/Standard mock data for emergency contacts

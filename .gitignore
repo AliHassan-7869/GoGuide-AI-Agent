@@ -27,3 +27,6 @@ TravelPlan_*.md
 Thumbs.db
 .vscode/
 .idea/
+
+# Test cache
+.pytest_cache/

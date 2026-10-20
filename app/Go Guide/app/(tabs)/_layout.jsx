@@ -45,6 +45,20 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="ai-assistant"
+        options={{
+          tabBarLabel: "AI Copilot",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "sparkles" : "sparkles-outline"}
+              size={24}
+              color={focused ? "#7C3AED" : color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarLabel: "Profile",

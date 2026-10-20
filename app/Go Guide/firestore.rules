@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function signedInEmail() {
+      return signedIn() && request.auth.token.email != null;
+    }
+
+    // Trips are owned by the email stored in `userEmail`.
+    match /UserTrips/{docId} {
+      allow read, delete: if signedInEmail()
+        && resource.data.userEmail == request.auth.token.email;
+
+      allow create: if signedInEmail()
+        && request.resource.data.userEmail == request.auth.token.email;
+
+      // Owner can update, but cannot hand the trip to someone else
+      allow update: if signedInEmail()
+        && resource.data.userEmail == request.auth.token.email
+        && request.resource.data.userEmail == request.auth.token.email;
+    }
+
+    // Each user can only read and write their own profile.
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // Everything else is denied by default.
+  }
+}

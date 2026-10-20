@@ -1,0 +1,9 @@
+# Minimal set to run the API tests (CI and local).
+# The full requirements.txt also pulls CrewAI and Streamlit, which app.py does not need.
+fastapi
+pydantic
+requests
+google-auth
+python-dotenv
+httpx
+pytest
