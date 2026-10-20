@@ -11,4 +11,5 @@ duckduckgo-search
 fastapi
 uvicorn
 requests
+google-auth
 pydantic
