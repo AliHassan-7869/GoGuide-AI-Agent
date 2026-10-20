@@ -14,7 +14,7 @@ deepseek_api_base = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
 
 if gemini_api_key:
     fast_llm = LLM(
-        model="gemini/gemini-2.5-flash",
+        model="gemini/gemini-3.8-flash",
         api_key=gemini_api_key,
         temperature=0.5,
     )

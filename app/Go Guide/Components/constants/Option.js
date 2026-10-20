@@ -1,31 +1,31 @@
 export const SelectTravelerList = [
   {
     id: 1,
-    title: "Just me",
-    description: "I sole travelers in exploration",
+    title: "Solo",
+    description: "Solo traveler exploring the world",
     icon: "🌄",
-    people: "1",
+    people: "1 Person",
   },
   {
     id: 2,
-    title: " A Couple",
-    description: "I travel with my partner",
+    title: "Couple",
+    description: "Traveling as a pair with my partner",
     icon: "🏠",
     people: "2 People",
   },
   {
     id: 3,
     title: "Family",
-    description: "I travel with family",
+    description: "Fun adventures with the whole family",
     icon: "❄️",
     people: "3 to 5 People",
   },
   {
     id: 4,
     title: "Friends",
-    description: "I travel with friends",
+    description: "Group getaway with close friends",
     icon: "🗻",
-    people: "2 to 5 People",
+    people: "2 to 5+ People",
   },
 ];
 

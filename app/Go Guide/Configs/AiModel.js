@@ -18,7 +18,7 @@ export const generationConfig = {
 // Direct Gemini API Call (Fast & Active)
 async function callGeminiAPI(promptText) {
   console.log("[Gemini] Calling Gemini 2.5 Flash API...");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`;
 
   let response;
   try {
@@ -238,7 +238,7 @@ Your style:
 - If the user writes in Urdu or Roman Urdu, reply warmly in Roman Urdu/English mix!`;
 
   if (geminiApiKey) {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`;
     
     // Format conversation history for Gemini contents
     const contents = [];
@@ -308,4 +308,37 @@ Your style:
   // Graceful fallback response
   return "I'm your GoGuide AI Copilot! Pack comfortable walking shoes, keep your passport handy, and don't forget to try the local street food! How else can I help customize your journey?";
 };
+
+// Destination-aware Live AI Safety Alerts
+export const fetchDestinationSafety = async (destination) => {
+  const dest = destination || "popular international tourist spots";
+  const prompt = `Provide 3 realistic and practical safety advisories and emergency precautions for a traveler visiting ${dest}. Return ONLY valid JSON array of objects with this schema:
+[
+  {
+    "id": 1,
+    "type": "Safety Advisory / Scam Warning / Health Notice",
+    "title": "Short title",
+    "description": "Specific, practical 1-2 sentence advice for ${dest}",
+    "severity": "High",
+    "icon": "shield-outline",
+    "color": "#D32F2F",
+    "bgColor": "#FFEBEE"
+  }
+]`;
+
+  if (geminiApiKey) {
+    try {
+      const res = await callGeminiAPI(prompt);
+      const text = res.response.text();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (match) {
+        return JSON.parse(match[0]);
+      }
+    } catch (e) {
+      console.warn("[Safety AI] Gemini error:", e.message);
+    }
+  }
+  return null;
+};
+
 

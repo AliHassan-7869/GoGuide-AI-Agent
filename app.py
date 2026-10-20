@@ -95,7 +95,7 @@ def generate_plan(request: TravelRequest, x_api_key: str = Header(default="gogui
     # 1. Use Gemini if available (fast & active)
     if gemini_key:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={gemini_key}"
             gemini_payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
