@@ -173,23 +173,37 @@ export default function GenerateTrip() {
     const completeTripData = {
       ...tripData,
       aiTripPlan: plan,
+      createdAt: new Date().toISOString(),
     };
 
     setTripData(completeTripData);
 
-    // Save to local storage for instant offline access
+    const user = auth.currentUser;
+    const email = user?.email || userData?.email || "traveler@goguide.com";
+
+    // 1. Save to local persistent trips list (always instant and reliable)
     try {
+      const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
+      const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
+      const newTripRecord = {
+        id: "trip_" + Date.now(),
+        userEmail: email,
+        tripData: completeTripData,
+        ...completeTripData,
+        createdAt: new Date().toISOString(),
+      };
+      const updatedList = [newTripRecord, ...existingTrips.filter(t => t.id !== newTripRecord.id)];
+      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
       await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(completeTripData));
-    } catch (cacheErr) {
-      console.warn("Could not cache trip:", cacheErr);
+    } catch (localErr) {
+      console.warn("Could not save to local storage:", localErr);
     }
 
-    // Save to Firebase (non-blocking)
-    const user = auth.currentUser;
-    if (user) {
+    // 2. Save to Firebase UserTrips
+    if (email) {
       try {
         await addDoc(collection(db, "UserTrips"), {
-          userEmail: user.email,
+          userEmail: email,
           tripData: completeTripData,
           createdAt: new Date().toISOString(),
         });

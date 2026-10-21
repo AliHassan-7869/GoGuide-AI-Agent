@@ -2,36 +2,38 @@ import { useContext } from "react";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Colors } from "./constants";
 
-// Centralized theme colors for light and dark mode
+// Centralized theme colors for light and dark mode with unified primary brand color
 export const lightTheme = {
-  bg: "#F9FAF9",
-  card: "#FFFFFF",
-  text: "#333333",
-  subtext: "#888888",
-  border: "#F2F2F2",
+  bg: "#F1F5F9",        // Soft Luxury Slate
+  card: "#FFFFFF",      // Pure White floating cards
+  text: "#0F172A",      // Deep Rich Slate 900
+  subtext: "#64748B",   // Slate 500
+  border: "#E2E8F0",    // Crisp, subtle border
+  primary: "#0A7EA4",   // Unified Signature Brand Color
   header: "#FFFFFF",
-  headerText: undefined, // uses Colors.PRIMARY
-  input: "#F2F2F2",
-  inputText: "#333333",
-  icon: undefined,       // uses Colors.PRIMARY
+  headerText: "#0F172A",
+  input: "#FFFFFF",
+  inputText: "#0F172A",
+  icon: "#0A7EA4",
   tabBar: "#FFFFFF",
-  tabBarBorder: "#E0E0E0",
+  tabBarBorder: "#E2E8F0",
   isDark: false,
 };
 
 export const darkTheme = {
-  bg: "#121212",
-  card: "#1E1E1E",
-  text: "#F0F0F0",
-  subtext: "#AAAAAA",
-  border: "#2C2C2C",
-  header: "#1A1A1A",
-  headerText: "#F0F0F0",
-  input: "#2C2C2C",
-  inputText: "#F0F0F0",
-  icon: "#F0F0F0",
-  tabBar: "#1A1A1A",
-  tabBarBorder: "#2C2C2C",
+  bg: "#0B0F17",        // Deep Obsidian Space Navy
+  card: "#161E2E",      // Sleek Dark Sapphire Card
+  text: "#F8FAFC",      // Crisp White
+  subtext: "#94A3B8",   // Slate 400
+  border: "#243044",    // Subtle Dark Slate border
+  primary: "#0A7EA4",   // Unified Signature Brand Color
+  header: "#0B0F17",
+  headerText: "#F8FAFC",
+  input: "#161E2E",
+  inputText: "#F8FAFC",
+  icon: "#38BDF8",
+  tabBar: "#0E1522",
+  tabBarBorder: "#1E293B",
   isDark: true,
 };
 

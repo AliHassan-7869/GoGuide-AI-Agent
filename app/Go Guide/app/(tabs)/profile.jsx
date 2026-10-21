@@ -14,8 +14,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -24,7 +26,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 
 export default function Profile() {
   const router = useRouter();
-  const { userData, preferences, setPreferences } = useContext(CreateTripContext);
+  const { userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
 
   const [stats, setStats] = useState({
@@ -41,50 +43,156 @@ export default function Profile() {
     } catch (e) {}
   };
 
+  // Pick profile photo from device gallery
+  const pickProfilePhotoFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access device photo gallery is needed to set a custom profile photo."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        triggerHaptic();
+
+        // Update local state and context
+        if (setUserData) {
+          setUserData((prev) => ({
+            ...prev,
+            avatar: pickedUri,
+          }));
+        }
+
+        // Persist to Firestore if user is authenticated
+        const currentUid = uid || auth.currentUser?.uid;
+        if (currentUid) {
+          try {
+            const userRef = doc(db, "users", currentUid);
+            await updateDoc(userRef, {
+              avatar: pickedUri,
+              updatedAt: new Date().toISOString(),
+            });
+          } catch (dbErr) {
+            console.warn("Could not sync avatar to remote database:", dbErr);
+          }
+        }
+
+        Alert.alert("Success", "Profile photo updated successfully!");
+      }
+    } catch (e) {
+      console.error("Gallery picker error:", e);
+      Alert.alert("Gallery Error", "Unable to open gallery. Please try again.");
+    }
+  };
+
+  // Avatar Press Menu
+  const handleAvatarAction = () => {
+    triggerHaptic();
+    if (Platform.OS === "web") {
+      pickProfilePhotoFromGallery();
+      return;
+    }
+
+    Alert.alert(
+      "Profile Photo",
+      "Upload a custom profile photo from your gallery or manage account settings:",
+      [
+        {
+          text: "Choose from Gallery",
+          onPress: pickProfilePhotoFromGallery,
+        },
+        {
+          text: "Edit Account Info",
+          onPress: () => handleNavigate("/edit-profile"),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
   // Fetch real user travel statistics
   useEffect(() => {
     let cancelled = false;
 
     const fetchStats = async () => {
+      let localTrips = [];
+      try {
+        const stored = await AsyncStorage.getItem("@goguide_user_trips");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localTrips = parsed;
+        }
+      } catch (e) {}
+
       const user = auth.currentUser;
       const email = user?.email || userData?.email;
-      if (!email) return;
 
-      try {
-        // Query trips count
-        const tripsQuery = query(
-          collection(db, "UserTrips"),
-          where("userEmail", "==", email)
-        );
-        const tripsSnap = await getDocs(tripsQuery);
-        const tripsCount = tripsSnap.size;
+      let remoteCount = 0;
+      let uniqueDestinations = new Set();
 
-        let uniqueDestinations = new Set();
-        tripsSnap.forEach((doc) => {
-          const d = doc.data();
-          const destName = d?.tripData?.toLocation?.name;
-          if (destName) {
-            uniqueDestinations.add(destName.split(",")[0].trim());
-          }
-        });
-
-        // Query bookings count
-        const bookingsQuery = query(
-          collection(db, "Bookings"),
-          where("userEmail", "==", email)
-        );
-        const bookingsSnap = await getDocs(bookingsQuery);
-        const bookingsCount = bookingsSnap.size;
-
-        if (!cancelled) {
-          setStats({
-            trips: tripsCount,
-            places: uniqueDestinations.size > 0 ? uniqueDestinations.size : (tripsCount > 0 ? tripsCount * 2 : 0),
-            bookings: bookingsCount,
-          });
+      localTrips.forEach((t) => {
+        const destName = t?.toLocation?.name || t?.destination || t?.aiTripPlan?.destination;
+        if (destName) {
+          uniqueDestinations.add(destName.split(",")[0].trim());
         }
-      } catch (err) {
-        console.log("Stats fetch notice (offline/fallback):", err?.message);
+      });
+
+      if (email) {
+        try {
+          const tripsQuery = query(
+            collection(db, "UserTrips"),
+            where("userEmail", "==", email)
+          );
+          const tripsSnap = await getDocs(tripsQuery);
+          remoteCount = tripsSnap.size;
+
+          tripsSnap.forEach((doc) => {
+            const d = doc.data();
+            const destName = d?.tripData?.toLocation?.name || d?.tripData?.destination;
+            if (destName) {
+              uniqueDestinations.add(destName.split(",")[0].trim());
+            }
+          });
+        } catch (err) {
+          console.log("Stats fetch notice (offline/fallback):", err?.message);
+        }
+      }
+
+      // Query bookings count
+      let bookingsCount = 0;
+      if (email) {
+        try {
+          const bookingsQuery = query(
+            collection(db, "Bookings"),
+            where("userEmail", "==", email)
+          );
+          const bookingsSnap = await getDocs(bookingsQuery);
+          bookingsCount = bookingsSnap.size;
+        } catch (e) {}
+      }
+
+      const totalTripsCount = Math.max(remoteCount, localTrips.length);
+
+      if (!cancelled) {
+        setStats({
+          trips: totalTripsCount,
+          places: uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0),
+          bookings: bookingsCount,
+        });
       }
     };
 
@@ -296,21 +404,22 @@ export default function Profile() {
       >
         {/* User Identity Card */}
         <View style={[styles.userCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handleAvatarAction}
+            activeOpacity={0.8}
+            accessibilityLabel="Change Profile Photo"
+          >
             <Image
               source={{
                 uri: userData?.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
               }}
               style={styles.avatar}
             />
-            <TouchableOpacity
-              style={styles.editAvatarBadge}
-              onPress={() => handleNavigate("/edit-profile")}
-              activeOpacity={0.8}
-            >
+            <View style={styles.editAvatarBadge}>
               <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           <Text style={[styles.userName, { color: theme.text }]}>
             {userData?.name || "Traveler"}

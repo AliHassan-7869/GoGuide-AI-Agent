@@ -41,7 +41,13 @@
         }
       ],
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GoGuide accesses your photos to let you set your profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

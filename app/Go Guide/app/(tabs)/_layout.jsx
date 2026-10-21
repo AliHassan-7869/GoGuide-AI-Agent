@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 import { useContext } from "react";
+import { Platform } from "react-native";
 import { Colors } from "../../Components/constants/constants";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
@@ -17,6 +18,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
           borderTopColor: isDark ? "#2C2C2C" : "#E0E0E0",
+          height: Platform.OS === "ios" ? 86 : 64,
+          paddingBottom: Platform.OS === "ios" ? 26 : 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit-Medium",

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import React, { useContext, useState } from "react";
@@ -39,7 +40,7 @@ export default function EditProfile() {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Avatar rotation
+  // Avatar rotation (random style)
   const changeAvatar = () => {
     const avatars = [
       "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
@@ -50,6 +51,66 @@ export default function EditProfile() {
     ];
     const next = avatars[Math.floor(Math.random() * avatars.length)];
     setAvatar(next);
+  };
+
+  // Pick custom DP from device gallery
+  const pickImageFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please grant gallery access in settings to upload your profile picture."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        setAvatar(pickedUri);
+        // Instant context sync
+        if (setUserData) {
+          setUserData((prev) => ({ ...prev, avatar: pickedUri }));
+        }
+      }
+    } catch (e) {
+      console.error("Gallery picker error:", e);
+      Alert.alert("Gallery Error", "Unable to open gallery. Please try again.");
+    }
+  };
+
+  // Avatar Press Menu
+  const handleAvatarPress = () => {
+    if (Platform.OS === "web") {
+      pickImageFromGallery();
+      return;
+    }
+
+    Alert.alert(
+      "Profile Photo",
+      "Choose an option to update your display picture:",
+      [
+        {
+          text: "Choose from Gallery",
+          onPress: pickImageFromGallery,
+        },
+        {
+          text: "Random Travel Avatar",
+          onPress: changeAvatar,
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   // Save Profile Changes
@@ -279,15 +340,73 @@ export default function EditProfile() {
       >
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={changeAvatar} style={styles.avatarWrapper} activeOpacity={0.8}>
+          <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarWrapper} activeOpacity={0.8}>
             <Image source={{ uri: avatar }} style={styles.avatar} />
             <View style={styles.cameraIconBox}>
               <Ionicons name="camera" size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <Text style={[styles.avatarHint, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-            Tap avatar to change style
+            Tap avatar or select an option below
           </Text>
+
+          {/* Action Buttons: Gallery & Random Avatar */}
+          <View style={styles.avatarActionButtonsRow}>
+            <TouchableOpacity
+              onPress={pickImageFromGallery}
+              style={[
+                styles.avatarActionBtn,
+                {
+                  backgroundColor: theme.isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(10, 126, 164, 0.1)",
+                  borderColor: theme.isDark ? "rgba(56, 189, 248, 0.3)" : "rgba(10, 126, 164, 0.25)",
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="images-outline"
+                size={15}
+                color={theme.isDark ? "#38BDF8" : Colors.PRIMARY}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.avatarActionText,
+                  { color: theme.isDark ? "#38BDF8" : Colors.PRIMARY },
+                ]}
+              >
+                Choose from Gallery
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={changeAvatar}
+              style={[
+                styles.avatarActionBtn,
+                {
+                  backgroundColor: theme.isDark ? "#242436" : "#F1F5F9",
+                  borderColor: theme.isDark ? "#333348" : "#E2E8F0",
+                  marginLeft: 10,
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="sparkles-outline"
+                size={14}
+                color={theme.isDark ? "#E2E8F0" : "#475569"}
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                style={[
+                  styles.avatarActionText,
+                  { color: theme.isDark ? "#E2E8F0" : "#475569" },
+                ]}
+              >
+                Random Avatar
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* SECTION 1: PERSONAL INFORMATION */}
@@ -635,6 +754,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 8,
+  },
+  avatarActionButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  avatarActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  avatarActionText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
   sectionLabel: {
     fontSize: 11,

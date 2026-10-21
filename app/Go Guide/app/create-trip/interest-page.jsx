@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../../Components/constants/constants";
@@ -543,7 +544,7 @@ export default function YourInterest() {
   const destinationName = tripData?.toLocation?.name?.split(",")[0] || "your destination";
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header Bar with Back Button */}
@@ -570,7 +571,17 @@ export default function YourInterest() {
         ListHeaderComponent={() => (
           <View style={styles.headerArea}>
             <StepProgressBar currentStep={3} totalSteps={6} stepTitle="Select Interests" />
-            <Text style={[styles.title, { color: theme.text }]}>Choose Experiences</Text>
+            <Text style={styles.heroPreTitle}>TRIP DNA</Text>
+            <View style={styles.titleBadgeRow}>
+              <Text style={[styles.title, { color: theme.text }]}>What excites you most?</Text>
+              {selectedPlaces.length > 0 && (
+                <View style={styles.counterBadge}>
+                  <Text style={styles.counterBadgeText}>
+                    {selectedPlaces.length} Selected
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.subtitle, { color: theme.subtext }]}>
               Curated highlights for{" "}
               <Text style={styles.locationHighlight}>{destinationName}</Text>
@@ -779,7 +790,7 @@ export default function YourInterest() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -792,7 +803,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 54 : 44,
+    paddingTop: 10,
     paddingBottom: 12,
     borderBottomWidth: 1,
   },
@@ -814,17 +825,42 @@ const styles = StyleSheet.create({
   headerArea: {
     paddingTop: 16,
   },
+  heroPreTitle: {
+    color: "#0A7EA4",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 1.5,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  titleBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontFamily: "Outfit-Bold",
     letterSpacing: -0.5,
-    marginTop: 8,
+    flex: 1,
+  },
+  counterBadge: {
+    backgroundColor: "rgba(10, 126, 164, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  counterBadgeText: {
+    color: Colors.PRIMARY || "#0A7EA4",
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     marginTop: 6,
-    fontFamily: "Outfit-Medium",
-    lineHeight: 22,
+    fontFamily: "Outfit-Regular",
+    lineHeight: 20,
     marginBottom: 16,
   },
   locationHighlight: {

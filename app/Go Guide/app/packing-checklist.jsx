@@ -146,7 +146,18 @@ export default function PackingChecklist() {
     setModalVisible(false);
   };
 
-  // Reset checklist
+  // Check if all items are packed
+  const allPacked = items.length > 0 && items.every((it) => it.packed);
+
+  // Toggle Select All / Deselect All
+  const handleToggleSelectAll = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const targetState = !allPacked;
+    const updated = items.map((it) => ({ ...it, packed: targetState }));
+    saveItems(updated);
+  };
+
+  // Reset checklist (Uncheck all)
   const handleResetChecklist = () => {
     Alert.alert(
       "Uncheck All Items?",
@@ -309,13 +320,30 @@ export default function PackingChecklist() {
 
         {/* Action strip under progress */}
         <View style={styles.subActionRow}>
+          <TouchableOpacity onPress={handleToggleSelectAll} style={styles.subActionBtn}>
+            <Ionicons
+              name={allPacked ? "close-circle-outline" : "checkmark-done-circle"}
+              size={15}
+              color={allPacked ? "#EF4444" : "#10B981"}
+            />
+            <Text
+              style={[
+                styles.subActionText,
+                { color: allPacked ? "#EF4444" : "#10B981", fontFamily: "Outfit-Bold" },
+              ]}
+            >
+              {allPacked ? "Uncheck All" : "Select All"}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={handleResetChecklist} style={styles.subActionBtn}>
             <Ionicons name="refresh-outline" size={14} color={theme.subtext} />
-            <Text style={[styles.subActionText, { color: theme.subtext }]}>Uncheck All</Text>
+            <Text style={[styles.subActionText, { color: theme.subtext }]}>Reset</Text>
           </TouchableOpacity>
+
           <TouchableOpacity onPress={handleRestoreDefaults} style={styles.subActionBtn}>
             <Ionicons name="sparkles-outline" size={14} color={Colors.PRIMARY} />
-            <Text style={[styles.subActionText, { color: Colors.PRIMARY }]}>Restore Recommended</Text>
+            <Text style={[styles.subActionText, { color: Colors.PRIMARY }]}>Recommended</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -368,33 +396,66 @@ export default function PackingChecklist() {
         />
       </View>
 
-      {/* Filter Mode Selector (All | Unpacked | Packed) */}
+      {/* Filter Mode Selector & Quick Select All Button */}
       <View style={styles.filterModeRow}>
-        {["all", "unpacked", "packed"].map((mode) => (
-          <TouchableOpacity
-            key={mode}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setFilterMode(mode);
-            }}
-            style={[
-              styles.filterModeBtn,
-              filterMode === mode && { borderBottomColor: Colors.PRIMARY, borderBottomWidth: 2 },
-            ]}
-          >
-            <Text
+        <View style={styles.filterTabsWrap}>
+          {["all", "unpacked", "packed"].map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilterMode(mode);
+              }}
               style={[
-                styles.filterModeText,
-                {
-                  color: filterMode === mode ? Colors.PRIMARY : theme.subtext,
-                  fontFamily: filterMode === mode ? "Outfit-Bold" : "Outfit-Regular",
-                },
+                styles.filterModeBtn,
+                filterMode === mode && { borderBottomColor: Colors.PRIMARY, borderBottomWidth: 2 },
               ]}
             >
-              {mode.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.filterModeText,
+                  {
+                    color: filterMode === mode ? Colors.PRIMARY : theme.subtext,
+                    fontFamily: filterMode === mode ? "Outfit-Bold" : "Outfit-Regular",
+                  },
+                ]}
+              >
+                {mode.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={handleToggleSelectAll}
+          style={[
+            styles.quickSelectBtn,
+            {
+              backgroundColor: allPacked
+                ? "rgba(16, 185, 129, 0.12)"
+                : theme.isDark
+                ? "rgba(10, 126, 164, 0.2)"
+                : "rgba(10, 126, 164, 0.1)",
+              borderColor: allPacked ? "rgba(16, 185, 129, 0.35)" : "rgba(10, 126, 164, 0.3)",
+            },
+          ]}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={allPacked ? "checkbox" : "checkmark-done-circle-outline"}
+            size={14}
+            color={allPacked ? "#10B981" : Colors.PRIMARY}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              styles.quickSelectText,
+              { color: allPacked ? "#10B981" : Colors.PRIMARY },
+            ]}
+          >
+            {allPacked ? "Deselect All" : "Select All"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Checklist FlatList */}
@@ -693,10 +754,16 @@ const styles = StyleSheet.create({
   },
   filterModeRow: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginHorizontal: 20,
     marginTop: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(150, 150, 150, 0.2)",
+  },
+  filterTabsWrap: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   filterModeBtn: {
     paddingVertical: 8,
@@ -705,6 +772,19 @@ const styles = StyleSheet.create({
   filterModeText: {
     fontSize: 12,
     letterSpacing: 0.5,
+  },
+  quickSelectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  quickSelectText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
   },
   itemsListContainer: {
     paddingHorizontal: 20,

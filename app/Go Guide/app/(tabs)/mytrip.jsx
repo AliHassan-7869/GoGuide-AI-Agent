@@ -14,6 +14,7 @@ import {
   Modal,
   Alert
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { collection, query, where, getDocs, orderBy, limit, addDoc } from "firebase/firestore";
@@ -121,12 +122,9 @@ export default function MyTrip() {
     ).start();
   }, [loading]);
 
-  // Load from local AsyncStorage cache first for instant flight-mode access
+  // Load trips from local storage and Firestore
   useEffect(() => {
-    loadCachedTrip();
-    if (auth.currentUser) {
-      GetMyTrips();
-    }
+    GetMyTrips();
   }, [auth.currentUser]);
 
   // Save to AsyncStorage whenever tripData updates with an AI plan
@@ -138,58 +136,59 @@ export default function MyTrip() {
     }
   }, [tripData]);
 
-  const loadCachedTrip = async () => {
-    try {
-      const cached = await AsyncStorage.getItem('@goguide_cached_trip');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.aiTripPlan) {
-          setIsOfflineCached(true);
-          if (!plan) {
-            setTripData(parsed);
-          }
-        }
-      }
-    } catch (e) {
-      console.log("Error loading cached trip:", e);
-    }
-  };
-
   const GetMyTrips = async () => {
-    if (!plan) setLoading(true);
     try {
-      const q = query(
-        collection(db, "UserTrips"),
-        where("userEmail", "==", auth.currentUser.email),
-        orderBy("createdAt", "desc"),
-        limit(10)
-      );
+      let allTrips = [];
+      const storedLocal = await AsyncStorage.getItem("@goguide_user_trips");
+      if (storedLocal) {
+        try {
+          const parsedLocal = JSON.parse(storedLocal);
+          if (Array.isArray(parsedLocal)) allTrips = parsedLocal;
+        } catch (e) {}
+      }
 
-      const querySnapshot = await getDocs(q);
-      const trips = [];
-      querySnapshot.forEach((doc) => {
-        const d = doc.data();
-        trips.push({
-          id: doc.id,
-          ...d.tripData,
-          createdAt: d.createdAt,
-        });
-      });
+      const user = auth.currentUser;
+      if (user?.email) {
+        try {
+          const q = query(
+            collection(db, "UserTrips"),
+            where("userEmail", "==", user.email),
+            orderBy("createdAt", "desc"),
+            limit(15)
+          );
+          const querySnapshot = await getDocs(q);
+          const remoteTrips = [];
+          querySnapshot.forEach((doc) => {
+            const d = doc.data();
+            remoteTrips.push({
+              id: doc.id,
+              ...d.tripData,
+              createdAt: d.createdAt,
+            });
+          });
 
-      if (trips.length > 0) {
-        setUserTripsList(trips);
-        setActiveTripId(trips[0].id);
-        if (!plan) {
-          setTripData(trips[0]);
-          AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(trips[0])).catch(() => {});
-          setIsOfflineCached(true);
+          if (remoteTrips.length > 0) {
+            const remoteDestKeys = new Set(
+              remoteTrips.map((r) => r.aiTripPlan?.destination || r.destination || r.id)
+            );
+            const nonDuplicates = allTrips.filter(
+              (l) => !remoteDestKeys.has(l.aiTripPlan?.destination || l.destination || l.id)
+            );
+            allTrips = [...remoteTrips, ...nonDuplicates];
+          }
+        } catch (fbErr) {
+          console.log("Firestore trips query:", fbErr?.message);
         }
       }
+
+      if (allTrips.length > 0) {
+        setUserTripsList(allTrips);
+      }
     } catch (e) {
-      console.log("Firestore offline or fetch error:", e);
-      // Fallback already handled via loadCachedTrip
+      console.log("Error loading trips:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSelectTrip = (selectedTrip) => {
@@ -488,7 +487,7 @@ export default function MyTrip() {
   // Modern Shimmer Skeleton Loading State
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
         <Stack.Screen options={{ headerShown: false }} />
         
         {/* Skeleton Header */}
@@ -521,16 +520,18 @@ export default function MyTrip() {
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, marginRight: 14, opacity: pulseAnim }]} />
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, opacity: pulseAnim }]} />
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!plan) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <StartNewTripCard />
-      </View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+          <StartNewTripCard userTrips={userTripsList} onSelectTrip={handleSelectTrip} />
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -540,21 +541,39 @@ export default function MyTrip() {
     : daysList.filter(d => String(d.day) === String(selectedDay));
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Top Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.title, { color: theme.text }]}>My Itinerary</Text>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={[styles.subtitle, { color: theme.subtext }]}>{plan.destination}</Text>
-            {isOfflineCached && (
-              <View style={styles.headerOfflinePill}>
-                <Ionicons name="cloud-done" size={11} color="#10B981" />
-                <Text style={styles.headerOfflineText}>Cached</Text>
-              </View>
-            )}
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTripData({});
+            }}
+            style={[styles.backToHubBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={16} color={theme.text} />
+            <Text style={[styles.backToHubText, { color: theme.text }]}>All Trips</Text>
+          </TouchableOpacity>
+
+          <View style={{ marginLeft: 10, flex: 1 }}>
+            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+              My Itinerary
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={[styles.subtitle, { color: theme.subtext }]} numberOfLines={1}>
+                {plan.destination}
+              </Text>
+              {isOfflineCached && (
+                <View style={styles.headerOfflinePill}>
+                  <Ionicons name="cloud-done" size={11} color="#10B981" />
+                  <Text style={styles.headerOfflineText}>Cached</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
         <View style={styles.headerActions}>
@@ -582,7 +601,7 @@ export default function MyTrip() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         
         {/* Animated Multi-Trip Slider (when user has trips) */}
         {userTripsList.length > 0 && (
@@ -1153,17 +1172,34 @@ export default function MyTrip() {
         theme={theme}
       />
 
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 50, paddingHorizontal: 16 },
+  container: { 
+    flex: 1, 
+    paddingTop: Platform.OS === "android" ? 10 : 4, 
+    paddingHorizontal: 16 
+  },
   header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
     marginBottom: 16 
+  },
+  backToHubBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+  },
+  backToHubText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
   title: { fontSize: 28, fontFamily: "Outfit-Bold" },
   subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },
