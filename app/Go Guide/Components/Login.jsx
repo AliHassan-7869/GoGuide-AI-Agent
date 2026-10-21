@@ -43,7 +43,7 @@ export default function Login() {
       <Stack.Screen options={{ headerShown: false }} />
       {/* Immersive Full-Screen Background Image */}
       <Image
-        source={{ uri: "https://images.unsplash.com/photo-1495954484750-af469f2f9be5?q=80&w=800&auto=format&fit=crop" }}
+        source={{ uri: "https://images.unsplash.com/photo-1495954484750-af469f2f9be5?q=80&w=1400&auto=format&fit=crop" }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />

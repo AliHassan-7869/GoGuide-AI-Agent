@@ -14,7 +14,7 @@ const QUICK_RECOMMENDATIONS = [
     days: 4,
     budget: "Moderate",
     coordinates: { lat: 35.6764, lng: 139.65 },
-    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "rec_bali",
@@ -23,7 +23,7 @@ const QUICK_RECOMMENDATIONS = [
     days: 5,
     budget: "Economical",
     coordinates: { lat: -8.4095, lng: 115.1889 },
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "rec_dubai",
@@ -32,7 +32,7 @@ const QUICK_RECOMMENDATIONS = [
     days: 3,
     budget: "Luxury",
     coordinates: { lat: 25.2048, lng: 55.2708 },
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "rec_rome",
@@ -41,7 +41,7 @@ const QUICK_RECOMMENDATIONS = [
     days: 3,
     budget: "Moderate",
     coordinates: { lat: 41.9028, lng: 12.4964 },
-    image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop",
   },
 ];
 

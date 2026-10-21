@@ -76,25 +76,41 @@ app/Go Guide/
 │   ├── index.jsx             Entry: logged in -> My Trips, else Login
 │   ├── _layout.jsx           Root stack
 │   ├── (tabs)/               Bottom tabs
-│   │   ├── mytrip.jsx        Current trip, weather, packing list, offline mode
+│   │   ├── mytrip.jsx        Current trip, multi-trip carousel, route map, PDF, share, offline mode
 │   │   ├── discover.jsx      Search, categories, quick AI trips
 │   │   ├── ai-assistant.jsx  AI Travel Copilot chat
-│   │   └── profile.jsx       Profile and settings
+│   │   └── profile.jsx       Profile, explorer tiers, travel stats, and notification toggle
 │   ├── auth/                 Sign in, sign up
 │   ├── create-trip/          Step by step trip wizard
-│   ├── explore.jsx           Beach / Mountain / Forest list with filters
+│   │   ├── search-place.jsx  Destination search
+│   │   ├── select-traveler.jsx Companion selection
+│   │   ├── select-dates.jsx  Dates and duration
+│   │   ├── select-budget.jsx Budget tier
+│   │   ├── interest-page.jsx Destination-smart category chips & interests
+│   │   ├── review-trip.jsx   Pre-generation review
+│   │   └── generate-trip.jsx AI plan generator with radar animation
+│   ├── my-bookings.jsx       Digital passes, vouchers, QR codes, status tabs
+│   ├── packing-checklist.jsx Smart AI luggage & packing checklist with category filters
+│   ├── explore.jsx           Beach / Mountain / Forest / Cities list with filters
+│   ├── cities.jsx            Redirect to explore (category=cities)
 │   ├── beaches.jsx           Redirect to explore (category=beaches)
 │   ├── mountains.jsx         Redirect to explore (category=mountains)
 │   ├── forest.jsx            Redirect to explore (category=forest)
 │   ├── safety-alerts.jsx     AI safety tips for the destination
 │   ├── location.jsx          Save user location
 │   ├── edit-profile.jsx, preferences.jsx, help-center.jsx
-├── Components/               Reusable UI and constants
-│   └── constants/Destinations.js   Data for the Explore screen
+├── Components/               Reusable UI, constants & modals
+│   ├── MyTrips/              Trip tools and interactive modals
+│   │   ├── DayRouteModal.jsx            Multi-stop route map & distance calculator
+│   │   ├── ExpenseTrackerModal.jsx      Budget cap gauge & expense logger
+│   │   ├── PrintableItineraryModal.jsx  Magazine-style printable PDF export
+│   │   ├── ShareTripModal.jsx           Web link, social share & trip cloning
+│   │   ├── WeatherCard.jsx, PackingList.jsx, StartNewTripCard.jsx
+│   └── constants/Destinations.js, Option.js, theme.js
 ├── Configs/
 │   ├── AiModel.js            All AI calls (goes to backend)
 │   └── FirebaseConfig.js     Firebase app, auth, Firestore
-├── context/CreateTripContext.js    Shared trip state and user profile
+├── context/CreateTripContext.js    Shared trip state, preferences & user profile
 └── firestore.rules           Database security rules
 ```
 
@@ -122,16 +138,32 @@ flowchart TD
     subgraph Wizard[Create trip wizard]
         Search[Search place] --> Travelers[Select travelers]
         Summary --> Travelers
-        Travelers --> Interests[Interests]
-        Interests --> Dates[Select dates]
+        Travelers --> Dates[Select dates]
         Dates --> Budget[Select budget]
-        Budget --> Review[Review trip]
+        Budget --> Interests[Smart Categories & Interests]
+        Interests --> Review[Review trip]
         Review --> Generate[Generate trip]
     end
 
     Generate --> MyTrip
     QuickAI --> MyTrip
-    MyTrip --> Safety[Safety alerts]
+
+    subgraph MyTripModals[My Trips Interactive Tools]
+        MyTrip --> DayRoute[Day Route Map Modal]
+        MyTrip --> ExpenseModal[Budget & Expense Tracker Modal]
+        MyTrip --> PrintPDF[Printable PDF Itinerary Modal]
+        MyTrip --> ShareClone[Share & Clone Trip Modal]
+        MyTrip --> Advisory[Smart Advisory Banner]
+    end
+
+    subgraph Hub[Travel Hub & Settings]
+        Profile --> BookingsHub[My Bookings & Digital Passes]
+        Profile --> PackingHub[Smart Packing Checklist]
+        Profile --> NotifToggle[Smart Travel Alerts Switch]
+        NotifToggle -.controls visibility.-> Advisory
+        Profile --> Safety[Safety alerts]
+        Profile --> PreferencesScreen[Preferences & Display]
+    end
 ```
 
 ### 3.3 State
@@ -141,7 +173,10 @@ flowchart TD
 | Trip being created, user profile, preferences | `CreateTripContext` (React context) |
 | Logged in user | Firebase Auth (`auth.currentUser`) |
 | Last trip for offline use | AsyncStorage key `@goguide_cached_trip` |
+| User display & notification preferences | AsyncStorage key `@goguide_preferences` |
+| In-progress trip draft | AsyncStorage key `tripData:{uid}` |
 | Saved trips | Firestore `UserTrips` |
+| Travel bookings & passes | Firestore `Bookings` |
 | User profile | Firestore `users/{uid}` |
 
 ---
@@ -154,7 +189,7 @@ flowchart TD
 |---|---|---|---|
 | GET | `/` | anyone | "API running" message |
 | GET | `/health` | uptime checks | `{"status": "ok"}` |
-| POST | `/plan` | Generate trip, Quick AI trip | Full trip plan as JSON (hotels, day by day itinerary) |
+| POST | `/plan` | Generate trip, Quick AI trip | Full trip plan as JSON with customized `interests` & `categories` (hotels, day by day itinerary) |
 | POST | `/chat` | AI Copilot | Chat reply using the last 6 messages and the active trip |
 | POST | `/generate` | Interests (no coordinates), Safety alerts | General prompt, JSON output |
 
@@ -219,6 +254,7 @@ flowchart TD
 |---|---|---|---|
 | `users` | Firebase uid | `name`, `email`, `avatar`, `userLocation` | Only that user |
 | `UserTrips` | auto id | `userEmail`, `tripData`, `createdAt` | Only the user whose email matches `userEmail` |
+| `Bookings` | auto id | `userEmail`, `title`, `type`, `date`, `status`, `qrCode` | Only that user |
 
 Everything else is denied. Rules live in `app/Go Guide/firestore.rules`.
 

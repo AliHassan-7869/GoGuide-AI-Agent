@@ -13,6 +13,11 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../../Components/constants/constants";
+import {
+  DEFAULT_HD_TRAVEL_IMAGE,
+  getDestinationImage,
+  sanitizeImageUrl,
+} from "../../Components/constants/Destinations";
 import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
@@ -24,9 +29,19 @@ export default function TripSummer() {
   const { tripData, setTripData } = useContext(CreateTripContext);
 
   const destination = tripData?.toLocation?.name || "Tokyo, Japan";
-  const image =
-    tripData?.toLocationImage ||
-    "https://images.unsplash.com/photo-1502602898657-3e907fa0a586?q=80&w=1000&auto=format&fit=crop";
+  const initialImage = tripData?.toLocationImage
+    ? sanitizeImageUrl(tripData.toLocationImage)
+    : getDestinationImage(destination);
+  const [imageUri, setImageUri] = React.useState(initialImage);
+
+  React.useEffect(() => {
+    setImageUri(
+      tripData?.toLocationImage
+        ? sanitizeImageUrl(tripData.toLocationImage)
+        : getDestinationImage(destination)
+    );
+  }, [tripData?.toLocationImage, destination]);
+
   const rating = tripData?.toLocationRating || "4.9";
   const activeAccent = Colors.PRIMARY || "#0F172A";
 
@@ -78,9 +93,10 @@ export default function TripSummer() {
     }
     setTripData((prev) => ({
       ...prev,
+      toLocationImage: imageUri,
       locationInfo: {
         name: destination,
-        photoRef: image,
+        photoRef: imageUri,
       },
     }));
     router.push("/create-trip/select-traveler");
@@ -92,9 +108,10 @@ export default function TripSummer() {
     }
     setTripData((prev) => ({
       ...prev,
+      toLocationImage: imageUri,
       locationInfo: {
         name: destination,
-        photoRef: image,
+        photoRef: imageUri,
       },
       totalDays: 3,
       budget: "Moderate",
@@ -111,7 +128,11 @@ export default function TripSummer() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Image Section */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: image }} style={styles.image} />
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.image}
+            onError={() => setImageUri(DEFAULT_HD_TRAVEL_IMAGE)}
+          />
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>

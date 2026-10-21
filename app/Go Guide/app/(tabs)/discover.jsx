@@ -12,14 +12,41 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import React, { useContext, useState, useRef, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../Components/constants/constants";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { generateTripWithAgent } from "../../Configs/AiModel";
+import {
+  DEFAULT_HD_TRAVEL_IMAGE,
+  getDestinationImage,
+  sanitizeImageUrl,
+} from "../../Components/constants/Destinations";
 
-// Pre-curated instant AI vibe trips
+// Safe image component with error fallback and HD optimization
+function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
+  const [currentUri, setCurrentUri] = useState(() => sanitizeImageUrl(sourceUri, fallbackUri));
+
+  useEffect(() => {
+    setCurrentUri(sanitizeImageUrl(sourceUri, fallbackUri));
+  }, [sourceUri, fallbackUri]);
+
+  return (
+    <Image
+      source={{ uri: currentUri }}
+      style={style}
+      onError={() => {
+        if (currentUri !== fallbackUri) {
+          setCurrentUri(fallbackUri);
+        }
+      }}
+    />
+  );
+}
+
+// Pre-curated instant AI vibe trips (Verified HD 1200px)
 const QUICK_AI_VIBES = [
   {
     id: "dubai",
@@ -29,7 +56,7 @@ const QUICK_AI_VIBES = [
     destination: "Dubai, United Arab Emirates",
     days: 3,
     budget: "Luxury",
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1200&auto=format&fit=crop",
     tag: "💎 Luxury • 3 Days"
   },
   {
@@ -40,7 +67,7 @@ const QUICK_AI_VIBES = [
     destination: "Tokyo, Japan",
     days: 4,
     budget: "Moderate",
-    image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1200&auto=format&fit=crop",
     tag: "🍜 Food & Culture • 4 Days"
   },
   {
@@ -51,7 +78,7 @@ const QUICK_AI_VIBES = [
     destination: "Bali, Indonesia",
     days: 5,
     budget: "Economical",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1200&auto=format&fit=crop",
     tag: "🏖️ Beaches • 5 Days"
   },
   {
@@ -62,9 +89,28 @@ const QUICK_AI_VIBES = [
     destination: "Rome, Italy",
     days: 3,
     budget: "Moderate",
-    image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop",
     tag: "🏛️ History • 3 Days"
   }
+];
+
+// Quick Search Suggested Chips
+const QUICK_SEARCH_TAGS = [
+  { label: "Tokyo 🇯🇵", query: "Tokyo, Japan" },
+  { label: "Paris 🇫🇷", query: "Paris, France" },
+  { label: "Dubai 🇦🇪", query: "Dubai, United Arab Emirates" },
+  { label: "Bali 🏖️", query: "Bali, Indonesia" },
+  { label: "Rome 🏛️", query: "Rome, Italy" },
+  { label: "Swiss Alps 🏔️", query: "Swiss Alps, Switzerland" },
+];
+
+// Inline Feed Filter Chips
+const FEED_FILTER_CHIPS = [
+  { id: "all", label: "🌟 All Trending" },
+  { id: "cities", label: "🏙️ Cities" },
+  { id: "beaches", label: "🏖️ Beaches" },
+  { id: "history", label: "🏛️ History" },
+  { id: "mountains", label: "🏔️ Nature" },
 ];
 
 export default function Discover() {
@@ -83,52 +129,147 @@ export default function Discover() {
   const [aiStep, setAiStep] = useState(1);
   const [aiError, setAiError] = useState(null);
 
+  // Category Feed & Saved Wishlist State
+  const [activeFeedCategory, setActiveFeedCategory] = useState("all");
+  const [savedPlaces, setSavedPlaces] = useState({});
+
+  useEffect(() => {
+    const loadSavedPlaces = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("@goguide_saved_places");
+        if (stored) {
+          setSavedPlaces(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.log("Error loading saved places:", e);
+      }
+    };
+    loadSavedPlaces();
+  }, []);
+
+  const toggleSavePlace = async (dest) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const placeKey = dest.id || dest.title;
+    const isCurrentlySaved = !!savedPlaces[placeKey];
+    const updated = { ...savedPlaces, [placeKey]: !isCurrentlySaved };
+    setSavedPlaces(updated);
+    try {
+      await AsyncStorage.setItem("@goguide_saved_places", JSON.stringify(updated));
+    } catch (e) {
+      console.log("Error saving place:", e);
+    }
+  };
+
   const categories = [
-    { id: 1, title: "Beaches", icon: "water" },
-    { id: 2, title: "Mountains", icon: "triangle" },
-    { id: 3, title: "Cities", icon: "business" },
-    { id: 4, title: "Camping", icon: "bonfire" },
-    { id: 5, title: "Forest", icon: "leaf" },
+    { id: 1, title: "Cities", icon: "business", route: "/cities" },
+    { id: 2, title: "Beaches", icon: "water", route: "/beaches" },
+    { id: 3, title: "Mountains", icon: "triangle", route: "/mountains" },
+    { id: 4, title: "Forest", icon: "leaf", route: "/forest" },
+    { id: 5, title: "Camping", icon: "bonfire", route: "/explore?category=mountains" },
   ];
 
   const popularDestinations = [
     {
-      id: 1,
+      id: "dest-1",
       title: "Paris, France",
-      image: "https://images.unsplash.com/photo-1502602898657-3e907fa0a586?q=80&w=600&auto=format&fit=crop",
+      category: "cities",
+      image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=1200&auto=format&fit=crop",
       rating: "4.9",
-      liked: true,
+      season: "Apr - Oct",
+      priceEst: "$95/night",
+      vibe: "Romance & Art",
       lat: "48.8566",
       lon: "2.3522",
     },
     {
-      id: 2,
+      id: "dest-2",
       title: "Tokyo, Japan",
-      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=600&auto=format&fit=crop",
-      rating: "4.8",
-      liked: false,
+      category: "cities",
+      image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1200&auto=format&fit=crop",
+      rating: "4.9",
+      season: "Mar - May",
+      priceEst: "$85/night",
+      vibe: "Tech & Ramen",
       lat: "35.6764",
       lon: "139.6500",
     },
     {
-      id: 3,
+      id: "dest-3",
       title: "Bali, Indonesia",
-      image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=600&auto=format&fit=crop",
-      rating: "4.7",
-      liked: false,
+      category: "beaches",
+      image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1200&auto=format&fit=crop",
+      rating: "4.8",
+      season: "May - Sep",
+      priceEst: "$45/night",
+      vibe: "Sun & Surf",
       lat: "-8.409518",
       lon: "115.188919",
     },
     {
-      id: 4,
-      title: "New York, USA",
-      image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=600&auto=format&fit=crop",
+      id: "dest-4",
+      title: "Dubai, UAE",
+      category: "cities",
+      image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1200&auto=format&fit=crop",
       rating: "4.9",
-      liked: true,
+      season: "Nov - Mar",
+      priceEst: "$120/night",
+      vibe: "Luxury Skyline",
+      lat: "25.2048",
+      lon: "55.2708",
+    },
+    {
+      id: "dest-5",
+      title: "Rome, Italy",
+      category: "history",
+      image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop",
+      rating: "4.8",
+      season: "Apr - Jun",
+      priceEst: "$75/night",
+      vibe: "Ancient History",
+      lat: "41.9028",
+      lon: "12.4964",
+    },
+    {
+      id: "dest-6",
+      title: "Swiss Alps, Switzerland",
+      category: "mountains",
+      image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1200&auto=format&fit=crop",
+      rating: "5.0",
+      season: "Dec - Apr",
+      priceEst: "$140/night",
+      vibe: "Alpine Wonders",
+      lat: "46.5595",
+      lon: "8.5599",
+    },
+    {
+      id: "dest-7",
+      title: "Maldives",
+      category: "beaches",
+      image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1200&auto=format&fit=crop",
+      rating: "5.0",
+      season: "Nov - Apr",
+      priceEst: "$180/night",
+      vibe: "Overwater Villas",
+      lat: "3.2028",
+      lon: "73.2207",
+    },
+    {
+      id: "dest-8",
+      title: "New York, USA",
+      category: "cities",
+      image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1200&auto=format&fit=crop",
+      rating: "4.9",
+      season: "Sep - Dec",
+      priceEst: "$130/night",
+      vibe: "Broadway & Energy",
       lat: "40.7128",
       lon: "-74.0060",
     },
   ];
+
+  const displayedDestinations = activeFeedCategory === "all"
+    ? popularDestinations
+    : popularDestinations.filter((d) => d.category === activeFeedCategory);
 
   const themeStyles = {
     backgroundColor: isDark ? "#121212" : "#F8F9FA",
@@ -167,7 +308,7 @@ export default function Discover() {
 
       const completeTripData = {
         toLocation: { name: destination, coordinates: { lat: 0, lng: 0 } },
-        toLocationImage: fallbackImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1000&auto=format&fit=crop",
+        toLocationImage: fallbackImage || getDestinationImage(destination),
         budget: budget,
         duration: `${days} Days`,
         aiTripPlan: completePlan
@@ -257,7 +398,7 @@ export default function Discover() {
     setTripData((prev) => ({
       ...prev,
       toLocation: place,
-      toLocationImage: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1000&auto=format&fit=crop", 
+      toLocationImage: getDestinationImage(item.display_name), 
       toLocationRating: "4.8",
       fromLocation: { name: "Current Location", coordinates: { lat: 0, lng: 0 } },
     }));
@@ -371,6 +512,33 @@ export default function Discover() {
           )}
         </View>
 
+        {/* Quick Trending Search Tags */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.quickTagsScroll}
+          contentContainerStyle={{ gap: 8, paddingBottom: 14 }}
+        >
+          {QUICK_SEARCH_TAGS.map((tag, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.quickTagPill,
+                { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                searchPlace(tag.query);
+              }}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.quickTagText, { color: themeStyles.textColor }]}>
+                {tag.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* Search Results Dropdown */}
         {results.length > 0 && (
           <View style={[styles.searchResultsContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}>
@@ -420,13 +588,11 @@ export default function Discover() {
                   style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    const route = item.title.toLowerCase();
-                    if (['beaches', 'mountains', 'forest'].includes(route)) {
-                      router.push(`/${route}`);
-                    } else {
-                      executeAiTrip(item.title, 3, "Moderate");
+                    if (item.route) {
+                      router.push(item.route);
                     }
                   }}
+                  activeOpacity={0.75}
                 >
                   <View style={[styles.categoryIconWrap, { backgroundColor: Colors.PRIMARY + '12' }]}>
                     <Ionicons name={item.icon} size={22} color={Colors.PRIMARY} />
@@ -436,9 +602,14 @@ export default function Discover() {
               ))}
             </ScrollView>
 
-            {/* Popular Destinations */}
+            {/* Trending Places Header */}
             <View style={[styles.sectionHeader, { marginTop: 25 }]}>
-              <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Trending Places</Text>
+              <View>
+                <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Trending Places</Text>
+                <Text style={{ fontSize: 12, fontFamily: "Outfit-Regular", color: themeStyles.subTextColor, marginTop: 2 }}>
+                  Curated world destinations & 1-tap AI plans
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -450,27 +621,121 @@ export default function Discover() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-              {popularDestinations.map((dest) => (
-                <TouchableOpacity
-                  key={dest.id}
-                  style={[styles.popularCard, { backgroundColor: themeStyles.cardBg }]}
-                  onPress={() => selectPopularDestination(dest)}
-                  activeOpacity={0.9}
-                >
-                  <Image source={{ uri: dest.image }} style={styles.popularImage} />
-                  <View style={styles.ratingBadge}>
-                    <Ionicons name="star" size={12} color="#FFD700" />
-                    <Text style={styles.ratingText}>{dest.rating}</Text>
-                  </View>
-                  <View style={styles.popularInfo}>
-                    <Text style={[styles.popularTitle, { color: themeStyles.textColor }]} numberOfLines={1}>{dest.title}</Text>
-                    <View style={styles.popularActionRow}>
-                      <Text style={[styles.popularExplore, { color: Colors.PRIMARY }]}>1-Tap AI Plan ⚡</Text>
+            {/* Inline Category Filter Chips */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={{ marginTop: 8, marginBottom: 14 }}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {FEED_FILTER_CHIPS.map((chip) => {
+                const isSelected = activeFeedCategory === chip.id;
+                return (
+                  <TouchableOpacity
+                    key={chip.id}
+                    style={[
+                      styles.feedFilterChip,
+                      isSelected 
+                        ? { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY }
+                        : { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveFeedCategory(chip.id);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text 
+                      style={[
+                        styles.feedFilterChipText, 
+                        { color: isSelected ? "#FFFFFF" : themeStyles.textColor }
+                      ]}
+                    >
+                      {chip.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Horizontal Destinations Carousel */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {displayedDestinations.map((dest) => {
+                const isSaved = !!savedPlaces[dest.id || dest.title];
+                return (
+                  <View
+                    key={dest.id}
+                    style={[styles.popularCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
+                  >
+                    <View style={styles.cardImageContainer}>
+                      <SafeImage sourceUri={dest.image} style={styles.popularImage} />
+                      
+                      {/* Rating Badge */}
+                      <View style={styles.ratingBadge}>
+                        <Ionicons name="star" size={12} color="#FFD700" />
+                        <Text style={styles.ratingText}>{dest.rating}</Text>
+                      </View>
+
+                      {/* Interactive Heart (Wishlist) Button */}
+                      <TouchableOpacity
+                        style={styles.heartButton}
+                        onPress={() => toggleSavePlace(dest)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons 
+                          name={isSaved ? "heart" : "heart-outline"} 
+                          size={17} 
+                          color={isSaved ? "#EF4444" : "#FFFFFF"} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.popularInfo}>
+                      <Text style={[styles.popularTitle, { color: themeStyles.textColor }]} numberOfLines={1}>
+                        {dest.title}
+                      </Text>
+                      
+                      {/* Rich Information Badges */}
+                      <View style={styles.richMetaRow}>
+                        <View style={[styles.metaBadge, { backgroundColor: isDark ? "#282828" : "#F3F4F6" }]}>
+                          <Ionicons name="calendar-outline" size={11} color={themeStyles.subTextColor} />
+                          <Text style={[styles.metaBadgeText, { color: themeStyles.subTextColor }]}>{dest.season}</Text>
+                        </View>
+                        <View style={[styles.metaBadge, { backgroundColor: isDark ? "#282828" : "#F3F4F6", marginLeft: 6 }]}>
+                          <Ionicons name="pricetag-outline" size={11} color={Colors.PRIMARY} />
+                          <Text style={[styles.metaBadgeText, { color: Colors.PRIMARY }]}>{dest.priceEst}</Text>
+                        </View>
+                      </View>
+
+                      <Text style={[styles.vibeText, { color: themeStyles.subTextColor }]} numberOfLines={1}>
+                        ✨ {dest.vibe}
+                      </Text>
+
+                      {/* Action Buttons Row */}
+                      <View style={styles.popularActionRow}>
+                        <TouchableOpacity
+                          style={[styles.aiPlanPillBtn, { backgroundColor: Colors.PRIMARY }]}
+                          onPress={() => executeAiTrip(dest.title, 3, "Moderate", dest.image)}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialCommunityIcons name="sparkles" size={13} color="#FFF" />
+                          <Text style={styles.aiPlanPillText}>1-Tap AI</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.wizardPillBtn, { borderColor: themeStyles.borderColor }]}
+                          onPress={() => selectPopularDestination(dest)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.wizardPillText, { color: themeStyles.textColor }]}>Customize</Text>
+                          <Ionicons name="chevron-forward" size={13} color={themeStyles.subTextColor} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </ScrollView>
           </>
         )}
@@ -632,10 +897,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    marginBottom: 15,
+    marginBottom: 10,
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "Outfit-Regular" },
+
+  // Quick Search Suggested Tags
+  quickTagsScroll: {
+    marginBottom: 6,
+  },
+  quickTagPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  quickTagText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
+  },
 
   searchResultsContainer: {
     borderRadius: 16,
@@ -661,23 +941,53 @@ const styles = StyleSheet.create({
   categoryIconWrap: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", marginRight: 8 },
   categoryText: { fontSize: 13, fontFamily: "Outfit-Medium" },
 
-  // Trending Places
+  // Feed Filter Chips
+  feedFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  feedFilterChipText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+  },
+
+  // Trending Places Cards
   popularCard: {
-    width: 200,
+    width: 220,
     borderRadius: 20,
     marginRight: 14,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
+    marginBottom: 10,
   },
-  popularImage: { width: "100%", height: 130 },
-  ratingBadge: {
+  cardImageContainer: {
+    width: "100%",
+    height: 135,
+    position: "relative",
+  },
+  popularImage: { width: "100%", height: "100%" },
+  heartButton: {
     position: "absolute",
     top: 10,
     right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ratingBadge: {
+    position: "absolute",
+    top: 10,
+    left: 10,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.65)",
@@ -687,9 +997,61 @@ const styles = StyleSheet.create({
   },
   ratingText: { color: "#FFF", fontSize: 11, fontFamily: "Outfit-Bold", marginLeft: 3 },
   popularInfo: { padding: 12 },
-  popularTitle: { fontSize: 15, fontFamily: "Outfit-Bold", marginBottom: 4 },
-  popularActionRow: { flexDirection: "row", alignItems: "center" },
-  popularExplore: { fontSize: 12, fontFamily: "Outfit-Bold" },
+  popularTitle: { fontSize: 15, fontFamily: "Outfit-Bold", marginBottom: 2 },
+  richMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  metaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  metaBadgeText: {
+    fontSize: 10,
+    fontFamily: "Outfit-Medium",
+    marginLeft: 3,
+  },
+  vibeText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginBottom: 10,
+  },
+  popularActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  aiPlanPillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  aiPlanPillText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 4,
+  },
+  wizardPillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  wizardPillText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Medium",
+    marginRight: 2,
+  },
 
   // AI Thinking Stream Modal
   aiModalOverlay: {

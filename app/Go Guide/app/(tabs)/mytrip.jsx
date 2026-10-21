@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, limit, addDoc } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -25,24 +25,58 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-ico
 import WeatherCard from "../../Components/MyTrips/WeatherCard";
 import PackingList from "../../Components/MyTrips/PackingList";
 import StartNewTripCard from "../../Components/MyTrips/StartNewTripCard";
+import DayRouteModal from "../../Components/MyTrips/DayRouteModal";
+import ExpenseTrackerModal from "../../Components/MyTrips/ExpenseTrackerModal";
+import PrintableItineraryModal from "../../Components/MyTrips/PrintableItineraryModal";
+import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
+import {
+  DEFAULT_HD_TRAVEL_IMAGE,
+  getDestinationImage,
+  sanitizeImageUrl,
+} from "../../Components/constants/Destinations";
 
-// High quality curated hotel fallbacks
+// High quality curated hotel fallbacks (Verified HD 1200px)
 const HOTEL_IMAGES = [
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=600&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1200&auto=format&fit=crop"
 ];
+
+function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
+  const [imgSrc, setImgSrc] = useState(() => sanitizeImageUrl(uri, fallbackUri));
+
+  useEffect(() => {
+    setImgSrc(sanitizeImageUrl(uri, fallbackUri));
+  }, [uri, fallbackUri]);
+
+  return (
+    <Image
+      source={{ uri: imgSrc }}
+      style={style}
+      onError={() => {
+        if (imgSrc !== fallbackUri) {
+          setImgSrc(fallbackUri);
+        }
+      }}
+    />
+  );
+}
 
 export default function MyTrip() {
   const router = useRouter();
-  const { tripData, setTripData } = useContext(CreateTripContext);
+  const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
   const plan = tripData?.aiTripPlan;
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedDayForRoute, setSelectedDayForRoute] = useState(null);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(true);
   const [userTripsList, setUserTripsList] = useState([]);
   const [activeTripId, setActiveTripId] = useState(null);
 
@@ -332,6 +366,125 @@ export default function MyTrip() {
     Linking.openURL(url);
   };
 
+  // Toggle activity visited completion state
+  const toggleActivityVisited = async (dayNumber, activityIndex) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!plan?.itinerary) return;
+
+    const updatedItinerary = plan.itinerary.map((d) => {
+      if (String(d.day) === String(dayNumber)) {
+        const updatedActivities = [...(d.activities || [])];
+        if (updatedActivities[activityIndex]) {
+          const current = !!updatedActivities[activityIndex].isVisited;
+          updatedActivities[activityIndex] = {
+            ...updatedActivities[activityIndex],
+            isVisited: !current,
+          };
+        }
+        return { ...d, activities: updatedActivities };
+      }
+      return d;
+    });
+
+    const updatedTrip = {
+      ...tripData,
+      aiTripPlan: {
+        ...plan,
+        itinerary: updatedItinerary,
+      },
+    };
+
+    setTripData(updatedTrip);
+    AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+  };
+
+  // Remove an activity from day
+  const deleteActivityFromDay = (dayNumber, activityIndex) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const executeDelete = () => {
+      const updatedItinerary = plan.itinerary.map((d) => {
+        if (String(d.day) === String(dayNumber)) {
+          const updatedActivities = [...(d.activities || [])];
+          updatedActivities.splice(activityIndex, 1);
+          return { ...d, activities: updatedActivities };
+        }
+        return d;
+      });
+
+      const updatedTrip = {
+        ...tripData,
+        aiTripPlan: {
+          ...plan,
+          itinerary: updatedItinerary,
+        },
+      };
+
+      setTripData(updatedTrip);
+      AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("Remove this activity from your itinerary?")) {
+        executeDelete();
+      }
+    } else {
+      Alert.alert("Remove Activity", "Remove this activity from your itinerary?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: executeDelete },
+      ]);
+    }
+  };
+
+  // Persist updated expenses
+  const handleSaveExpenses = (updatedExpenses) => {
+    const updatedTrip = {
+      ...tripData,
+      expenses: updatedExpenses,
+    };
+    setTripData(updatedTrip);
+    AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+  };
+
+  // Clone / Save Trip to User Account
+  const handleCloneTrip = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const clonedTrip = {
+        ...tripData,
+        clonedFrom: activeTripId || "shared",
+        clonedAt: new Date().toISOString(),
+        id: `cloned_${Date.now()}`,
+      };
+
+      if (auth.currentUser?.email) {
+        const docRef = await addDoc(collection(db, "UserTrips"), {
+          userEmail: auth.currentUser.email,
+          tripData: clonedTrip,
+          createdAt: new Date().toISOString(),
+        });
+        clonedTrip.id = docRef.id;
+      }
+
+      setTripData(clonedTrip);
+      setActiveTripId(clonedTrip.id);
+      await AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(clonedTrip));
+      setShowShareModal(false);
+
+      if (auth.currentUser) {
+        GetMyTrips();
+      }
+
+      Alert.alert(
+        "Trip Cloned!",
+        `Successfully saved a copy of "${plan?.destination || "Trip"}" to your account. You can now customize it!`
+      );
+    } catch (err) {
+      console.log("Error cloning trip:", err);
+      Alert.alert("Cloning Notice", "Trip copied to your offline storage successfully.");
+    }
+  };
+
   // Modern Shimmer Skeleton Loading State
   if (loading) {
     return (
@@ -461,7 +614,9 @@ export default function MyTrip() {
               {userTripsList.map((t, idx) => {
                 const isSelected = activeTripId === t.id || (activeTripId === null && idx === 0);
                 const destTitle = t.aiTripPlan?.destination || t.destination || t.locationInfo?.name || "Trip";
-                const destImg = t.toLocationImage || t.locationInfo?.photoRef || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop";
+                const fallbackForCard = getDestinationImage(destTitle);
+                const rawImg = t.toLocationImage || t.locationInfo?.photoRef || fallbackForCard;
+                const destImg = sanitizeImageUrl(rawImg, fallbackForCard);
                 const duration = t.aiTripPlan?.duration || `${t.totalDays || 3} Days`;
 
                 return (
@@ -478,7 +633,7 @@ export default function MyTrip() {
                       },
                     ]}
                   >
-                    <Image source={{ uri: destImg }} style={styles.carouselCardImg} />
+                    <SafeTripImage uri={destImg} style={styles.carouselCardImg} fallbackUri={fallbackForCard} />
                     <View style={styles.carouselOverlay} />
 
                     {isSelected && (
@@ -519,9 +674,10 @@ export default function MyTrip() {
 
         {/* Hero Banner with Modern Glassmorphism Overlay */}
         <View style={styles.heroContainer}>
-          <Image 
-            source={{ uri: tripData?.toLocationImage || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop" }} 
+          <SafeTripImage 
+            uri={tripData?.toLocationImage || tripData?.locationInfo?.photoRef} 
             style={styles.heroImage} 
+            fallbackUri={getDestinationImage(plan?.destination || tripData?.locationInfo?.name)}
           />
           <View style={styles.heroGradient} />
           
@@ -549,7 +705,57 @@ export default function MyTrip() {
           </View>
         </View>
 
-        {/* Quick Action Bar (Calendar, Packing, Export, Safety Alerts) */}
+        {/* Proactive Smart Travel Advisory Banner (Controlled by User in Profile) */}
+        {preferences?.notifications && showNotificationBanner && (
+          <View style={[styles.notificationCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.notificationIconWrap}>
+              <Ionicons name="sparkles" size={18} color={Colors.PRIMARY} />
+            </View>
+            <View style={styles.notificationContent}>
+              <View style={styles.notificationTitleRow}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={[styles.notificationTitle, { color: theme.text }]}>
+                    Smart Trip Advisory
+                  </Text>
+                  <View style={styles.liveIndicatorDot} />
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowNotificationBanner(false)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={16} color={theme.subtext} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.notificationMessage, { color: theme.subtext }]}>
+                {plan?.weatherBrief 
+                  ? `Forecast: ${plan.weatherBrief.split('.')[0]}. Don't forget your packing essentials before departure!`
+                  : `All set for ${plan?.destination}! Review your digital passes and luggage checklist.`}
+              </Text>
+              <View style={styles.notificationActionsRow}>
+                <TouchableOpacity
+                  style={styles.notificationLinkBtn}
+                  onPress={() => router.push("/(tabs)/profile")}
+                >
+                  <Ionicons name="notifications-outline" size={13} color={Colors.PRIMARY} />
+                  <Text style={[styles.notificationLinkText, { color: Colors.PRIMARY }]}>
+                    Manage in Profile
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.notificationLinkBtn, { marginLeft: 14 }]}
+                  onPress={() => router.push("/packing-checklist")}
+                >
+                  <Ionicons name="bag-check-outline" size={13} color="#10B981" />
+                  <Text style={[styles.notificationLinkText, { color: "#10B981" }]}>
+                    Review Packing
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Quick Action Bar (Calendar, Packing, Share & Clone, PDF Export, Expenses, Safety) */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -577,10 +783,37 @@ export default function MyTrip() {
 
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
-            onPress={() => setShowExportModal(true)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowShareModal(true);
+            }}
           >
-            <Ionicons name="download-outline" size={17} color="#10B981" />
-            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Export Doc</Text>
+            <Ionicons name="share-social" size={17} color="#0EA5E9" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Share / Clone</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowPrintModal(true);
+            }}
+          >
+            <Ionicons name="print" size={17} color="#10B981" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Print / PDF</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowExpenseModal(true);
+            }}
+          >
+            <Ionicons name="wallet" size={17} color="#F59E0B" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>
+              {tripData?.expenses?.length > 0 ? `Expenses (${tripData.expenses.length})` : "Expenses"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -590,7 +823,7 @@ export default function MyTrip() {
               router.push("/safety-alerts");
             }}
           >
-            <Ionicons name="shield-checkmark" size={17} color="#F59E0B" />
+            <Ionicons name="shield-checkmark" size={17} color="#EF4444" />
             <Text style={[styles.quickActionLabel, { color: theme.text }]}>Live Safety</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -632,9 +865,10 @@ export default function MyTrip() {
               {plan.hotels.map((hotel, idx) => (
                 <View key={idx} style={[styles.hotelCard, { backgroundColor: theme.card }]}>
                   <View style={styles.hotelImageWrap}>
-                    <Image 
-                      source={{ uri: HOTEL_IMAGES[idx % HOTEL_IMAGES.length] }} 
+                    <SafeTripImage 
+                      uri={hotel.image || HOTEL_IMAGES[idx % HOTEL_IMAGES.length]} 
                       style={styles.hotelImage} 
+                      fallbackUri={HOTEL_IMAGES[idx % HOTEL_IMAGES.length]}
                     />
                     <View style={styles.hotelRatingPill}>
                       <Ionicons name="star" size={12} color="#FFD700" />
@@ -731,13 +965,16 @@ export default function MyTrip() {
                 </View>
                 <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={1}>{day.theme}</Text>
                 
-                {/* 🗺️ Open Full Day Route in Maps */}
+                {/* 🗺️ Open Interactive Route Modal */}
                 <TouchableOpacity 
                   style={styles.dayRouteBtn}
-                  onPress={() => openDayRouteInMaps(day)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedDayForRoute(day);
+                  }}
                 >
                   <Ionicons name="map" size={13} color="#FFF" />
-                  <Text style={styles.dayRouteBtnText}>Route</Text>
+                  <Text style={styles.dayRouteBtnText}>Route Map</Text>
                 </TouchableOpacity>
               </View>
 
@@ -759,18 +996,31 @@ export default function MyTrip() {
                 return (
                   <View key={j} style={styles.timelineRow}>
                     <View style={styles.timelineTrack}>
-                      <View style={[styles.timelineNode, { borderColor: timeColor, backgroundColor: theme.bg }]}>
-                        <View style={[styles.timelineInnerDot, { backgroundColor: timeColor }]} />
+                      <View style={[styles.timelineNode, { borderColor: act.isVisited ? "#10B981" : timeColor, backgroundColor: theme.bg }]}>
+                        <View style={[styles.timelineInnerDot, { backgroundColor: act.isVisited ? "#10B981" : timeColor }]} />
                       </View>
                       {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.border || "rgba(150,150,150,0.2)" }]} />}
                     </View>
 
-                    <View style={[styles.activityCard, { backgroundColor: theme.card }]}>
+                    <View style={[styles.activityCard, { backgroundColor: theme.card }, act.isVisited && { opacity: 0.85, borderColor: "#10B98140", borderWidth: 1 }]}>
                       <View style={styles.activityCardHeader}>
-                        <View style={[styles.timeBadge, { backgroundColor: `${timeColor}18` }]}>
-                          <Ionicons name={timeIcon} size={12} color={timeColor} />
-                          <Text style={[styles.timeBadgeText, { color: timeColor }]}>{act.time}</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={{ flexDirection: "row", alignItems: "center" }}
+                          onPress={() => toggleActivityVisited(day.day, j)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={act.isVisited ? "checkmark-circle" : "ellipse-outline"}
+                            size={18}
+                            color={act.isVisited ? "#10B981" : timeColor}
+                            style={{ marginRight: 6 }}
+                          />
+                          <View style={[styles.timeBadge, { backgroundColor: act.isVisited ? "#10B98118" : `${timeColor}18` }]}>
+                            <Text style={[styles.timeBadgeText, { color: act.isVisited ? "#10B981" : timeColor }]}>
+                              {act.isVisited ? "Visited" : act.time}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
                         
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                           <TouchableOpacity 
@@ -781,16 +1031,24 @@ export default function MyTrip() {
                             <Text style={styles.mapQuickText}>Map</Text>
                           </TouchableOpacity>
                           <TouchableOpacity 
-                            style={[styles.mapQuickBtn, { marginLeft: 8 }]}
+                            style={[styles.mapQuickBtn, { marginLeft: 6 }]}
                             onPress={() => getDirectDirections(act.placeName, act.coordinates)}
                           >
                             <Ionicons name="navigate" size={13} color="#10B981" />
                             <Text style={[styles.mapQuickText, { color: "#10B981" }]}>Directions</Text>
                           </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.mapQuickBtn, { marginLeft: 6, backgroundColor: "transparent", borderWidth: 0 }]}
+                            onPress={() => deleteActivityFromDay(day.day, j)}
+                          >
+                            <Ionicons name="trash-outline" size={14} color={theme.isDark ? "#888" : "#AAA"} />
+                          </TouchableOpacity>
                         </View>
                       </View>
 
-                      <Text style={[styles.activityPlaceName, { color: theme.text }]}>{act.placeName}</Text>
+                      <Text style={[styles.activityPlaceName, { color: theme.text }, act.isVisited && { textDecorationLine: "line-through", color: theme.subtext }]}>
+                        {act.placeName}
+                      </Text>
                       <Text style={[styles.activityDesc, { color: theme.subtext }]}>{act.details}</Text>
 
                       {act.tickets && (
@@ -855,6 +1113,45 @@ export default function MyTrip() {
           </View>
         </View>
       </Modal>
+
+      {/* Sleek Magazine-Style Printable PDF Itinerary Modal */}
+      <PrintableItineraryModal
+        visible={showPrintModal}
+        plan={plan}
+        destination={plan?.destination || tripData?.destination}
+        onClose={() => setShowPrintModal(false)}
+        theme={theme}
+      />
+
+      {/* Shareable Link & Trip Clone Modal */}
+      <ShareTripModal
+        visible={showShareModal}
+        tripId={activeTripId || "current-trip"}
+        destination={plan?.destination || tripData?.destination}
+        plan={plan}
+        onCloneTrip={handleCloneTrip}
+        onClose={() => setShowShareModal(false)}
+        theme={theme}
+      />
+
+      {/* Interactive Day Route Map Modal */}
+      <DayRouteModal
+        visible={!!selectedDayForRoute}
+        day={selectedDayForRoute}
+        destination={plan?.destination}
+        onClose={() => setSelectedDayForRoute(null)}
+        theme={theme}
+      />
+
+      {/* Trip Budget & Expense Tracker Modal */}
+      <ExpenseTrackerModal
+        visible={showExpenseModal}
+        expenses={tripData?.expenses || []}
+        budgetTier={plan?.budget || tripData?.budget || "Moderate"}
+        onSaveExpenses={handleSaveExpenses}
+        onClose={() => setShowExpenseModal(false)}
+        theme={theme}
+      />
 
     </View>
   );
@@ -1339,5 +1636,68 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontFamily: "Outfit-Bold",
+  },
+
+  // Proactive Smart Travel Advisory Banner Styles
+  notificationCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  notificationIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(10, 126, 164, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+  },
+  liveIndicatorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#10B981",
+    marginLeft: 6,
+  },
+  notificationMessage: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  notificationActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  notificationLinkBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  notificationLinkText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 4,
   },
 });

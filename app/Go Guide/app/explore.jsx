@@ -3,10 +3,26 @@ import React, { useContext, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CreateTripContext } from '../context/CreateTripContext';
 import { Colors } from '../Components/constants/constants';
-import { DESTINATIONS, DESTINATION_CATEGORIES } from '../Components/constants/Destinations';
+import {
+  DESTINATIONS,
+  DESTINATION_CATEGORIES,
+  DEFAULT_HD_TRAVEL_IMAGE,
+  sanitizeImageUrl,
+} from '../Components/constants/Destinations';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const isKnownCategory = (id) => DESTINATION_CATEGORIES.some((c) => c.id === id);
+
+function DestinationImage({ uri, style }) {
+  const [sourceUri, setSourceUri] = useState(() => sanitizeImageUrl(uri));
+  return (
+    <Image
+      source={{ uri: sourceUri }}
+      style={style}
+      onError={() => setSourceUri(DEFAULT_HD_TRAVEL_IMAGE)}
+    />
+  );
+}
 
 export default function Explore() {
   const router = useRouter();
@@ -116,7 +132,7 @@ export default function Explore() {
             onPress={() => selectDestination(item)}
             activeOpacity={0.8}
           >
-            <Image source={{ uri: item.image }} style={styles.image} />
+            <DestinationImage uri={item.image} style={styles.image} />
             <View style={styles.infoContainer}>
               <Text style={[styles.cardTitle, { color: themeStyles.textColor }]}>{item.title}</Text>
               <View style={styles.ratingRow}>

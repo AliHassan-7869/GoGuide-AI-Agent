@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { Colors } from "../../Components/constants/constants";
+import { getDestinationImage } from "../../Components/constants/Destinations";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
@@ -80,10 +81,12 @@ export default function SearchPlace() {
 
     if (activeField === "to") {
       setToQuery(item.display_name);
+      const destinationImage = getDestinationImage(item.display_name);
 
       setTripData((prev) => ({
         ...prev,
         toLocation: place,
+        toLocationImage: destinationImage,
       }));
     }
 

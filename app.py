@@ -198,6 +198,8 @@ class TravelRequest(BaseModel):
     destination: str = Field(min_length=2, max_length=100)
     days: int = Field(ge=1, le=30)
     budget: str = Field(min_length=1, max_length=50)
+    interests: str | None = Field(default=None, max_length=500)
+    categories: str | None = Field(default=None, max_length=300)
 
 
 class ChatMessage(BaseModel):
@@ -234,7 +236,14 @@ def health():
 # -------------------- POST /plan (main functionality) --------------------
 @app.post("/plan")
 def generate_plan(request: TravelRequest, client_id: str = Depends(require_client)):
-    prompt = f"""Plan a {request.days}-day trip to {request.destination} with a {request.budget} budget. Return ONLY valid JSON with this structure:
+    extra_instructions = []
+    if request.categories:
+        extra_instructions.append(f"Focus heavily on these travel themes/categories: {request.categories}.")
+    if request.interests:
+        extra_instructions.append(f"Include these specific chosen places/activities in the itinerary: {request.interests}.")
+    focus_str = (" " + " ".join(extra_instructions)) if extra_instructions else ""
+
+    prompt = f"""Plan a {request.days}-day trip to {request.destination} with a {request.budget} budget.{focus_str} Return ONLY valid JSON with this structure:
 {{
   "trip": {{
     "destination": "{request.destination}",

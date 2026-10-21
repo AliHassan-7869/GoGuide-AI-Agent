@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -35,7 +35,7 @@ const SAMPLE_BOOKINGS = [
     checkOut: "Nov 19, 2026 • 11:00 AM",
     details: "Deluxe King Room • 1 Room, 2 Guests",
     price: "$640.00",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
     coordinates: { lat: 35.6599, lng: 139.729 },
   },
   {
@@ -49,7 +49,7 @@ const SAMPLE_BOOKINGS = [
     checkOut: "Nov 14, 2026 • 10:45 PM",
     details: "Seat 14A, 14B • Terminal 3 • Economy Premium",
     price: "$820.00",
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
     coordinates: { lat: 25.2532, lng: 55.3657 },
   },
   {
@@ -63,7 +63,7 @@ const SAMPLE_BOOKINGS = [
     checkOut: "Oct 10, 2026 • 06:30 PM",
     details: "Guided Express Coach & Lake Ashi Cruise",
     price: "$145.00",
-    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop",
     coordinates: { lat: 35.3606, lng: 138.7274 },
   },
 ];
@@ -136,6 +136,8 @@ export default function MyBookings() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       {/* Header */}
       <View
         style={[

@@ -75,14 +75,15 @@ Return the response ONLY in JSON format following this exact schema:
 }`;
 
 
-export const INTEREST_PROMPT = 'Analyze the travel destination: {{location}}. Generate a highly specific real-time response in JSON format containing two arrays: "interests" and "transports". \n\n1. "interests": 15 points of interest/activities unique to {{location}}. (e.g., if Hunza, focus on peaks, lakes, and trekking; if Lahore, focus on historical sites, street food, and museums). Each: {"id": "string", "name": "emoji + name", "description": "1 short hook", "category": "category"}.\n\n2. "transports": 5 best ways to travel within or around {{location}}. (e.g., for mountains: "4x4 Jeep", "Local Van"; for big cities: "Auto Rickshaw", "Metro Train"). Each: {"id": "string", "name": "emoji + name"}. \n\nCrucial: Ensure no generic suggestions. Data must be 100% specific to the geography of {{location}}.'
+export const INTEREST_PROMPT = 'Analyze the travel destination: {{location}}. Generate a highly specific real-time response in JSON format containing two arrays: "interests" and "transports". \n\n1. "interests": 15-18 points of interest and experiences unique to {{location}}. Prioritize categories that exist naturally in this destination: if coastal (e.g. Bali, Miami, Phuket), include "Beaches"; if historic/cultural (e.g. Paris, Rome, Lahore), include "History" and "Museum"; if mountainous/outdoors, include "Nature" and "Adventure"; always include iconic local "Food". Each item must be: {"id": "string", "name": "emoji + spot name", "description": "1 short engaging hook", "category": "Beaches|History|Nature|Food|Shopping|Viewpoint|Adventure"}.\n\n2. "transports": 5 best ways to travel within or around {{location}}. Each: {"id": "string", "name": "emoji + name"}. \n\nCrucial: Ensure no generic suggestions. Data must be 100% tailored to the actual geography and attractions of {{location}}.'
 
 export const DEFAULT_INTERESTS = [
-  { id: '1', name: '🏙️ City Center', description: 'Explore the heart of the city', category: 'General' },
-  { id: '2', name: '🍴 Local Street Food', description: 'Taste authentic local flavors', category: 'Food' },
-  { id: '3', name: '🏛️ Historical Landmark', description: 'Visit must-see historical sites', category: 'History' },
-  { id: '4', name: '🌳 Public Park', description: 'Relax in the most popular green space', category: 'Leisure' },
-  { id: '5', name: '🛍️ Shopping District', description: 'Best local shopping experience', category: 'Shopping' },
+  { id: '1', name: '🏛️ Iconic Historical Landmark', description: 'Explore ancient heritage, palaces & museums', category: 'History' },
+  { id: '2', name: '🍴 Local Food & Culinary Tour', description: 'Taste legendary local street food and bistros', category: 'Food' },
+  { id: '3', name: '⛰️ Scenic Nature & Landscapes', description: 'Hike through natural trails, parks & peaks', category: 'Nature' },
+  { id: '4', name: '🏖️ Coastal Waterfront & Beaches', description: 'Relax by picturesque waters and seaside promenades', category: 'Beaches' },
+  { id: '5', name: '🛍️ Vibrant Local Bazaars', description: 'Shop for authentic crafts, fashion & souvenirs', category: 'Shopping' },
+  { id: '6', name: '👀 Panoramic City Viewpoint', description: 'Enjoy breathtaking 360-degree aerial views', category: 'Viewpoint' },
 ];
 
 export const DEFAULT_TRANSPORTS = [

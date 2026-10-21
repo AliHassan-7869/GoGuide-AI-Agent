@@ -41,6 +41,13 @@ function AppContent() {
         <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="preferences" options={{ headerShown: false }} />
         <Stack.Screen name="help-center" options={{ headerShown: false }} />
+        <Stack.Screen name="my-bookings" options={{ headerShown: false }} />
+        <Stack.Screen name="packing-checklist" options={{ headerShown: false }} />
+        <Stack.Screen name="cities" options={{ headerShown: false }} />
+        <Stack.Screen name="beaches" options={{ headerShown: false }} />
+        <Stack.Screen name="mountains" options={{ headerShown: false }} />
+        <Stack.Screen name="forest" options={{ headerShown: false }} />
+        <Stack.Screen name="explore" options={{ headerShown: false }} />
       </Stack>
     </>
   );

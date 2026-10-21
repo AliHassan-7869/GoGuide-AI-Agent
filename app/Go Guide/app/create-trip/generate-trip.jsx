@@ -1,31 +1,42 @@
 import { Stack, useRouter } from "expo-router";
-import { Animated, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
+import { useTheme } from "../../Components/constants/theme";
 import PlanIcon from "../images/svg";
 
 import { useContext, useEffect, useState, useRef } from "react";
 import { AI_PROMPT } from "../../Components/constants/Option";
-import { chatSession } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { addDoc, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 
-const { width, height } = Dimensions.get("window");
-
-const responsiveFont = (size) => (size * width) / 390;
+const { width } = Dimensions.get("window");
 
 const GENERATION_STEPS = [
-  { text: "Scanning flights & logistics...", icon: "airplane-outline" },
+  { text: "Scanning flights & local logistics...", icon: "airplane-outline" },
   { text: "Finding top boutique stays & hotels...", icon: "business-outline" },
   { text: "Designing day-by-day sightseeing plan...", icon: "calendar-outline" },
-  { text: "Curating hidden local food spots...", icon: "restaurant-outline" },
+  { text: "Curating authentic dining & cafes...", icon: "restaurant-outline" },
   { text: "Polishing your personalized master plan...", icon: "sparkles-outline" },
 ];
 
 export default function GenerateTrip() {
-  const { tripData, setTripData } = useContext(CreateTripContext);
+  const { tripData, setTripData, preferences } = useContext(CreateTripContext);
+  const theme = useTheme();
+  const isDark = preferences?.darkMode;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -34,8 +45,8 @@ export default function GenerateTrip() {
 
   // Animations
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const radarScale = useRef(new Animated.Value(0.8)).current;
-  const radarOpacity = useRef(new Animated.Value(0.7)).current;
+  const radarScale = useRef(new Animated.Value(0.85)).current;
+  const radarOpacity = useRef(new Animated.Value(0.65)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,12 +54,12 @@ export default function GenerateTrip() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
-          toValue: -12,
+          toValue: -8,
           duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(floatAnim, {
-          toValue: 10,
+          toValue: 6,
           duration: 1200,
           useNativeDriver: true,
         }),
@@ -59,7 +70,7 @@ export default function GenerateTrip() {
     Animated.loop(
       Animated.parallel([
         Animated.timing(radarScale, {
-          toValue: 2.1,
+          toValue: 1.8,
           duration: 1800,
           useNativeDriver: true,
         }),
@@ -74,14 +85,14 @@ export default function GenerateTrip() {
     // Smooth progress bar fill
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 8000,
+      duration: 8500,
       useNativeDriver: false,
     }).start();
 
     // Step cycler
     const interval = setInterval(() => {
       setCurrentStepIndex((prev) => (prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev));
-    }, 2000);
+    }, 1900);
 
     return () => clearInterval(interval);
   }, []);
@@ -93,166 +104,278 @@ export default function GenerateTrip() {
     }
   }, [tripData]);
 
+  // Fallback realistic itinerary generator if server is offline
+  const buildOfflinePlan = (destination, days, budget, interests) => {
+    const destName = destination ? destination.split(",")[0].trim() : "Vacation Destination";
+    const numDays = Math.min(30, Math.max(1, parseInt(days, 10) || 3));
+
+    const sampleActivities = [
+      {
+        time: "09:30 AM",
+        placeName: `${destName} Historic Landmark & Old Town`,
+        details: "Stroll through historic cobblestone streets, iconic architecture, and vibrant city squares.",
+        tickets: "Free",
+      },
+      {
+        time: "01:00 PM",
+        placeName: "Traditional Bistro & Local Dining",
+        details: "Enjoy authentic regional specialties, freshly baked treats, and local refreshments.",
+        tickets: "$15 - $25",
+      },
+      {
+        time: "03:30 PM",
+        placeName: `${destName} Cultural Museum & Arts Pavilion`,
+        details: "Explore world-renowned exhibitions, classical sculptures, and regional heritage galleries.",
+        tickets: "$12 - $18",
+      },
+      {
+        time: "07:30 PM",
+        placeName: "Scenic Sunset Promenade & Evening Stroll",
+        details: "Golden hour viewpoint followed by relaxed dinner and ambient nighttime atmosphere.",
+        tickets: "Free",
+      },
+    ];
+
+    const itinerary = [];
+    for (let i = 1; i <= numDays; i++) {
+      itinerary.push({
+        day: i,
+        theme: i === 1 ? "Arrival & Signature Highlights" : i === 2 ? "Cultural Heritage & Fine Dining" : "Scenic Panoramas & Local Gems",
+        activities: sampleActivities.map((act, idx) => ({
+          ...act,
+          placeName: idx === 0 ? `${destName} Discovery Spot ${i}` : act.placeName,
+        })),
+      });
+    }
+
+    return {
+      destination: destName,
+      duration: `${numDays} Days`,
+      budget: budget || "Moderate",
+      traveler: tripData?.traveler?.title || "Explorer",
+      weatherBrief: "Pleasant seasonal temperatures with clear to partly cloudy skies. Great conditions for walking.",
+      flights: { details: `Standard scheduled flight to ${destName} International Airport`, price: "$320 - $550" },
+      hotels: [
+        { name: `Grand ${destName} Boutique Hotel`, address: `Central District, ${destName}`, price: "$85/night", rating: "4.8" },
+        { name: `${destName} Heritage Suites`, address: `Old Quarter, ${destName}`, price: "$125/night", rating: "4.9" },
+      ],
+      itinerary,
+      packingList: [
+        { item: "Valid Passport & Travel Documents", category: "Documents" },
+        { item: "Comfortable Walking Shoes", category: "Clothing" },
+        { item: "Universal Power Adapter", category: "Electronics" },
+        { item: "Light Weather Jacket", category: "Clothing" },
+      ],
+    };
+  };
+
+  const handleSaveAndProceed = async (plan) => {
+    const completeTripData = {
+      ...tripData,
+      aiTripPlan: plan,
+    };
+
+    setTripData(completeTripData);
+
+    // Save to local storage for instant offline access
+    try {
+      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(completeTripData));
+    } catch (cacheErr) {
+      console.warn("Could not cache trip:", cacheErr);
+    }
+
+    // Save to Firebase (non-blocking)
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await addDoc(collection(db, "UserTrips"), {
+          userEmail: user.email,
+          tripData: completeTripData,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (fbErr) {
+        console.warn("Could not save to Firebase:", fbErr);
+      }
+    }
+
+    setLoading(false);
+    router.push("/(tabs)/mytrip");
+  };
+
   const GenerateAiTrip = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log("[DEBUG] Starting Trip Generation via Custom API");
 
-      // Calculate Days and Nights
+      // Calculate Days
       const start = new Date(tripData?.startDate);
       const end = new Date(tripData?.endDate);
       const diffTime = Math.abs(end - start);
-      const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      const totalNight = totalDays > 1 ? totalDays - 1 : 1;
+      const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 || 3;
 
       const interestNames = Array.isArray(tripData?.interestsDetails) && tripData.interestsDetails.length > 0
         ? tripData.interestsDetails.map((x) => x?.name).filter(Boolean).join(", ")
         : Array.isArray(tripData?.interests) ? tripData.interests.join(", ") : "";
 
-      const transportName = tripData?.transportDetails?.name || tripData?.transport || "Local Transport";
-
-      let FINAL_PROMPT = AI_PROMPT
-        .replace("{{fromLocation}}", tripData?.fromLocation?.name || "")
-        .replace("{{toLocation}}", tripData?.toLocation?.name || "")
-        .replace("{{totalDays}}", totalDays)
-        .replace("{{totalNight}}", totalNight)
-        .replace("{{traveler}}", tripData?.traveler?.title || "Solo")
-        .replace("{{budget}}", tripData?.budget || "Moderate");
-
-      if (interestNames) {
-        FINAL_PROMPT += `\nInclude these specific activities in the plan: ${interestNames}.`;
-      }
-      if (transportName) {
-        FINAL_PROMPT += `\nPrioritize this mode of transport where possible: ${transportName}.`;
-      }
-
-      console.log("[DEBUG] FINAL PROMPT:", FINAL_PROMPT);
+      const categoriesStr = Array.isArray(tripData?.selectedCategories) && tripData.selectedCategories.length > 0
+        ? tripData.selectedCategories.join(", ")
+        : undefined;
 
       const { generateTripWithAgent } = require("../../Configs/AiModel");
+
       const result = await generateTripWithAgent({
         destination: tripData?.toLocation?.name || "",
         days: totalDays,
-        budget: tripData?.budget || "Moderate"
+        budget: tripData?.budget || "Moderate",
+        interests: interestNames || undefined,
+        categories: categoriesStr,
       });
-      const responseText = await result.response.text();
-      console.log("[DEBUG] RAW AI RESPONSE:", responseText);
 
+      const responseText = await result.response.text();
       let cleanResponse = responseText.trim();
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) cleanResponse = jsonMatch[0];
 
       const data = JSON.parse(cleanResponse);
-      console.log("[DEBUG] API Response Data:", data);
+      const plan = data.trip || data;
 
-      // Save the generated trip plan in context and to Firebase
-      const completeTripData = {
-        ...tripData,
-        aiTripPlan: data.trip || data,
-      };
-      
-      setTripData(completeTripData);
-
-      // Save to local storage for offline / flight mode access
-      try {
-        await AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(completeTripData));
-        console.log("[CACHE] Trip saved to local AsyncStorage for offline access!");
-      } catch (cacheErr) {
-        console.warn("Could not cache trip to local storage:", cacheErr);
-      }
-
-      // Save to Firebase (non-blocking — don't let Firestore errors stop navigation)
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          await addDoc(collection(db, "UserTrips"), {
-            userEmail: user.email,
-            tripData: completeTripData,
-            createdAt: new Date().toISOString()
-          });
-          console.log("Trip saved to Firebase!");
-        } catch (firebaseError) {
-          console.warn("⚠️ Could not save trip to Firebase:", firebaseError.message);
-        }
-      }
-
+      await handleSaveAndProceed(plan);
+    } catch (err) {
       setLoading(false);
-      router.push("/mytrip");
-    } catch (error) {
-      setLoading(false);
-      console.error("[DEBUG] Trip generation error:", error.message);
-      const isQuota = error.message?.includes('429') || error.message?.toLowerCase().includes('quota');
-      setError(isQuota 
-        ? "AI is very busy (Quota Limit). Please wait a minute and retry." 
-        : `Error: ${error.message || "Something went wrong while planning your trip."}`);
+      console.error("[GenerateTrip] Error:", err.message);
+
+      const isQuota = err.message?.includes("429") || err.message?.toLowerCase().includes("quota");
+      setError({
+        isQuota,
+        message: isQuota
+          ? "AI model is currently experiencing high demand. Please try again or generate an instant plan."
+          : err.message?.includes("reach GoGuide server")
+          ? "Could not reach GoGuide backend server. Please make sure the API is running or continue with an offline plan."
+          : err.message || "Something went wrong while generating your trip.",
+      });
     }
+  };
+
+  const handleUseOfflinePlan = () => {
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    } catch (e) {}
+
+    const start = new Date(tripData?.startDate);
+    const end = new Date(tripData?.endDate);
+    const diffTime = Math.abs(end - start);
+    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 || 3;
+
+    const offlinePlan = buildOfflinePlan(
+      tripData?.toLocation?.name,
+      totalDays,
+      tripData?.budget,
+      tripData?.interests
+    );
+
+    handleSaveAndProceed(offlinePlan);
   };
 
   const currentStep = GENERATION_STEPS[currentStepIndex];
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Animated Radar Pulse & Hovering Icon */}
-      <View style={styles.radarWrapper}>
-        <Animated.View
-          style={[
-            styles.radarRing,
-            {
-              transform: [{ scale: radarScale }],
-              opacity: radarOpacity,
-            },
-          ]}
-        />
-        <Animated.View style={[styles.svgContainer, { transform: [{ translateY: floatAnim }] }]}>
-          <PlanIcon width={width * 0.45} height={height * 0.22} />
-        </Animated.View>
-      </View>
-
-      <Text style={styles.title}>Crafting Your Journey</Text>
-      <Text style={styles.subtitle}>
-        {tripData?.toLocation?.name || "Your Destination"}
-      </Text>
-
-      {/* Dynamic Animated Status Step Pill */}
-      <View style={styles.stepBox}>
-        <Ionicons
-          name={currentStep.icon}
-          size={18}
-          color={Colors.PRIMARY}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={styles.stepText}>{currentStep.text}</Text>
-      </View>
-
-      {/* Animated Progress Bar */}
-      <View style={styles.progressBarTrack}>
-        <Animated.View
-          style={[
-            styles.progressBarFill,
-            {
-              width: progressAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ["15%", "95%"],
-              }),
-            },
-          ]}
-        />
-      </View>
-
-      <Text style={styles.tip}>
-        Gemini AI is analyzing itineraries, live hotel ratings, and local routes.
-      </Text>
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={GenerateAiTrip}>
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
+      <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {/* Top Engine Pill */}
+        <View style={styles.engineBadge}>
+          <MaterialCommunityIcons name="creation" size={14} color={Colors.PRIMARY} />
+          <Text style={styles.engineBadgeText}>AI TRAVEL ARCHITECT</Text>
         </View>
-      )}
+
+        {/* Animated Radar Pulse & Hovering Icon */}
+        <View style={styles.radarWrapper}>
+          <Animated.View
+            style={[
+              styles.radarRing,
+              {
+                transform: [{ scale: radarScale }],
+                opacity: radarOpacity,
+              },
+            ]}
+          />
+          <Animated.View style={[styles.svgContainer, { transform: [{ translateY: floatAnim }] }]}>
+            <PlanIcon width={95} height={95} />
+          </Animated.View>
+        </View>
+
+        {/* Destination Header */}
+        <Text style={[styles.title, { color: theme.text }]}>Crafting Your Journey</Text>
+        
+        <View style={styles.destinationRow}>
+          <Ionicons name="location-sharp" size={16} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
+          <Text style={[styles.subtitle, { color: theme.subtext }]} numberOfLines={1}>
+            {tripData?.toLocation?.name || "Your Destination"}
+          </Text>
+        </View>
+
+        {/* Dynamic Animated Status Step Pill */}
+        <View style={[styles.stepBox, { backgroundColor: isDark ? "#242432" : "#F0F9FF", borderColor: isDark ? "#38384C" : "#BAE6FD" }]}>
+          <Ionicons
+            name={currentStep.icon}
+            size={16}
+            color={Colors.PRIMARY}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={[styles.stepText, { color: Colors.PRIMARY }]}>{currentStep.text}</Text>
+        </View>
+
+        {/* Animated Progress Bar */}
+        <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : "#E2E8F0" }]}>
+          <Animated.View
+            style={[
+              styles.progressBarFill,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["15%", "96%"],
+                }),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Tip / Live Processing Box */}
+        <View style={[styles.tipBox, { backgroundColor: isDark ? "rgba(10, 126, 164, 0.08)" : "rgba(10, 126, 164, 0.05)", borderColor: isDark ? "rgba(10, 126, 164, 0.2)" : "rgba(10, 126, 164, 0.12)" }]}>
+          <Ionicons name="sparkles" size={14} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+          <Text style={[styles.tip, { color: theme.subtext }]}>
+            Gemini AI is structuring your morning-to-night itinerary, verified stays, and local routes.
+          </Text>
+        </View>
+
+        {/* Polished Error & Fallback Card */}
+        {error && (
+          <View style={[styles.errorCard, { backgroundColor: isDark ? "#2A1818" : "#FEF2F2", borderColor: isDark ? "#4C2424" : "#FECACA" }]}>
+            <View style={styles.errorHeaderRow}>
+              <Ionicons name="alert-circle-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+              <Text style={styles.errorTitle}>Server Notice</Text>
+            </View>
+            <Text style={[styles.errorMessage, { color: isDark ? "#FCA5A5" : "#991B1B" }]}>
+              {error.message}
+            </Text>
+
+            <View style={styles.errorButtonsRow}>
+              <TouchableOpacity style={styles.retryBtn} onPress={GenerateAiTrip} activeOpacity={0.8}>
+                <Ionicons name="refresh-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.retryText}>Retry AI</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.offlineBtn} onPress={handleUseOfflinePlan} activeOpacity={0.8}>
+                <Ionicons name="flash-outline" size={15} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
+                <Text style={styles.offlineText}>Instant Plan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -260,25 +383,54 @@ export default function GenerateTrip() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: Colors.WHITE,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: width * 0.06,
-    paddingVertical: 40,
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 460,
+    borderRadius: 26,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  engineBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(10, 126, 164, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
+  engineBadgeText: {
+    color: Colors.PRIMARY,
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.8,
+    marginLeft: 5,
   },
   radarWrapper: {
-    width: width * 0.55,
-    height: width * 0.55,
+    width: 130,
+    height: 130,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    marginBottom: 20,
+    marginBottom: 18,
   },
   radarRing: {
     position: "absolute",
-    width: width * 0.42,
-    height: width * 0.42,
-    borderRadius: (width * 0.42) / 2,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     borderWidth: 2,
     borderColor: Colors.PRIMARY,
     backgroundColor: "rgba(10, 126, 164, 0.08)",
@@ -288,77 +440,123 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: responsiveFont(24),
+    fontSize: 24,
     fontFamily: "Outfit-Bold",
-    color: Colors.PRIMARY,
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  destinationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   subtitle: {
-    fontSize: responsiveFont(16),
+    fontSize: 15,
     fontFamily: "Outfit-Medium",
-    color: Colors.GRAY,
-    marginBottom: 25,
     textAlign: "center",
   },
   stepBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(10, 126, 164, 0.08)",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 20,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    width: "100%",
   },
   stepText: {
-    fontSize: responsiveFont(13),
+    fontSize: 13,
     fontFamily: "Outfit-Medium",
-    color: Colors.PRIMARY,
   },
   progressBarTrack: {
-    width: "85%",
+    width: "100%",
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#E2E8F0",
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: Colors.PRIMARY,
     borderRadius: 3,
   },
-  tip: {
-    fontSize: responsiveFont(13),
-    fontFamily: "Outfit-Regular",
-    color: Colors.DARK_GRAY,
-    textAlign: "center",
-    lineHeight: 19,
-    paddingHorizontal: 10,
-  },
-  errorContainer: {
-    marginTop: 30,
+  tipBox: {
+    flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#FFF5F5",
-    borderRadius: 20,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    width: "100%",
   },
-  errorText: {
-    fontSize: responsiveFont(14),
-    fontFamily: "Outfit-Medium",
-    color: "#FF4B4B",
+  tip: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
     textAlign: "center",
-    marginBottom: 15,
+    lineHeight: 18,
+    flex: 1,
+  },
+
+  // Polished Error Card
+  errorCard: {
+    marginTop: 20,
+    width: "100%",
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  errorHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+    color: "#EF4444",
+  },
+  errorMessage: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  errorButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
   },
   retryBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.PRIMARY,
-    paddingHorizontal: 25,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 12,
   },
   retryText: {
-    color: Colors.WHITE,
+    color: "#FFFFFF",
+    fontSize: 13,
     fontFamily: "Outfit-Bold",
-    fontSize: 16,
+  },
+  offlineBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.PRIMARY,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  offlineText: {
+    color: Colors.PRIMARY,
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
   },
 });

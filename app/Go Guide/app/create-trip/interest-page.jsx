@@ -1,33 +1,89 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   FlatList,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { Colors } from "../../Components/constants/constants";
+import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { INTEREST_PROMPT, DEFAULT_INTERESTS, DEFAULT_TRANSPORTS } from "../../Components/constants/Option";
 import { model, generationConfig } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
-// No static defaults - everything is fetched in real-time
-const InterestCard = ({ item, index, isSelected, onPress }) => {
+// Distinct category colors for visual distinction
+const getCategoryBadgeStyle = (category, isDark) => {
+  switch (category) {
+    case "Beaches":
+      return {
+        bg: isDark ? "rgba(14, 165, 233, 0.18)" : "#E0F2FE",
+        text: isDark ? "#38BDF8" : "#0284C7",
+        border: isDark ? "rgba(14, 165, 233, 0.35)" : "#BAE6FD",
+      };
+    case "History":
+    case "Museum":
+      return {
+        bg: isDark ? "rgba(245, 158, 11, 0.18)" : "#FEF3C7",
+        text: isDark ? "#FBBF24" : "#B45309",
+        border: isDark ? "rgba(245, 158, 11, 0.35)" : "#FDE68A",
+      };
+    case "Nature":
+    case "Adventure":
+      return {
+        bg: isDark ? "rgba(34, 197, 94, 0.18)" : "#DCFCE7",
+        text: isDark ? "#4ADE80" : "#15803D",
+        border: isDark ? "rgba(34, 197, 94, 0.35)" : "#BBF7D0",
+      };
+    case "Viewpoint":
+      return {
+        bg: isDark ? "rgba(168, 85, 247, 0.18)" : "#EDE9FE",
+        text: isDark ? "#C084FC" : "#6D28D9",
+        border: isDark ? "rgba(168, 85, 247, 0.35)" : "#DDD6FE",
+      };
+    case "Food":
+      return {
+        bg: isDark ? "rgba(244, 63, 94, 0.18)" : "#FFE4E6",
+        text: isDark ? "#FB7185" : "#BE123C",
+        border: isDark ? "rgba(244, 63, 94, 0.35)" : "#FECDD3",
+      };
+    case "Shopping":
+      return {
+        bg: isDark ? "rgba(139, 92, 246, 0.18)" : "#F3E8FF",
+        text: isDark ? "#A78BFA" : "#7E22CE",
+        border: isDark ? "rgba(139, 92, 246, 0.35)" : "#E9D5FF",
+      };
+    default:
+      return {
+        bg: isDark ? "rgba(10, 126, 164, 0.2)" : "rgba(10, 126, 164, 0.08)",
+        text: isDark ? "#38BDF8" : Colors.PRIMARY,
+        border: isDark ? "rgba(10, 126, 164, 0.35)" : "rgba(10, 126, 164, 0.15)",
+      };
+  }
+};
+
+const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 500,
-      delay: index * 100,
+      duration: 300,
+      delay: Math.min(index * 40, 300),
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const catStyle = getCategoryBadgeStyle(item.category, theme.isDark);
 
   return (
     <Animated.View
@@ -37,27 +93,58 @@ const InterestCard = ({ item, index, isSelected, onPress }) => {
           {
             translateY: fadeAnim.interpolate({
               inputRange: [0, 1],
-              outputRange: [20, 0],
+              outputRange: [12, 0],
             }),
           },
         ],
       }}
     >
       <TouchableOpacity
-        activeOpacity={0.9}
-        style={[styles.card, isSelected && styles.selectedCard]}
+        activeOpacity={0.85}
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: isSelected
+              ? Colors.PRIMARY
+              : theme.isDark
+              ? "#2C2C2C"
+              : Colors.LIGHT_GRAY,
+          },
+          isSelected && [
+            styles.selectedCard,
+            { backgroundColor: theme.isDark ? "rgba(10, 126, 164, 0.1)" : "#F0F9FF" },
+          ],
+        ]}
         onPress={() => onPress(item.id)}
       >
         <View style={styles.cardHeader}>
-          <Text style={styles.cardName}>{item.name}</Text>
-          {item.category && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{item.category}</Text>
-            </View>
-          )}
+          <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
+          <View style={styles.cardHeaderRight}>
+            {item.category && (
+              <View
+                style={[
+                  styles.categoryBadge,
+                  { backgroundColor: catStyle.bg, borderColor: catStyle.border },
+                ]}
+              >
+                <Text style={[styles.categoryText, { color: catStyle.text }]}>
+                  {item.category}
+                </Text>
+              </View>
+            )}
+            <Ionicons
+              name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+              size={22}
+              color={isSelected ? Colors.PRIMARY : theme.isDark ? "#555" : "#D1D5DB"}
+              style={{ marginLeft: 8 }}
+            />
+          </View>
         </View>
         {item.description && (
-          <Text style={styles.cardDescription}>{item.description}</Text>
+          <Text style={[styles.cardDescription, { color: theme.subtext }]}>
+            {item.description}
+          </Text>
         )}
       </TouchableOpacity>
     </Animated.View>
@@ -66,6 +153,7 @@ const InterestCard = ({ item, index, isSelected, onPress }) => {
 
 export default function YourInterest() {
   const router = useRouter();
+  const theme = useTheme();
 
   const { tripData, setTripData } = useContext(CreateTripContext);
 
@@ -73,14 +161,24 @@ export default function YourInterest() {
   const [transportList, setTransportList] = useState([]);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
   const [selectedTransport, setSelectedTransport] = useState(null);
+  const [activeCategory, setActiveCategory] = useState("all");
   const [loadingInterests, setLoadingInterests] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
+
   const retryTimerRef = useRef(null);
   const nextAllowedRequestAtRef = useRef(0);
 
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale || "en";
   const lang = deviceLocale.split("-")[0]?.toLowerCase() || "en";
+
+  const triggerHaptic = () => {
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {}
+  };
 
   const parseCoord = (v) => {
     const n = typeof v === "string" ? Number(v) : v;
@@ -101,13 +199,17 @@ export default function YourInterest() {
     return 2 * R * Math.atan2(Math.sqrt(sa), Math.sqrt(1 - sa));
   };
 
+  // Tag categorizer with Beach and coastal recognition
   const categoryFromTags = (tags = {}) => {
+    if (tags.natural === "beach" || tags.leisure === "beach_resort" || tags.beach) {
+      return { category: "Beaches", emoji: "🏖️" };
+    }
     if (tags.natural === "peak") return { category: "Nature", emoji: "⛰️" };
     if (tags.natural === "water" || tags.water) return { category: "Nature", emoji: "🌊" };
-    if (tags.tourism === "museum") return { category: "Museum", emoji: "🏛️" };
+    if (tags.tourism === "museum") return { category: "History", emoji: "🏛️" };
+    if (tags.historic) return { category: "History", emoji: "🏰" };
     if (tags.tourism === "viewpoint") return { category: "Viewpoint", emoji: "👀" };
     if (tags.tourism === "attraction") return { category: "Attraction", emoji: "📍" };
-    if (tags.historic) return { category: "History", emoji: "🏰" };
     if (tags.leisure === "park") return { category: "Leisure", emoji: "🌳" };
     if (tags.amenity === "restaurant" || tags.amenity === "cafe") return { category: "Food", emoji: "🍴" };
     if (tags.amenity === "marketplace") return { category: "Shopping", emoji: "🛍️" };
@@ -143,10 +245,13 @@ export default function YourInterest() {
       { id: "cable", name: `🚠 ${t("cable")}` },
       { id: "jeep", name: `🚙 ${t("jeep")}` },
     ];
-    const rail = { id: "train", name: `🚆 ${t("train")}` };
-
     let transports = base;
-    if (hasRail) transports = [rail, ...transports.filter((t) => t.id !== "train")];
+    if (hasRail) {
+      transports = [
+        { id: "train", name: `🚆 ${t("train")}` },
+        ...transports.filter((t) => t.id !== "train"),
+      ];
+    }
     if (isMountain) {
       transports = [
         ...mountainExtras,
@@ -157,14 +262,14 @@ export default function YourInterest() {
   };
 
   const fetchOverpassInterests = async ({ lat, lng }) => {
-    const radius = 15000;
+    const radius = 25000;
     const query = `
       [out:json][timeout:25];
       (
         nwr(around:${radius},${lat},${lng})[tourism~"^(attraction|museum|viewpoint)$"];
         nwr(around:${radius},${lat},${lng})[historic];
-        nwr(around:${radius},${lat},${lng})[natural~"^(peak|water)$"];
-        nwr(around:${radius},${lat},${lng})[leisure=park];
+        nwr(around:${radius},${lat},${lng})[natural~"^(peak|water|beach)$"];
+        nwr(around:${radius},${lat},${lng})[leisure~"^(park|beach_resort)$"];
         nwr(around:${radius},${lat},${lng})[amenity~"^(cafe|restaurant|marketplace)$"];
         nwr(around:${radius},${lat},${lng})[railway=station];
       );
@@ -212,14 +317,16 @@ export default function YourInterest() {
 
         const distKm = haversineKm(lat, lng, centerLat, centerLng);
         const description =
-          category === "Viewpoint"
+          category === "Beaches"
+            ? "Scenic coastal or waterfront relaxation"
+            : category === "Viewpoint"
             ? "Great spot for panoramic photos"
             : category === "Food"
               ? "Try a local favorite nearby"
               : category === "Nature"
                 ? "Scenic place worth exploring"
                 : category === "History"
-                  ? "A local landmark with character"
+                  ? "A historic landmark with character"
                   : "A popular local place to check out";
 
         return {
@@ -232,7 +339,7 @@ export default function YourInterest() {
       })
       .filter(Boolean)
       .sort((a, b) => a._distKm - b._distKm)
-      .slice(0, 15)
+      .slice(0, 20)
       .map(({ _distKm, ...rest }) => rest);
 
     const transports = makeTransportList({ isMountain: peakCount >= 3, hasRail });
@@ -240,11 +347,8 @@ export default function YourInterest() {
   };
 
   useEffect(() => {
-    console.log("Trip Data Updated:", tripData);
     if (tripData?.toLocation?.name) {
       GetDynamicInterests();
-    } else {
-      console.log("Waiting for location data...");
     }
   }, [tripData?.toLocation?.name]);
 
@@ -291,126 +395,119 @@ export default function YourInterest() {
       setLoadingInterests(true);
       setErrorMessage(null);
       const locationName = tripData?.toLocation?.name;
-      console.log("[DEBUG] Fetching interests for:", locationName);
-      
+
       if (!locationName) {
-        console.warn("[DEBUG] No location name found in tripData");
         setLoadingInterests(false);
         return;
       }
 
-      // Prefer OpenStreetMap/Overpass so this works without Gemini quota/billing.
+      // Try OpenStreetMap / Overpass first
       const lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
       const lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
       if (lat != null && lng != null) {
-        const osm = await fetchOverpassInterests({ lat, lng });
-        if (osm?.interests?.length) setPlacesList(osm.interests);
-        if (osm?.transports?.length) setTransportList(osm.transports);
-        if (!osm?.interests?.length && !osm?.transports?.length) {
-          throw new Error("No data found from Overpass");
+        try {
+          const osm = await fetchOverpassInterests({ lat, lng });
+          if (osm?.interests?.length) setPlacesList(osm.interests);
+          if (osm?.transports?.length) setTransportList(osm.transports);
+          if (osm?.interests?.length || osm?.transports?.length) {
+            setLoadingInterests(false);
+            return;
+          }
+        } catch (osmErr) {
+          console.log("[DEBUG] Overpass notice, falling back to AI:", osmErr.message);
         }
-        setErrorMessage(null);
-        return;
       }
 
-      // If we don't have coordinates, fall back to Gemini prompt (may be quota-limited).
+      // Fallback: Gemini prompt
       const FINAL_PROMPT = INTEREST_PROMPT.replace("{{location}}", locationName);
-      console.log("[DEBUG] FULL PROMPT:", FINAL_PROMPT);
-
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: FINAL_PROMPT }] }],
         generationConfig,
       });
 
       const response = await result.response.text();
-      console.log("[DEBUG] RAW AI RESPONSE:", response);
-
       let cleanResponse = response.trim();
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) cleanResponse = jsonMatch[0];
 
-      console.log("[DEBUG] CLEANED RESPONSE:", cleanResponse);
-      const parsedResponse = JSON.parse(cleanResponse);
-      console.log("[DEBUG] PARSED RESPONSE:", parsedResponse);
-
-      if (parsedResponse && typeof parsedResponse === "object") {
-        let itemsFound = false;
-        if (
-          parsedResponse.interests &&
-          Array.isArray(parsedResponse.interests) &&
-          parsedResponse.interests.length > 0
-        ) {
+      if (cleanResponse) {
+        const parsedResponse = JSON.parse(cleanResponse);
+        if (Array.isArray(parsedResponse.interests) && parsedResponse.interests.length > 0) {
           setPlacesList(parsedResponse.interests);
-          itemsFound = true;
+        } else {
+          setPlacesList(DEFAULT_INTERESTS);
         }
-
-        if (
-          parsedResponse.transports &&
-          Array.isArray(parsedResponse.transports) &&
-          parsedResponse.transports.length > 0
-        ) {
+        if (Array.isArray(parsedResponse.transports) && parsedResponse.transports.length > 0) {
           setTransportList(parsedResponse.transports);
-          itemsFound = true;
+        } else {
+          setTransportList(DEFAULT_TRANSPORTS);
         }
-
-        if (!itemsFound) throw new Error("No data found in AI response");
+      } else {
+        setPlacesList(DEFAULT_INTERESTS);
+        setTransportList(DEFAULT_TRANSPORTS);
       }
     } catch (error) {
-      console.error("[DEBUG] CRITICAL ERROR IN GetDynamicInterests:", error);
-
+      console.error("[DEBUG] Error fetching interests:", error);
       const msg = String(error?.message || "");
-      const isQuota =
-        msg.includes("[429") ||
-        /quota exceeded/i.test(msg) ||
-        /rate limit/i.test(msg);
+      const isQuota = msg.includes("[429") || /quota exceeded/i.test(msg) || /rate limit/i.test(msg);
       const retrySec = extractRetrySeconds(error);
       if (retrySec > 0) {
         nextAllowedRequestAtRef.current = Date.now() + retrySec * 1000;
         startRetryCountdown(retrySec);
       }
 
-      // If Gemini is blocked (quota), try OpenStreetMap now (if coordinates exist).
-      if (isQuota) {
-        try {
-          const lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
-          const lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
-          if (lat != null && lng != null) {
-            const osm = await fetchOverpassInterests({ lat, lng });
-            if (osm?.interests?.length) setPlacesList(osm.interests);
-            if (osm?.transports?.length) setTransportList(osm.transports);
-            setErrorMessage("Loaded interests from OpenStreetMap (Gemini quota exceeded)");
-            return;
-          }
-        } catch (e) {
-          console.warn("[DEBUG] Overpass fallback failed:", e);
-        }
-      }
-      
-      // FALLBACK MECHANISM: Use defaults if AI fails
-      if (placesList.length === 0) {
-        console.log("[DEBUG] Applying Fallback Interests");
-        setPlacesList(DEFAULT_INTERESTS);
-      }
-      if (transportList.length === 0) {
-        console.log("[DEBUG] Applying Fallback Transports");
-        setTransportList(DEFAULT_TRANSPORTS);
-      }
-      
-      if (isQuota) {
-        setErrorMessage(
-          retrySec > 0
-            ? `Gemini quota exceeded. Retry in ${retrySec}s (showing defaults)`
-            : "Gemini quota exceeded (showing defaults)"
-        );
-      } else {
-        setErrorMessage("Using default options (AI connection issue)");
-      }
+      // If all fails, provide curated defaults
+      setPlacesList(DEFAULT_INTERESTS);
+      setTransportList(DEFAULT_TRANSPORTS);
     } finally {
       setLoadingInterests(false);
     }
   };
 
+  // Compute dynamic category recommendations based on what actually exists for this destination
+  const availableCategories = useMemo(() => {
+    const counts = {};
+    placesList.forEach((p) => {
+      const cat = p.category || "General";
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    const categories = [
+      { id: "all", label: "All Spots", icon: "✨", count: placesList.length },
+    ];
+
+    const categoryMeta = {
+      History: { label: "History & Heritage", icon: "🏛️" },
+      Beaches: { label: "Beaches & Coastal", icon: "🏖️" },
+      Nature: { label: "Nature & Adventure", icon: "⛰️" },
+      Food: { label: "Food & Culinary", icon: "🍴" },
+      Viewpoint: { label: "Viewpoints", icon: "👀" },
+      Shopping: { label: "Shopping", icon: "🛍️" },
+      Attraction: { label: "Attractions", icon: "📍" },
+      Leisure: { label: "Parks & Leisure", icon: "🌳" },
+    };
+
+    Object.keys(counts).forEach((cat) => {
+      const meta = categoryMeta[cat] || { label: cat, icon: "📍" };
+      categories.push({
+        id: cat,
+        label: meta.label,
+        icon: meta.icon,
+        count: counts[cat],
+      });
+    });
+
+    return categories;
+  }, [placesList]);
+
+  // Filter list by selected category tab
+  const filteredPlaces = useMemo(() => {
+    if (activeCategory === "all") return placesList;
+    return placesList.filter((p) => (p.category || "General") === activeCategory);
+  }, [placesList, activeCategory]);
+
   const togglePlace = (id) => {
+    triggerHaptic();
     if (selectedPlaces.includes(id)) {
       setSelectedPlaces(selectedPlaces.filter((p) => p !== id));
     } else {
@@ -419,6 +516,7 @@ export default function YourInterest() {
   };
 
   const handleContinue = () => {
+    triggerHaptic();
     if (selectedPlaces.length > 0 && selectedTransport) {
       const selectedInterestItems = placesList.filter((p) =>
         selectedPlaces.includes(p.id)
@@ -426,134 +524,259 @@ export default function YourInterest() {
       const selectedTransportItem =
         transportList.find((t) => t.id === selectedTransport) || null;
 
+      const chosenCategories = Array.from(
+        new Set(selectedInterestItems.map((i) => i.category).filter(Boolean))
+      );
+
       setTripData((prev) => ({
         ...prev,
         interests: selectedPlaces,
         transport: selectedTransport,
         interestsDetails: selectedInterestItems,
         transportDetails: selectedTransportItem,
+        selectedCategories: chosenCategories,
       }));
       router.push("/create-trip/select-dates");
     }
   };
 
+  const destinationName = tripData?.toLocation?.name?.split(",")[0] || "your destination";
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.header}>
-        <StepProgressBar currentStep={3} totalSteps={6} stepTitle="Select Interests" />
-        <Text style={styles.title}>Your Interests</Text>
-        <Text style={styles.subtitle}>
-          Discover the perfect spots in{" "}
-          <Text style={styles.locationHighlight}>
-            {tripData?.toLocation?.name?.split(",")[0] || "your destination"}
-          </Text>
-        </Text>
+      {/* Top Header Bar with Back Button */}
+      <View style={[styles.topBar, { borderBottomColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerHaptic();
+            router.back();
+          }}
+          style={[styles.backButton, { backgroundColor: theme.isDark ? "#262626" : "#F3F4F6" }]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.topBarTitle, { color: theme.subtext }]}>Step 3 of 6</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Select Activities</Text>
-          {!loadingInterests && (
-            <TouchableOpacity onPress={GetDynamicInterests} activeOpacity={0.7}>
-              <Text style={styles.refreshText}>🔄 Refresh</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {loadingInterests ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.PRIMARY} />
-            <Text style={styles.loadingText}>
-              Curating local experiences...
+      <FlatList
+        data={filteredPlaces}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={() => (
+          <View style={styles.headerArea}>
+            <StepProgressBar currentStep={3} totalSteps={6} stepTitle="Select Interests" />
+            <Text style={[styles.title, { color: theme.text }]}>Choose Experiences</Text>
+            <Text style={[styles.subtitle, { color: theme.subtext }]}>
+              Curated highlights for{" "}
+              <Text style={styles.locationHighlight}>{destinationName}</Text>
             </Text>
-          </View>
-        ) : errorMessage ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>⚠️ AI Error: {errorMessage}</Text>
-            <TouchableOpacity
-              onPress={GetDynamicInterests}
-              style={[styles.retryBtn, retryAfterSeconds > 0 && styles.retryBtnDisabled]}
-              disabled={retryAfterSeconds > 0}
-            >
-              <Text style={styles.retryText}>
-                {retryAfterSeconds > 0 ? `Retry in ${retryAfterSeconds}s` : "Retry Connection"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <FlatList
-            data={placesList}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  No activities found for this route.
+
+            {/* Dynamic Recommendations Chips Bar */}
+            {availableCategories.length > 1 && !loadingInterests && (
+              <View style={styles.categorySection}>
+                <Text style={[styles.categoryHeading, { color: theme.subtext }]}>
+                  RECOMMENDED CATEGORIES FOR {destinationName.toUpperCase()}
                 </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryScroll}
+                >
+                  {availableCategories.map((cat) => {
+                    const isActive = activeCategory === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.categoryChip,
+                          {
+                            backgroundColor: isActive
+                              ? Colors.PRIMARY
+                              : theme.isDark
+                              ? "#1F1F1F"
+                              : "#F3F4F6",
+                            borderColor: isActive
+                              ? Colors.PRIMARY
+                              : theme.isDark
+                              ? "#333333"
+                              : "#E5E7EB",
+                          },
+                        ]}
+                        onPress={() => {
+                          triggerHaptic();
+                          setActiveCategory(cat.id);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.categoryChipIcon}>{cat.icon}</Text>
+                        <Text
+                          style={[
+                            styles.categoryChipLabel,
+                            { color: isActive ? "#FFFFFF" : theme.text },
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                        <View
+                          style={[
+                            styles.countBadge,
+                            {
+                              backgroundColor: isActive
+                                ? "rgba(255, 255, 255, 0.25)"
+                                : theme.isDark
+                                ? "#333"
+                                : "#E5E7EB",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.countBadgeText,
+                              { color: isActive ? "#FFFFFF" : theme.subtext },
+                            ]}
+                          >
+                            {cat.count}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                {activeCategory === "all"
+                  ? "Popular Highlights"
+                  : availableCategories.find((c) => c.id === activeCategory)?.label || "Activities"}
+              </Text>
+              {!loadingInterests && (
+                <TouchableOpacity onPress={GetDynamicInterests} activeOpacity={0.7}>
+                  <Text style={styles.refreshText}>🔄 Refresh</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {loadingInterests && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                <Text style={[styles.loadingText, { color: theme.subtext }]}>
+                  Curating local highlights for {destinationName}...
+                </Text>
+              </View>
+            )}
+
+            {errorMessage && !loadingInterests && (
+              <View style={[styles.errorContainer, { backgroundColor: theme.card }]}>
+                <Text style={styles.errorText}>⚠️ Notice: {errorMessage}</Text>
                 <TouchableOpacity
                   onPress={GetDynamicInterests}
-                  style={styles.retryMinBtn}
+                  style={[styles.retryBtn, retryAfterSeconds > 0 && styles.retryBtnDisabled]}
+                  disabled={retryAfterSeconds > 0}
                 >
-                  <Text style={styles.retryMinText}>Try Again</Text>
+                  <Text style={styles.retryText}>
+                    {retryAfterSeconds > 0 ? `Retry in ${retryAfterSeconds}s` : "Retry Connection"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
-            renderItem={({ item, index }) => (
-              <InterestCard
-                item={item}
-                index={index}
-                isSelected={selectedPlaces.includes(item.id)}
-                onPress={togglePlace}
-              />
-            )}
+          </View>
+        )}
+        renderItem={({ item, index }) => (
+          <InterestCard
+            item={item}
+            index={index}
+            isSelected={selectedPlaces.includes(item.id)}
+            onPress={togglePlace}
+            theme={theme}
           />
         )}
-
-        <Text style={styles.sectionTitle}>Best Way to Travel</Text>
-
-        <View style={styles.transportContainer}>
-          {loadingInterests ? (
-            <ActivityIndicator size="small" color={Colors.PRIMARY} />
-          ) : (
-            transportList.map((item) => (
+        ListEmptyComponent={() =>
+          !loadingInterests && (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.subtext }]}>
+                No activities found in this category.
+              </Text>
               <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.8}
-                style={[
-                  styles.transportCard,
-                  selectedTransport === item.id && styles.selectedTransport,
-                ]}
-                onPress={() => setSelectedTransport(item.id)}
+                onPress={() => setActiveCategory("all")}
+                style={styles.retryMinBtn}
               >
-                <Text
-                  style={[
-                    styles.transportText,
-                    selectedTransport === item.id && styles.selectedTransportText,
-                  ]}
-                >
-                  {item.name}
-                </Text>
+                <Text style={styles.retryMinText}>View All Activities</Text>
               </TouchableOpacity>
-            ))
-          )}
-        </View>
-      </View>
+            </View>
+          )
+        }
+        ListFooterComponent={() => (
+          <View style={styles.footerArea}>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
+              Best Way to Travel
+            </Text>
 
-      <View style={styles.footer}>
+            <View style={styles.transportContainer}>
+              {loadingInterests ? (
+                <ActivityIndicator size="small" color={Colors.PRIMARY} />
+              ) : (
+                transportList.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.transportCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor:
+                          selectedTransport === item.id
+                            ? Colors.PRIMARY
+                            : theme.isDark
+                            ? "#333"
+                            : Colors.LIGHT_GRAY,
+                      },
+                      selectedTransport === item.id && styles.selectedTransport,
+                    ]}
+                    onPress={() => {
+                      triggerHaptic();
+                      setSelectedTransport(item.id);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.transportText,
+                        { color: theme.text },
+                        selectedTransport === item.id && styles.selectedTransportText,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          </View>
+        )}
+      />
+
+      {/* Floating Bottom Button Bar */}
+      <View style={[styles.footer, { backgroundColor: theme.card, borderTopColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
             styles.button,
-            !(selectedPlaces.length > 0 && selectedTransport) &&
-            styles.buttonDisabled,
+            !(selectedPlaces.length > 0 && selectedTransport) && styles.buttonDisabled,
           ]}
           onPress={handleContinue}
           disabled={!(selectedPlaces.length > 0 && selectedTransport)}
         >
-          <Text style={styles.buttonText}>Confirm & Continue</Text>
+          <Text style={styles.buttonText}>
+            {selectedPlaces.length > 0
+              ? `Confirm (${selectedPlaces.length}) & Continue`
+              : "Select at least 1 Activity"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -563,222 +786,267 @@ export default function YourInterest() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
   },
-  header: {
-    paddingHorizontal: 25,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: Colors.WHITE,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 54 : 44,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarTitle: {
+    fontSize: 14,
+    fontFamily: "Outfit-Medium",
+  },
+  listContent: {
+    paddingHorizontal: 22,
+    paddingBottom: 110,
+  },
+  headerArea: {
+    paddingTop: 16,
   },
   title: {
-    fontSize: 34,
+    fontSize: 30,
     fontFamily: "Outfit-Bold",
-    color: Colors.TEXT_LIGHT,
     letterSpacing: -0.5,
+    marginTop: 8,
   },
   subtitle: {
-    fontSize: 17,
-    marginTop: 8,
+    fontSize: 16,
+    marginTop: 6,
     fontFamily: "Outfit-Medium",
-    color: Colors.TEXT_GRAY,
-    lineHeight: 24,
+    lineHeight: 22,
+    marginBottom: 16,
   },
   locationHighlight: {
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 25,
+  categorySection: {
+    marginBottom: 16,
+  },
+  categoryHeading: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  categoryScroll: {
+    paddingVertical: 4,
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 6,
+  },
+  categoryChipIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  categoryChipLabel: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+  },
+  countBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 5,
+    marginTop: 8,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 22,
-    marginVertical: 10,
+    fontSize: 20,
     fontFamily: "Outfit-Bold",
-    color: Colors.TEXT_LIGHT,
   },
   refreshText: {
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
-    fontSize: 14,
+    fontSize: 13,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+    paddingVertical: 40,
     alignItems: "center",
-    paddingVertical: 50,
   },
   loadingText: {
-    marginTop: 15,
+    marginTop: 12,
+    fontSize: 14,
     fontFamily: "Outfit-Medium",
-    color: Colors.TEXT_GRAY,
-    fontSize: 16,
+  },
+  errorContainer: {
+    padding: 16,
+    borderRadius: 16,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#DC2626",
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  retryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 12,
+  },
+  retryBtnDisabled: {
+    opacity: 0.5,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
   },
   emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 30,
+    alignItems: "center",
   },
   emptyText: {
-    fontFamily: 'Outfit-Medium',
-    color: Colors.TEXT_GRAY,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 15,
+    fontSize: 14,
+    fontFamily: "Outfit-Medium",
+    marginBottom: 12,
   },
   retryMinBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.PRIMARY,
   },
   retryMinText: {
     color: Colors.PRIMARY,
-    fontFamily: 'Outfit-Bold',
+    fontFamily: "Outfit-Bold",
+    fontSize: 13,
   },
   card: {
-    marginVertical: 10,
-    padding: 20,
-    borderRadius: 24,
-    backgroundColor: Colors.WHITE,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: Colors.LIGHT_GRAY,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 1,
   },
   selectedCard: {
     borderColor: Colors.PRIMARY,
-    backgroundColor: Colors.BACKGROUND_LIGHT,
-    borderWidth: 2,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  cardHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   cardName: {
-    fontSize: 19,
+    fontSize: 17,
     fontFamily: "Outfit-Bold",
-    color: Colors.TEXT_LIGHT,
     flex: 1,
     marginRight: 10,
   },
   categoryBadge: {
-    backgroundColor: "rgba(10, 126, 164, 0.1)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   categoryText: {
     fontSize: 11,
     fontFamily: "Outfit-Bold",
-    color: Colors.PRIMARY,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   cardDescription: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: "Outfit-Regular",
-    color: Colors.TEXT_GRAY,
-    lineHeight: 22,
+    lineHeight: 18,
+  },
+  footerArea: {
+    paddingBottom: 20,
   },
   transportContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -5,
-    marginTop: 5,
-    marginBottom: 30,
+    gap: 8,
+    marginTop: 10,
   },
   transportCard: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    margin: 5,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.LIGHT_GRAY,
-    backgroundColor: Colors.WHITE,
   },
   selectedTransport: {
     backgroundColor: Colors.PRIMARY,
     borderColor: Colors.PRIMARY,
   },
   transportText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Outfit-Medium",
-    color: Colors.TEXT_LIGHT,
   },
   selectedTransportText: {
-    color: Colors.WHITE,
+    color: "#FFFFFF",
     fontFamily: "Outfit-Bold",
   },
   footer: {
-    paddingHorizontal: 25,
-    paddingBottom: 40,
-    paddingTop: 10,
-    backgroundColor: Colors.WHITE,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 22,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 36 : 20,
+    borderTopWidth: 1,
   },
   button: {
-    paddingVertical: 18,
-    borderRadius: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
     backgroundColor: Colors.PRIMARY,
     shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: Colors.BUTTON_DISABLED,
+    backgroundColor: Colors.BUTTON_DISABLED || "#CCCCCC",
     shadowOpacity: 0,
     elevation: 0,
   },
   buttonText: {
-    color: Colors.WHITE,
-    fontSize: 18,
+    color: "#FFFFFF",
+    fontSize: 16,
     fontFamily: "Outfit-Bold",
-  },
-  errorContainer: {
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF5F5',
-    borderRadius: 24,
-    marginVertical: 20,
-    borderWidth: 1,
-    borderColor: '#FFEBEB',
-  },
-  errorText: {
-    fontFamily: 'Outfit-Medium',
-    color: Colors.ERROR,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryBtn: {
-    backgroundColor: Colors.PRIMARY,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 15,
-  },
-  retryBtnDisabled: {
-    opacity: 0.6,
-  },
-  retryText: {
-    color: Colors.WHITE,
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
   },
 });

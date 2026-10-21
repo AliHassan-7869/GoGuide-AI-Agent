@@ -10,18 +10,41 @@ function resolveApiUrl() {
   const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
 
-  if (!__DEV__) return "";
-
   // Browser: the backend runs on the same computer that serves the web app
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.hostname) {
-    return `http://${window.location.hostname}:8000`;
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined" && window.location?.hostname) {
+      return `http://${window.location.hostname}:8000`;
+    }
+    return "http://localhost:8000";
   }
 
-  const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.1.28:8081"
+  // Check all possible places Expo stores the host URI across SDK versions
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    Constants.expoGoConfig?.debuggerHost ||
+    Constants.manifest2?.extra?.expoClient?.hostUri ||
+    Constants.manifest?.debuggerHost;
+
   if (hostUri) {
     const host = hostUri.split(":")[0];
     return `http://${host}:8000`;
   }
+
+  if (Constants.linkingUri) {
+    const match = Constants.linkingUri.match(/:\/\/([^:/]+)/);
+    if (match && match[1] && match[1] !== "localhost") {
+      return `http://${match[1]}:8000`;
+    }
+  }
+
+  // Fallback in local development
+  if (__DEV__) {
+    if (Platform.OS === "android") {
+      return "http://10.0.2.2:8000";
+    }
+    return "http://localhost:8000";
+  }
+
   return "";
 }
 
@@ -117,11 +140,18 @@ export const generateTripWithAgent = async (params) => {
   console.log("[Agent] Generating trip for:", params.destination);
 
   const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
-  const data = await callBackend("/plan", {
+  const payload = {
     destination: String(params.destination || "").slice(0, 100),
     days,
     budget: String(params.budget || "Moderate").slice(0, 50),
-  });
+  };
+  if (params.interests) {
+    payload.interests = String(params.interests).slice(0, 500);
+  }
+  if (params.categories) {
+    payload.categories = String(params.categories).slice(0, 300);
+  }
+  const data = await callBackend("/plan", payload);
 
   const plan = data.plan;
   return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));
