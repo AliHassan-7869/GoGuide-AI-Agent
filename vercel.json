@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm --prefix \"app/Go Guide\" run build",
+  "outputDirectory": "app/Go Guide/dist",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/((?!_expo|assets).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
