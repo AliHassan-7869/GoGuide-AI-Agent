@@ -22,7 +22,13 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.arrehman.AiTravel_agent"
     },
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
