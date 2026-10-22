@@ -223,15 +223,15 @@ class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=8000)
     json_output: bool = True
 
-# -------------------- ROOT --------------------
+# -------------------- ROOT & HEALTH CHECK --------------------
 @app.get("/")
-def home():
-    return {"message": "GoGuide AI API Running 🚀"}
+def health_check():
+    return {"status": "healthy", "message": "Server is running"}
 
-# -------------------- HEALTH --------------------
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "healthy", "message": "Server is running"}
 
 # -------------------- POST /plan (main functionality) --------------------
 @app.post("/plan")
