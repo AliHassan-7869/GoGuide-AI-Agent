@@ -32,7 +32,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "HEAD"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
@@ -224,14 +224,14 @@ class GenerateRequest(BaseModel):
     json_output: bool = True
 
 # -------------------- ROOT & HEALTH CHECK --------------------
-@app.get("/")
-def health_check():
-    return {"status": "healthy", "message": "Server is running"}
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root():
+    return {"status": "ok"}
 
 
-@app.get("/health")
-def health():
-    return {"status": "healthy", "message": "Server is running"}
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    return {"status": "ok"}
 
 # -------------------- POST /plan (main functionality) --------------------
 @app.post("/plan")
