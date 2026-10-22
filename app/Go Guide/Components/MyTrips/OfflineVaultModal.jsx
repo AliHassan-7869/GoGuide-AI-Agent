@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Clipboard from "expo-clipboard";
 import { Colors } from "../constants/constants";
 
 // Country emergency numbers lookup
@@ -55,10 +54,12 @@ export default function OfflineVaultModal({
 
   const emergency = getEmergencyNumbers(destination);
 
-  const handleCopy = async (text, label) => {
+  const handleCopy = (text, label) => {
     triggerHaptic();
     try {
-      await Clipboard.setStringAsync(text);
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
       Alert.alert("Copied to Clipboard", `${label} has been copied.`);
     } catch {
       Alert.alert("Note", text);

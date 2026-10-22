@@ -2,13 +2,17 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { auth } from "./FirebaseConfig";
 
+const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
+
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
-// Production: set EXPO_PUBLIC_API_URL=https://<your-backend-domain>
-// Local dev: leave it unset. The app reuses the computer address Expo Go connected to,
-// on port 8000, so it works on any Windows or Linux machine and any WiFi.
 function resolveApiUrl() {
   const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
+
+  // Default to live Render backend for seamless remote sharing & testing
+  if (!__DEV__) {
+    return LIVE_BACKEND_URL;
+  }
 
   // Browser: the backend runs on the same computer that serves the web app
   if (Platform.OS === "web") {
