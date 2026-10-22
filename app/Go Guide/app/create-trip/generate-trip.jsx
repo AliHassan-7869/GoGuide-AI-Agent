@@ -258,10 +258,14 @@ export default function GenerateTrip() {
       setLoading(false);
       console.error("[GenerateTrip] Error:", err.message);
 
+      const isAuthError = err.message?.toLowerCase().includes("sign in");
       const isQuota = err.message?.includes("429") || err.message?.toLowerCase().includes("quota");
       setError({
+        isAuthError,
         isQuota,
-        message: isQuota
+        message: isAuthError
+          ? "Please sign in to your GoGuide account to generate AI itineraries."
+          : isQuota
           ? "AI model is currently experiencing high demand. Please try again or generate an instant plan."
           : err.message?.includes("reach GoGuide server")
           ? "Could not reach GoGuide backend server. Please make sure the API is running or continue with an offline plan."
@@ -377,10 +381,21 @@ export default function GenerateTrip() {
             </Text>
 
             <View style={styles.errorButtonsRow}>
-              <TouchableOpacity style={styles.retryBtn} onPress={GenerateAiTrip} activeOpacity={0.8}>
-                <Ionicons name="refresh-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
-                <Text style={styles.retryText}>Retry AI</Text>
-              </TouchableOpacity>
+              {error.isAuthError ? (
+                <TouchableOpacity
+                  style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}
+                  onPress={() => router.push("/auth/sign-in")}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="log-in-outline" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.retryText}>Sign In</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.retryBtn} onPress={GenerateAiTrip} activeOpacity={0.8}>
+                  <Ionicons name="refresh-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.retryText}>Retry AI</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity style={styles.offlineBtn} onPress={handleUseOfflinePlan} activeOpacity={0.8}>
                 <Ionicons name="flash-outline" size={15} color={Colors.PRIMARY} style={{ marginRight: 4 }} />

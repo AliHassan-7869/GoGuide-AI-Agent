@@ -9,14 +9,15 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  SafeAreaView,
   Share,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { CreateTripContext } from "../context/CreateTripContext";
@@ -65,8 +66,15 @@ const DEFAULT_PACKING_ITEMS = [
 
 export default function PackingChecklist() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { tripData } = useContext(CreateTripContext);
+
+  const safeTopPadding = Platform.select({
+    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    ios: Math.max(insets.top, 44),
+    default: 16,
+  });
 
   const destinationName =
     tripData?.locationInfo?.name ||
@@ -83,6 +91,9 @@ export default function PackingChecklist() {
   const [newItemCategory, setNewItemCategory] = useState("essentials");
   const [newItemEssential, setNewItemEssential] = useState(false);
   const [filterMode, setFilterMode] = useState("all"); // 'all' | 'unpacked' | 'packed'
+  const [recommendModalVisible, setRecommendModalVisible] = useState(false);
+  const [selectedRecIds, setSelectedRecIds] = useState([]);
+  const [recCategoryFilter, setRecCategoryFilter] = useState("all");
 
   // Load persisted items
   useEffect(() => {
@@ -177,22 +188,65 @@ export default function PackingChecklist() {
     );
   };
 
-  // Restore Default Recommended List
-  const handleRestoreDefaults = () => {
-    Alert.alert(
-      "Restore Recommended List?",
-      "Reset your list to the curated travel essentials.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Restore",
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            saveItems(DEFAULT_PACKING_ITEMS);
-          },
-        },
-      ]
+  // Open Recommended Essentials Modal
+  const handleOpenRecommendations = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
+    const missingIds = DEFAULT_PACKING_ITEMS.filter(
+      (rec) => !existingNames.has(rec.name.toLowerCase().trim())
+    ).map((rec) => rec.id);
+    setSelectedRecIds(missingIds);
+    setRecCategoryFilter("all");
+    setRecommendModalVisible(true);
+  };
+
+  const toggleRecSelection = (recId) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedRecIds((prev) =>
+      prev.includes(recId) ? prev.filter((id) => id !== recId) : [...prev, recId]
     );
+  };
+
+  const handleAddSelectedRecommendations = () => {
+    if (selectedRecIds.length === 0) {
+      setRecommendModalVisible(false);
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
+    const toAdd = DEFAULT_PACKING_ITEMS.filter(
+      (rec) =>
+        selectedRecIds.includes(rec.id) &&
+        !existingNames.has(rec.name.toLowerCase().trim())
+    ).map((rec) => ({
+      ...rec,
+      id: "rec_item_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      packed: false,
+    }));
+
+    if (toAdd.length > 0) {
+      const updated = [...items, ...toAdd];
+      saveItems(updated);
+    }
+    setRecommendModalVisible(false);
+  };
+
+  const handleAddAllMissingRecommendations = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
+    const missing = DEFAULT_PACKING_ITEMS.filter(
+      (rec) => !existingNames.has(rec.name.toLowerCase().trim())
+    ).map((rec) => ({
+      ...rec,
+      id: "rec_item_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      packed: false,
+    }));
+
+    if (missing.length > 0) {
+      const updated = [...items, ...missing];
+      saveItems(updated);
+    }
+    setRecommendModalVisible(false);
   };
 
   // Share checklist
@@ -226,9 +280,21 @@ export default function PackingChecklist() {
   // Computed metrics
   const totalCount = items.length;
   const packedCount = items.filter((i) => i.packed).length;
+  const unpackedCount = totalCount - packedCount;
   const progressPercent = totalCount > 0 ? Math.round((packedCount / totalCount) * 100) : 0;
 
-  // Filtered Items
+  // Items matching current active category
+  const currentCategoryItems = useMemo(() => {
+    return activeCategory === "all"
+      ? items
+      : items.filter((it) => it.category === activeCategory);
+  }, [items, activeCategory]);
+
+  const catTotalCount = currentCategoryItems.length;
+  const catPackedCount = currentCategoryItems.filter((i) => i.packed).length;
+  const catUnpackedCount = catTotalCount - catPackedCount;
+
+  // Filtered Items for FlatList
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const categoryMatch = activeCategory === "all" || item.category === activeCategory;
@@ -241,7 +307,7 @@ export default function PackingChecklist() {
   }, [items, activeCategory, filterMode]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}
@@ -341,7 +407,7 @@ export default function PackingChecklist() {
             <Text style={[styles.subActionText, { color: theme.subtext }]}>Reset</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleRestoreDefaults} style={styles.subActionBtn}>
+          <TouchableOpacity onPress={handleOpenRecommendations} style={styles.subActionBtn}>
             <Ionicons name="sparkles-outline" size={14} color={Colors.PRIMARY} />
             <Text style={[styles.subActionText, { color: Colors.PRIMARY }]}>Recommended</Text>
           </TouchableOpacity>
@@ -358,10 +424,12 @@ export default function PackingChecklist() {
           contentContainerStyle={styles.categoryListContainer}
           renderItem={({ item }) => {
             const isActive = activeCategory === item.id;
-            const count =
+            const catItems =
               item.id === "all"
-                ? items.length
-                : items.filter((i) => i.category === item.id).length;
+                ? items
+                : items.filter((i) => i.category === item.id);
+            const totalInCat = catItems.length;
+            const packedInCat = catItems.filter((i) => i.packed).length;
 
             return (
               <TouchableOpacity
@@ -385,11 +453,37 @@ export default function PackingChecklist() {
                 <Text
                   style={[
                     styles.categoryPillText,
-                    { color: isActive ? "#FFF" : theme.text, fontFamily: isActive ? "Outfit-Bold" : "Outfit-Medium" },
+                    {
+                      color: isActive ? "#FFF" : theme.text,
+                      fontFamily: isActive ? "Outfit-Bold" : "Outfit-Medium",
+                    },
                   ]}
                 >
-                  {item.label} ({count})
+                  {item.label}
                 </Text>
+                <View
+                  style={[
+                    styles.categoryBadge,
+                    {
+                      backgroundColor: isActive
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : theme.isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "rgba(0, 0, 0, 0.05)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryBadgeText,
+                      { color: isActive ? "#FFF" : theme.subtext },
+                    ]}
+                  >
+                    {item.id === "all"
+                      ? `${packedCount}/${totalCount}`
+                      : `${packedInCat}/${totalInCat}`}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           }}
@@ -399,31 +493,74 @@ export default function PackingChecklist() {
       {/* Filter Mode Selector & Quick Select All Button */}
       <View style={styles.filterModeRow}>
         <View style={styles.filterTabsWrap}>
-          {["all", "unpacked", "packed"].map((mode) => (
-            <TouchableOpacity
-              key={mode}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setFilterMode(mode);
-              }}
-              style={[
-                styles.filterModeBtn,
-                filterMode === mode && { borderBottomColor: Colors.PRIMARY, borderBottomWidth: 2 },
-              ]}
-            >
-              <Text
+          {[
+            { id: "all", label: "ALL", showCount: false },
+            { id: "unpacked", label: "UNPACKED", showCount: false },
+            { id: "packed", label: "PACKED", showCount: true, count: catPackedCount },
+          ].map((tab) => {
+            const isTabActive = filterMode === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setFilterMode(tab.id);
+                }}
                 style={[
-                  styles.filterModeText,
-                  {
-                    color: filterMode === mode ? Colors.PRIMARY : theme.subtext,
-                    fontFamily: filterMode === mode ? "Outfit-Bold" : "Outfit-Regular",
+                  styles.filterModeBtn,
+                  isTabActive && {
+                    borderBottomColor:
+                      tab.id === "packed" ? "#10B981" : Colors.PRIMARY,
+                    borderBottomWidth: 2,
                   },
                 ]}
               >
-                {mode.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.filterTabInner}>
+                  <Text
+                    style={[
+                      styles.filterModeText,
+                      {
+                        color: isTabActive
+                          ? tab.id === "packed"
+                            ? "#10B981"
+                            : Colors.PRIMARY
+                          : theme.subtext,
+                        fontFamily: isTabActive ? "Outfit-Bold" : "Outfit-Medium",
+                      },
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {tab.showCount && (
+                    <View
+                      style={[
+                        styles.filterBadgePill,
+                        {
+                          backgroundColor: isTabActive
+                            ? "rgba(16, 185, 129, 0.16)"
+                            : theme.isDark
+                            ? "rgba(255, 255, 255, 0.08)"
+                            : "rgba(0, 0, 0, 0.05)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.filterBadgeText,
+                          {
+                            color: isTabActive ? "#10B981" : theme.subtext,
+                            fontFamily: "Outfit-Bold",
+                          },
+                        ]}
+                      >
+                        {tab.count}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity
@@ -443,7 +580,7 @@ export default function PackingChecklist() {
         >
           <Ionicons
             name={allPacked ? "checkbox" : "checkmark-done-circle-outline"}
-            size={14}
+            size={13}
             color={allPacked ? "#10B981" : Colors.PRIMARY}
             style={{ marginRight: 4 }}
           />
@@ -452,6 +589,7 @@ export default function PackingChecklist() {
               styles.quickSelectText,
               { color: allPacked ? "#10B981" : Colors.PRIMARY },
             ]}
+            numberOfLines={1}
           >
             {allPacked ? "Deselect All" : "Select All"}
           </Text>
@@ -521,6 +659,17 @@ export default function PackingChecklist() {
                     <Text style={[styles.itemCategoryBadge, { color: theme.subtext }]}>
                       {item.category.toUpperCase()}
                     </Text>
+                    {item.packed ? (
+                      <View style={styles.packedStatusPill}>
+                        <Ionicons name="checkmark-circle" size={11} color="#10B981" />
+                        <Text style={styles.packedStatusText}>Packed</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.unpackedStatusPill}>
+                        <Ionicons name="time-outline" size={10} color={theme.subtext} />
+                        <Text style={[styles.unpackedStatusText, { color: theme.subtext }]}>To Pack</Text>
+                      </View>
+                    )}
                     {item.essential && (
                       <View style={styles.essentialPill}>
                         <Ionicons name="alert-circle" size={11} color="#EF4444" />
@@ -630,7 +779,208 @@ export default function PackingChecklist() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+
+      {/* Recommended Essentials Selection Modal */}
+      <Modal
+        visible={recommendModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRecommendModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.recModalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={styles.recModalHeader}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="sparkles" size={18} color={Colors.PRIMARY} />
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Curated Recommendations</Text>
+                </View>
+                <Text style={[styles.recModalSubtitle, { color: theme.subtext }]}>
+                  Select essentials to add without losing your custom items
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setRecommendModalVisible(false)}
+                style={[styles.closeIconBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
+              >
+                <Ionicons name="close" size={18} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Category filter chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recFilterChipsRow}
+            >
+              {CATEGORIES.map((cat) => {
+                const isActive = recCategoryFilter === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setRecCategoryFilter(cat.id);
+                    }}
+                    style={[
+                      styles.recFilterChip,
+                      isActive
+                        ? { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY }
+                        : { backgroundColor: theme.isDark ? "#252525" : "#F3F4F6", borderColor: theme.border },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.recFilterChipText,
+                        { color: isActive ? "#FFF" : theme.text, fontFamily: isActive ? "Outfit-Bold" : "Outfit-Medium" },
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* List of recommended items */}
+            <ScrollView style={styles.recListScroll} showsVerticalScrollIndicator={false}>
+              {DEFAULT_PACKING_ITEMS.filter(
+                (item) => recCategoryFilter === "all" || item.category === recCategoryFilter
+              ).map((rec) => {
+                const isAlreadyInList = items.some(
+                  (i) => i.name.toLowerCase().trim() === rec.name.toLowerCase().trim()
+                );
+                const isSelected = selectedRecIds.includes(rec.id);
+
+                return (
+                  <TouchableOpacity
+                    key={rec.id}
+                    disabled={isAlreadyInList}
+                    onPress={() => toggleRecSelection(rec.id)}
+                    activeOpacity={isAlreadyInList ? 1 : 0.7}
+                    style={[
+                      styles.recItemCard,
+                      {
+                        backgroundColor: theme.isDark ? "#202028" : "#F8FAFC",
+                        borderColor: isSelected && !isAlreadyInList ? Colors.PRIMARY : theme.border,
+                        opacity: isAlreadyInList ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.recItemLeft}>
+                      <View
+                        style={[
+                          styles.recCategoryDot,
+                          {
+                            backgroundColor:
+                              rec.category === "documents"
+                                ? "#3B82F620"
+                                : rec.category === "electronics"
+                                ? "#8B5CF620"
+                                : rec.category === "health"
+                                ? "#EF444420"
+                                : "#10B98120",
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={
+                            rec.category === "documents"
+                              ? "document-text-outline"
+                              : rec.category === "electronics"
+                              ? "hardware-chip-outline"
+                              : rec.category === "health"
+                              ? "medkit-outline"
+                              : "bag-handle-outline"
+                          }
+                          size={16}
+                          color={
+                            rec.category === "documents"
+                              ? "#3B82F6"
+                              : rec.category === "electronics"
+                              ? "#8B5CF6"
+                              : rec.category === "health"
+                              ? "#EF4444"
+                              : "#10B981"
+                          }
+                        />
+                      </View>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={[styles.recItemName, { color: theme.text }]} numberOfLines={1}>
+                          {rec.name}
+                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                          <Text style={[styles.recItemCat, { color: theme.subtext }]}>
+                            {rec.category.toUpperCase()}
+                          </Text>
+                          {rec.essential && (
+                            <View style={styles.recEssentialBadge}>
+                              <Ionicons name="sparkles" size={9} color="#EF4444" />
+                              <Text style={styles.recEssentialText}>Must Have</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Right side status / Checkbox */}
+                    {isAlreadyInList ? (
+                      <View style={styles.recAlreadyAddedPill}>
+                        <Ionicons name="checkmark-circle" size={13} color="#10B981" />
+                        <Text style={styles.recAlreadyAddedText}>Added</Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.recCheckbox,
+                          {
+                            backgroundColor: isSelected ? Colors.PRIMARY : "transparent",
+                            borderColor: isSelected ? Colors.PRIMARY : theme.subtext,
+                          },
+                        ]}
+                      >
+                        {isSelected && <Ionicons name="checkmark" size={13} color="#FFF" />}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Bottom Actions */}
+            <View style={styles.recActionsFooter}>
+              <TouchableOpacity
+                onPress={handleAddSelectedRecommendations}
+                style={[
+                  styles.recSubmitBtn,
+                  {
+                    backgroundColor: Colors.PRIMARY,
+                    opacity: selectedRecIds.length === 0 ? 0.6 : 1,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.recSubmitBtnText}>
+                  Add Selected ({selectedRecIds.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleAddAllMissingRecommendations}
+                style={[styles.recAddAllBtn, { borderColor: theme.border }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.recAddAllBtnText, { color: Colors.PRIMARY }]}>
+                  Add All Missing Essentials
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -752,6 +1102,16 @@ const styles = StyleSheet.create({
   categoryPillText: {
     fontSize: 13,
   },
+  categoryBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  categoryBadgeText: {
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+  },
   filterModeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -764,23 +1124,42 @@ const styles = StyleSheet.create({
   filterTabsWrap: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
   },
   filterModeBtn: {
     paddingVertical: 8,
-    marginRight: 20,
+    marginRight: 14,
+  },
+  filterTabInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   filterModeText: {
     fontSize: 12,
     letterSpacing: 0.5,
   },
+  filterBadgePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+    minWidth: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    includeFontPadding: false,
+  },
   quickSelectBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     marginBottom: 4,
+    flexShrink: 0,
   },
   quickSelectText: {
     fontSize: 11,
@@ -828,6 +1207,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Outfit-Medium",
     letterSpacing: 0.3,
+  },
+  packedStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    gap: 3,
+  },
+  packedStatusText: {
+    color: "#10B981",
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+  },
+  unpackedStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(150, 150, 150, 0.1)",
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    gap: 3,
+  },
+  unpackedStatusText: {
+    fontSize: 10,
+    fontFamily: "Outfit-Medium",
   },
   essentialPill: {
     flexDirection: "row",
@@ -934,5 +1340,142 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontFamily: "Outfit-Bold",
+  },
+  recModalCard: {
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "82%",
+  },
+  recModalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  recModalSubtitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+  },
+  closeIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  recFilterChipsRow: {
+    gap: 8,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  recFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  recFilterChipText: {
+    fontSize: 12,
+  },
+  recListScroll: {
+    maxHeight: 320,
+    marginVertical: 4,
+  },
+  recItemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  recItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  recCategoryDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  recItemName: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+  },
+  recItemCat: {
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.3,
+  },
+  recEssentialBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
+    gap: 2,
+  },
+  recEssentialText: {
+    color: "#EF4444",
+    fontSize: 9,
+    fontFamily: "Outfit-Bold",
+  },
+  recAlreadyAddedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  recAlreadyAddedText: {
+    color: "#10B981",
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+  },
+  recCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recActionsFooter: {
+    paddingTop: 12,
+    gap: 8,
+  },
+  recSubmitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  recSubmitBtnText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+  },
+  recAddAllBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  recAddAllBtnText: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
   },
 });

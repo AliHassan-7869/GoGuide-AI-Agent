@@ -12,12 +12,13 @@ import {
   Platform,
   Animated,
   Modal,
-  Alert
+  Alert,
+  StatusBar
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
-import { collection, query, where, getDocs, orderBy, limit, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, limit, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -30,6 +31,9 @@ import DayRouteModal from "../../Components/MyTrips/DayRouteModal";
 import ExpenseTrackerModal from "../../Components/MyTrips/ExpenseTrackerModal";
 import PrintableItineraryModal from "../../Components/MyTrips/PrintableItineraryModal";
 import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
+import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
+import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
+import { convertPriceString } from "../../Components/constants/Currency";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
@@ -66,9 +70,16 @@ function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
 
 export default function MyTrip() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
   const plan = tripData?.aiTripPlan;
+
+  const safeTopPadding = Platform.select({
+    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    ios: Math.max(insets.top, 44),
+    default: 16,
+  });
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
   const [isOfflineCached, setIsOfflineCached] = useState(false);
@@ -77,6 +88,9 @@ export default function MyTrip() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [selectedDayForAdd, setSelectedDayForAdd] = useState(1);
+  const [showVaultModal, setShowVaultModal] = useState(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(true);
   const [userTripsList, setUserTripsList] = useState([]);
   const [activeTripId, setActiveTripId] = useState(null);
@@ -197,6 +211,96 @@ export default function MyTrip() {
     setTripData(selectedTrip);
     setSelectedDay("all");
     AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
+  };
+
+  const handleDeleteTrip = (tripToDelete) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!tripToDelete) return;
+
+    const destTitle =
+      tripToDelete?.aiTripPlan?.destination ||
+      tripToDelete?.destination ||
+      tripToDelete?.locationInfo?.name ||
+      "this trip";
+
+    const promptMessage = `Are you sure you want to delete your trip to "${destTitle}"? This action cannot be undone.`;
+
+    const confirmDelete = async () => {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        const targetId = tripToDelete?.id || (tripToDelete === tripData ? activeTripId : null);
+        const targetDest =
+          tripToDelete?.aiTripPlan?.destination ||
+          tripToDelete?.destination ||
+          tripToDelete?.locationInfo?.name;
+
+        // 1. Remove from Firestore if user is authenticated and document id is known
+        if (targetId && auth.currentUser) {
+          try {
+            await deleteDoc(doc(db, "UserTrips", targetId));
+          } catch (fbErr) {
+            console.log("Firestore delete error:", fbErr?.message);
+          }
+        }
+
+        // 2. Filter from userTripsList state & local AsyncStorage
+        const updatedTrips = userTripsList.filter((t) => {
+          if (targetId && t.id) return t.id !== targetId;
+          const tDest = t.aiTripPlan?.destination || t.destination || t.locationInfo?.name;
+          if (targetDest && tDest) return tDest !== targetDest;
+          return true;
+        });
+
+        setUserTripsList(updatedTrips);
+        await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedTrips));
+
+        // 3. Handle active/current plan if it matches the deleted trip
+        const currentDest = plan?.destination || tripData?.locationInfo?.name;
+        const isCurrentActive =
+          (targetId && activeTripId === targetId) ||
+          (targetDest && currentDest && targetDest === currentDest) ||
+          tripToDelete === tripData;
+
+        if (isCurrentActive) {
+          if (updatedTrips.length > 0) {
+            const nextTrip = updatedTrips[0];
+            setActiveTripId(nextTrip.id || null);
+            setTripData(nextTrip);
+            setSelectedDay("all");
+            await AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(nextTrip));
+          } else {
+            setActiveTripId(null);
+            setTripData({});
+            setSelectedDay("all");
+            await AsyncStorage.removeItem('@goguide_cached_trip');
+          }
+        }
+        Alert.alert("Trip Deleted", `Your trip to "${destTitle}" has been deleted.`);
+      } catch (e) {
+        console.log("Error deleting trip:", e);
+        Alert.alert("Delete Failed", "Could not delete this trip. Please try again.");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`Delete trip to "${destTitle}"?`)) {
+        confirmDelete();
+      }
+    } else {
+      Alert.alert(
+        "Delete Trip?",
+        promptMessage,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: confirmDelete,
+          },
+        ]
+      );
+    }
   };
 
   const createNewTrip = () => {
@@ -365,11 +469,49 @@ export default function MyTrip() {
     Linking.openURL(url);
   };
 
-  // Toggle activity visited completion state
-  const toggleActivityVisited = async (dayNumber, activityIndex) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!plan?.itinerary) return;
+  // Synchronize trip modifications across Active State, Local Storage, and Cloud Firestore
+  const syncTripChanges = async (updatedTrip) => {
+    try {
+      setTripData(updatedTrip);
+      await AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip));
 
+      // Sync with userTripsList & AsyncStorage @goguide_user_trips
+      const destTarget = updatedTrip?.aiTripPlan?.destination || updatedTrip?.destination;
+      const targetId = updatedTrip?.id || activeTripId;
+
+      const updatedList = userTripsList.map((t) => {
+        if (targetId && t.id === targetId) {
+          return { ...t, ...updatedTrip, id: targetId };
+        }
+        const tDest = t.aiTripPlan?.destination || t.destination;
+        if (destTarget && tDest === destTarget) {
+          return { ...t, ...updatedTrip };
+        }
+        return t;
+      });
+
+      setUserTripsList(updatedList);
+      await AsyncStorage.setItem('@goguide_user_trips', JSON.stringify(updatedList));
+
+      // Sync with Firestore if user is authenticated and trip has a document ID
+      if (targetId && auth.currentUser) {
+        try {
+          await updateDoc(doc(db, "UserTrips", targetId), {
+            tripData: updatedTrip,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (fbErr) {
+          console.log("Firestore sync notice (local updated):", fbErr?.message);
+        }
+      }
+    } catch (err) {
+      console.log("Error syncing trip changes:", err);
+    }
+  };
+
+  // Toggle activity visited/completed state
+  const toggleActivityVisited = (dayNumber, activityIndex) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const updatedItinerary = plan.itinerary.map((d) => {
       if (String(d.day) === String(dayNumber)) {
         const updatedActivities = [...(d.activities || [])];
@@ -393,8 +535,7 @@ export default function MyTrip() {
       },
     };
 
-    setTripData(updatedTrip);
-    AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+    syncTripChanges(updatedTrip);
   };
 
   // Remove an activity from day
@@ -419,8 +560,7 @@ export default function MyTrip() {
         },
       };
 
-      setTripData(updatedTrip);
-      AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+      syncTripChanges(updatedTrip);
     };
 
     if (Platform.OS === "web") {
@@ -435,14 +575,38 @@ export default function MyTrip() {
     }
   };
 
+  // Add custom activity to day
+  const handleAddActivity = (dayNumber, newActivity) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const updatedItinerary = plan.itinerary.map((d) => {
+      if (String(d.day) === String(dayNumber)) {
+        return {
+          ...d,
+          activities: [...(d.activities || []), newActivity],
+        };
+      }
+      return d;
+    });
+
+    const updatedTrip = {
+      ...tripData,
+      aiTripPlan: {
+        ...plan,
+        itinerary: updatedItinerary,
+      },
+    };
+
+    syncTripChanges(updatedTrip);
+    Alert.alert("Activity Added!", `"${newActivity.placeName}" added to Day ${dayNumber}.`);
+  };
+
   // Persist updated expenses
   const handleSaveExpenses = (updatedExpenses) => {
     const updatedTrip = {
       ...tripData,
       expenses: updatedExpenses,
     };
-    setTripData(updatedTrip);
-    AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(updatedTrip)).catch(() => {});
+    syncTripChanges(updatedTrip);
   };
 
   // Clone / Save Trip to User Account
@@ -487,7 +651,7 @@ export default function MyTrip() {
   // Modern Shimmer Skeleton Loading State
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
         
         {/* Skeleton Header */}
@@ -520,18 +684,22 @@ export default function MyTrip() {
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, marginRight: 14, opacity: pulseAnim }]} />
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, opacity: pulseAnim }]} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!plan) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
-          <StartNewTripCard userTrips={userTripsList} onSelectTrip={handleSelectTrip} />
+          <StartNewTripCard 
+            userTrips={userTripsList} 
+            onSelectTrip={handleSelectTrip} 
+            onDeleteTrip={handleDeleteTrip}
+          />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -541,7 +709,7 @@ export default function MyTrip() {
     : daysList.filter(d => String(d.day) === String(selectedDay));
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Top Header */}
@@ -568,15 +736,26 @@ export default function MyTrip() {
                 {plan.destination}
               </Text>
               {isOfflineCached && (
-                <View style={styles.headerOfflinePill}>
+                <TouchableOpacity 
+                  onPress={() => setShowVaultModal(true)} 
+                  style={styles.headerOfflinePill}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name="cloud-done" size={11} color="#10B981" />
-                  <Text style={styles.headerOfflineText}>Cached</Text>
-                </View>
+                  <Text style={styles.headerOfflineText}>Cached • Vault</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
         <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.iconButton, { backgroundColor: "rgba(239, 68, 68, 0.12)", marginRight: 4 }]} 
+            onPress={() => handleDeleteTrip(tripData)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton} 
             onPress={() => {
@@ -661,6 +840,18 @@ export default function MyTrip() {
                         <Text style={styles.activePillText}>VIEWING</Text>
                       </View>
                     )}
+
+                    <TouchableOpacity
+                      style={styles.carouselDeleteBtn}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTrip(t);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="trash-outline" size={13} color="#FFF" />
+                    </TouchableOpacity>
 
                     <View style={styles.carouselCardBody}>
                       <Text style={styles.carouselDestTitle} numberOfLines={1}>{destTitle}</Text>
@@ -845,6 +1036,17 @@ export default function MyTrip() {
             <Ionicons name="shield-checkmark" size={17} color="#EF4444" />
             <Text style={[styles.quickActionLabel, { color: theme.text }]}>Live Safety</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowVaultModal(true);
+            }}
+          >
+            <Ionicons name="shield-checkmark" size={17} color="#10B981" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Offline Vault</Text>
+          </TouchableOpacity>
         </ScrollView>
         
         {/* Weather & Packing Quick Widgets */}
@@ -894,7 +1096,9 @@ export default function MyTrip() {
                       <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>
                     </View>
                     <View style={styles.hotelPricePill}>
-                      <Text style={styles.hotelPriceText}>{hotel.price}</Text>
+                      <Text style={styles.hotelPriceText}>
+                        {convertPriceString(hotel.price, preferences?.currency)}
+                      </Text>
                     </View>
                   </View>
 
@@ -1073,13 +1277,34 @@ export default function MyTrip() {
                       {act.tickets && (
                         <View style={styles.ticketPill}>
                           <MaterialCommunityIcons name="ticket-outline" size={13} color={Colors.PRIMARY} />
-                          <Text style={styles.ticketPillText}>Tickets: {act.tickets}</Text>
+                          <Text style={styles.ticketPillText}>
+                            Tickets: {convertPriceString(act.tickets, preferences?.currency)}
+                          </Text>
                         </View>
                       )}
                     </View>
                   </View>
                 );
               })}
+
+              {/* Add Custom Activity Button */}
+              <TouchableOpacity
+                style={[
+                  styles.addCustomActivityBtn,
+                  { borderColor: theme.border, backgroundColor: theme.card },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedDayForAdd(day.day);
+                  setShowAddActivityModal(true);
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="add-circle-outline" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+                <Text style={[styles.addCustomActivityText, { color: theme.text }]}>
+                  Add Activity to Day {day.day}
+                </Text>
+              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -1167,19 +1392,37 @@ export default function MyTrip() {
         visible={showExpenseModal}
         expenses={tripData?.expenses || []}
         budgetTier={plan?.budget || tripData?.budget || "Moderate"}
+        currency={preferences?.currency || "USD"}
         onSaveExpenses={handleSaveExpenses}
         onClose={() => setShowExpenseModal(false)}
         theme={theme}
       />
 
-    </SafeAreaView>
+      {/* Add Custom Activity Modal */}
+      <AddActivityModal
+        visible={showAddActivityModal}
+        dayNumber={selectedDayForAdd}
+        onClose={() => setShowAddActivityModal(false)}
+        onAddActivity={handleAddActivity}
+        theme={theme}
+      />
+
+      {/* Offline Travel Vault & Emergency Assistance Modal */}
+      <OfflineVaultModal
+        visible={showVaultModal}
+        destination={plan?.destination || tripData?.locationInfo?.name || "Destination"}
+        hotels={plan?.hotels || []}
+        onClose={() => setShowVaultModal(false)}
+        theme={theme}
+      />
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    paddingTop: Platform.OS === "android" ? 10 : 4, 
     paddingHorizontal: 16 
   },
   header: { 
@@ -1316,6 +1559,18 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
+  },
+  carouselDeleteBtn: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   carouselCardBody: {
     position: "absolute",
@@ -1735,5 +1990,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Outfit-Bold",
     marginLeft: 4,
+  },
+  addCustomActivityBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  addCustomActivityText: {
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
   },
 });

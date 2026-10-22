@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../constants/constants";
+import { getCurrencySymbol, convertAmount } from "../constants/Currency";
 
 const EXPENSE_CATEGORIES = [
   { id: "Food", label: "Dining", icon: "restaurant-outline", color: "#F59E0B" },
@@ -28,6 +29,7 @@ export default function ExpenseTrackerModal({
   visible,
   expenses = [],
   budgetTier = "Moderate",
+  currency = "USD",
   onSaveExpenses,
   onClose,
   theme,
@@ -45,13 +47,17 @@ export default function ExpenseTrackerModal({
     } catch (e) {}
   };
 
-  // Estimate target budget from tier if not custom
-  const targetBudgetNumber =
+  const symbol = getCurrencySymbol(currency);
+
+  // Estimate target budget from tier if not custom, converted to user currency
+  const baseBudgetUSD =
     budgetTier.toLowerCase().includes("luxury")
       ? 3000
       : budgetTier.toLowerCase().includes("economical") || budgetTier.toLowerCase().includes("cheap")
       ? 600
       : 1500;
+
+  const targetBudgetNumber = convertAmount(baseBudgetUSD, currency);
 
   const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const remainingBudget = Math.max(0, targetBudgetNumber - totalSpent);
@@ -115,7 +121,7 @@ export default function ExpenseTrackerModal({
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Trip Budget & Expenses</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
-              Target: ${targetBudgetNumber} ({budgetTier})
+              Target: {symbol}{targetBudgetNumber.toLocaleString()} ({budgetTier})
             </Text>
           </View>
           <TouchableOpacity
@@ -132,12 +138,12 @@ export default function ExpenseTrackerModal({
             <View style={styles.budgetRow}>
               <View>
                 <Text style={[styles.metricLabel, { color: theme.subtext }]}>Total Spent</Text>
-                <Text style={[styles.metricValue, { color: theme.text }]}>${totalSpent.toFixed(2)}</Text>
+                <Text style={[styles.metricValue, { color: theme.text }]}>{symbol}{totalSpent.toLocaleString()}</Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={[styles.metricLabel, { color: theme.subtext }]}>Remaining</Text>
                 <Text style={[styles.metricValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
-                  ${remainingBudget.toFixed(2)}
+                  {symbol}{remainingBudget.toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -157,7 +163,7 @@ export default function ExpenseTrackerModal({
 
             <View style={styles.progressBottomRow}>
               <Text style={[styles.progressHint, { color: theme.subtext }]}>{percentSpent}% of budget used</Text>
-              <Text style={[styles.progressHint, { color: theme.subtext }]}>Cap: ${targetBudgetNumber}</Text>
+              <Text style={[styles.progressHint, { color: theme.subtext }]}>Cap: {symbol}{targetBudgetNumber.toLocaleString()}</Text>
             </View>
           </View>
 
@@ -199,7 +205,7 @@ export default function ExpenseTrackerModal({
               />
 
               <TextInput
-                placeholder="Amount (USD $)"
+                placeholder={`Amount (${currency} ${symbol})`}
                 placeholderTextColor={theme.subtext}
                 value={expenseAmount}
                 onChangeText={setExpenseAmount}
@@ -303,7 +309,7 @@ export default function ExpenseTrackerModal({
                   </View>
 
                   <Text style={[styles.expenseItemAmount, { color: theme.text }]}>
-                    ${Number(item.amount).toFixed(2)}
+                    {symbol}{Number(item.amount).toLocaleString()}
                   </Text>
 
                   <TouchableOpacity

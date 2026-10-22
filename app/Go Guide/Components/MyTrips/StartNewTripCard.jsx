@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useContext } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   ScrollView,
@@ -95,13 +96,48 @@ const TRENDING_DESTINATIONS = [
 ];
 
 const TRAVEL_VIBES = [
-  { id: "beach", label: "Beaches", icon: "umbrella-outline", route: "/beaches" },
-  { id: "mountain", label: "Mountains", icon: "trending-up-outline", route: "/mountains" },
-  { id: "city", label: "Historic Cities", icon: "trail-sign-outline", route: "/cities" },
-  { id: "forest", label: "Nature & Forest", icon: "leaf-outline", route: "/forest" },
+  { id: "beach", label: "Beaches", icon: "umbrella-outline", route: { pathname: "/explore", params: { category: "beaches" } } },
+  { id: "mountain", label: "Mountains", icon: "trending-up-outline", route: { pathname: "/explore", params: { category: "mountains" } } },
+  { id: "city", label: "Historic Cities", icon: "trail-sign-outline", route: { pathname: "/explore", params: { category: "cities" } } },
+  { id: "forest", label: "Nature & Forest", icon: "leaf-outline", route: { pathname: "/explore", params: { category: "forest" } } },
 ];
 
-export default function StartNewTripCard({ userTrips = [], onSelectTrip }) {
+const FEATURE_PILLS = [
+  {
+    id: "ai_plans",
+    icon: "flash",
+    color: "#10B981",
+    bg: "rgba(16, 185, 129, 0.12)",
+    label: "5s AI Plans",
+    route: "/create-trip/search-place",
+  },
+  {
+    id: "weather",
+    icon: "sunny",
+    color: "#F59E0B",
+    bg: "rgba(245, 158, 11, 0.12)",
+    label: "Weather Ready",
+    route: "/location",
+  },
+  {
+    id: "packing",
+    icon: "bag-check",
+    color: "#3B82F6",
+    bg: "rgba(59, 130, 246, 0.12)",
+    label: "Smart Packing",
+    route: "/packing-checklist",
+  },
+  {
+    id: "routes",
+    icon: "map",
+    color: "#8B5CF6",
+    bg: "rgba(139, 92, 246, 0.12)",
+    label: "Live Routes",
+    route: "/explore",
+  },
+];
+
+export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDeleteTrip }) {
   const router = useRouter();
   const theme = useTheme();
   const { setTripData } = useContext(CreateTripContext);
@@ -134,6 +170,72 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip }) {
     triggerHaptic();
     if (route) {
       router.push(route);
+    }
+  };
+
+  const handleFeaturePillPress = (item) => {
+    triggerHaptic();
+    if (item.id === "ai_plans") {
+      router.push("/create-trip/search-place");
+      return;
+    }
+    if (item.id === "weather") {
+      router.push("/location");
+      return;
+    }
+    if (item.id === "packing") {
+      router.push("/packing-checklist");
+      return;
+    }
+    if (item.id === "routes") {
+      if (userTrips && userTrips.length > 0) {
+        if (userTrips.length === 1) {
+          onSelectTrip && onSelectTrip(userTrips[0]);
+        } else {
+          Alert.alert(
+            "Live Multi-Stop Routes",
+            "Choose a trip to open its turn-by-turn Google Maps itinerary routes:",
+            [
+              ...userTrips.slice(0, 3).map((trip) => {
+                const dest =
+                  trip.aiTripPlan?.destination ||
+                  trip.tripData?.locationInfo?.name ||
+                  "My Trip";
+                return {
+                  text: `📍 ${dest.split(",")[0]}`,
+                  onPress: () => onSelectTrip && onSelectTrip(trip),
+                };
+              }),
+              {
+                text: "Explore Destinations",
+                onPress: () => router.push("/explore"),
+              },
+              { text: "Cancel", style: "cancel" },
+            ]
+          );
+        }
+      } else {
+        Alert.alert(
+          "Live Multi-Stop Routes",
+          "Every AI trip generates interactive multi-stop Google Maps routes with driving and walking navigation for each day. Explore destinations or plan your first trip now!",
+          [
+            {
+              text: "Explore Destinations",
+              onPress: () => router.push("/explore"),
+            },
+            {
+              text: "Plan a Trip",
+              onPress: () => router.push("/create-trip/search-place"),
+            },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+      }
+      return;
+    }
+
+    if (item.route) {
+      router.push(item.route);
     }
   };
 
@@ -191,6 +293,22 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip }) {
                     colors={["transparent", "rgba(0,0,0,0.85)"]}
                     style={styles.savedTripGradient}
                   />
+
+                  {onDeleteTrip && (
+                    <TouchableOpacity
+                      style={styles.savedTripDeleteBtn}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        triggerHaptic();
+                        onDeleteTrip(trip);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+
                   <View style={styles.savedTripBody}>
                     <Text style={styles.savedTripTitle} numberOfLines={1}>
                       {destName}
@@ -255,24 +373,34 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip }) {
       </View>
 
       {/* 2. FEATURE HIGHLIGHTS PILL ROW */}
-      <View style={styles.featureRow}>
-        <View style={[styles.featurePill, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Ionicons name="flash-outline" size={14} color="#10B981" />
-          <Text style={[styles.featureText, { color: theme.text }]}>5s AI Plans</Text>
-        </View>
-        <View style={[styles.featurePill, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Ionicons name="sunny-outline" size={14} color="#F59E0B" />
-          <Text style={[styles.featureText, { color: theme.text }]}>Weather Ready</Text>
-        </View>
-        <View style={[styles.featurePill, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Ionicons name="bag-check-outline" size={14} color="#3B82F6" />
-          <Text style={[styles.featureText, { color: theme.text }]}>Smart Packing</Text>
-        </View>
-        <View style={[styles.featurePill, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Ionicons name="map-outline" size={14} color="#8B5CF6" />
-          <Text style={[styles.featureText, { color: theme.text }]}>Live Routes</Text>
-        </View>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.featureRow}
+        style={styles.featureRowScroll}
+      >
+        {FEATURE_PILLS.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            activeOpacity={0.75}
+            onPress={() => handleFeaturePillPress(item)}
+            style={[
+              styles.featurePill,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <View style={[styles.featureIconWrap, { backgroundColor: item.bg }]}>
+              <Ionicons name={item.icon} size={13} color={item.color} />
+            </View>
+            <Text
+              style={[styles.featureText, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* 3. EXPLORE BY VIBE (CATEGORIES) */}
       <View style={styles.sectionHeaderRow}>
@@ -438,6 +566,18 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
   },
+  savedTripDeleteBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
   savedTripTitle: {
     fontSize: 14,
     fontFamily: "Outfit-Bold",
@@ -557,25 +697,43 @@ const styles = StyleSheet.create({
   },
 
   // Feature Row
+  featureRowScroll: {
+    marginBottom: 20,
+    overflow: "visible",
+  },
   featureRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 6,
-    marginBottom: 20,
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
   featurePill: {
-    flex: 1,
+    height: 38,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingVertical: 7,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderRadius: 19,
     borderWidth: 1,
+    gap: 7,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  featureIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
   },
   featureText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Outfit-Bold",
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 
   // Section Headers

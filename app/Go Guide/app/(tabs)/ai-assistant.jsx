@@ -1,21 +1,24 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
+import { auth } from "../../Configs/FirebaseConfig";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -32,11 +35,19 @@ const QUICK_CHIPS = [
 ];
 
 export default function AiAssistant() {
+  const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { prompt } = useLocalSearchParams();
   const { tripData, userData } = useContext(CreateTripContext);
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
+
+  const safeTopPadding = Platform.select({
+    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 4,
+    ios: Math.max(insets.top, 44),
+    default: 16,
+  });
 
   const activeDestination =
     tripData?.locationInfo?.name ||
@@ -163,6 +174,21 @@ export default function AiAssistant() {
   const handleSend = async (customText = null) => {
     const textToSend = (customText || inputText).trim();
     if (!textToSend || isLoading) return;
+
+    if (!auth?.currentUser) {
+      Alert.alert(
+        "Sign In to Chat",
+        "Please sign in or create an account to chat with GoGuide AI Copilot and get personalized travel recommendations.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Sign In",
+            onPress: () => router.push("/auth/sign-in"),
+          },
+        ]
+      );
+      return;
+    }
 
     const userMsg = {
       id: "user_" + Date.now(),
@@ -306,10 +332,10 @@ export default function AiAssistant() {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeContainer,
-        { backgroundColor: theme.bg },
+        { backgroundColor: theme.bg, paddingTop: safeTopPadding },
       ]}
     >
       {/* Header Bar */}
@@ -498,7 +524,7 @@ export default function AiAssistant() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

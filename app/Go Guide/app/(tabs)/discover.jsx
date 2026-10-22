@@ -8,8 +8,10 @@ import {
   Image, 
   Platform,
   Modal,
-  ActivityIndicator 
+  ActivityIndicator,
+  StatusBar
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import React, { useContext, useState, useRef, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -115,8 +117,15 @@ const FEED_FILTER_CHIPS = [
 
 export default function Discover() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { preferences, setTripData } = useContext(CreateTripContext);
   const isDark = preferences?.darkMode;
+
+  const safeTopPadding = Platform.select({
+    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    ios: Math.max(insets.top, 44),
+    default: 16,
+  });
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -427,7 +436,7 @@ export default function Discover() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         
         {/* Top Header */}
@@ -821,7 +830,7 @@ export default function Discover() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 45 },
+  container: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 50 },
   header: { marginBottom: 15 },
   title: { fontSize: 28, fontFamily: "Outfit-Bold" },

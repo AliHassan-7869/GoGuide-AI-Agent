@@ -13,14 +13,22 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: Colors.PRIMARY,
         tabBarInactiveTintColor: isDark ? "#888888" : "#999999",
         tabBarStyle: {
-          backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-          borderTopColor: isDark ? "#2C2C2C" : "#E0E0E0",
+          backgroundColor: isDark ? "#121212" : "#FFFFFF",
+          borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          borderTopWidth: 1,
           height: Platform.OS === "ios" ? 86 : 64,
           paddingBottom: Platform.OS === "ios" ? 26 : 8,
           paddingTop: 8,
+          // Completely remove shadows across Android and iOS
+          elevation: 0,
+          shadowOpacity: 0,
+          shadowColor: "transparent",
+          shadowOffset: { width: 0, height: 0 },
+          shadowRadius: 0,
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit-Medium",

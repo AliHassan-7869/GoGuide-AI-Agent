@@ -3,7 +3,9 @@ import { Stack } from "expo-router";
 import { useContext } from "react";
 import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";
+import ErrorBoundary from "../Components/ErrorBoundary";
 
 function AppContent() {
   const context = useContext(CreateTripContext);
@@ -11,7 +13,7 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? "light" : "dark"} translucent backgroundColor="transparent" />
       <Stack>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -48,6 +50,7 @@ function AppContent() {
         <Stack.Screen name="mountains" options={{ headerShown: false }} />
         <Stack.Screen name="forest" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
+        <Stack.Screen name="location" options={{ headerShown: false }} />
       </Stack>
     </>
   );
@@ -63,9 +66,13 @@ export default function RootLayout() {
   if (!fontsLoaded) return <View />;
 
   return (
-    <CreateTripProvider>
-      <AppContent />
-    </CreateTripProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <CreateTripProvider>
+          <AppContent />
+        </CreateTripProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

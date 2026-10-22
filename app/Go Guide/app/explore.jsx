@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Platform, ScrollView, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useContext, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CreateTripContext } from '../context/CreateTripContext';
@@ -26,9 +27,16 @@ function DestinationImage({ uri, style }) {
 
 export default function Explore() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { category } = useLocalSearchParams();
   const { preferences, setTripData } = useContext(CreateTripContext);
   const isDark = preferences?.darkMode;
+
+  const safeTopPadding = Platform.select({
+    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    ios: Math.max(insets.top, 44),
+    default: 16,
+  });
 
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");
   const [topRatedFirst, setTopRatedFirst] = useState(false);
@@ -84,7 +92,7 @@ export default function Explore() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -150,7 +158,6 @@ export default function Explore() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   header: {
     flexDirection: "row",

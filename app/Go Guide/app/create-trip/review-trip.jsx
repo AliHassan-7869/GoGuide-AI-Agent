@@ -5,6 +5,7 @@ import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Platform,
   ScrollView,
@@ -14,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../../Configs/FirebaseConfig";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -42,6 +44,22 @@ export default function ReviewTrip() {
 
   const handleBuildTrip = () => {
     triggerHaptic();
+
+    if (!auth?.currentUser) {
+      Alert.alert(
+        "Account Required",
+        "Please sign in or create an account to generate, personalize, and save your AI itinerary across devices.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Sign In / Register",
+            onPress: () => router.push("/auth/sign-in"),
+          },
+        ]
+      );
+      return;
+    }
+
     setIsGenerating(true);
     setTimeout(() => {
       router.push("/create-trip/generate-trip");

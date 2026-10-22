@@ -112,6 +112,8 @@ export default function PackingList({ items }) {
     </View>
   );
 
+  const checkedCount = Object.values(checkedItems).filter(Boolean).length;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -119,11 +121,11 @@ export default function PackingList({ items }) {
           <MaterialCommunityIcons name="briefcase-check" size={24} color={Colors.PRIMARY} />
           <Text style={[styles.title, { color: theme.text }]}>Packing Checklist</Text>
         </View>
-        {isDefault && (
-          <View style={[styles.badge, { backgroundColor: Colors.PRIMARY + '20' }]}>
-            <Text style={[styles.badgeText, { color: Colors.PRIMARY }]}>RECOMMENDED</Text>
-          </View>
-        )}
+        <View style={[styles.badge, { backgroundColor: checkedCount === displayItems.length ? "#10B98122" : Colors.PRIMARY + '20' }]}>
+          <Text style={[styles.badgeText, { color: checkedCount === displayItems.length ? "#10B981" : Colors.PRIMARY }]}>
+            {checkedCount}/{displayItems.length} PACKED
+          </Text>
+        </View>
       </View>
       {displayItems.map((item, index) => renderItem({ item, index }))}
 
