@@ -1,6 +1,7 @@
 # Production dependencies for GoGuide FastAPI Backend (app.py) on Render
+pyyaml>=6.0.2
 fastapi>=0.110.0
-uvicorn[standard]>=0.28.0
+uvicorn>=0.28.0
 requests>=2.31.0
 pydantic>=2.0.0
 google-auth>=2.28.0
