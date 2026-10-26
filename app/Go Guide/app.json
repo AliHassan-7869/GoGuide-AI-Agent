@@ -20,7 +20,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.arrehman.AiTravel_agent"
+      "package": "com.arrehman.AiTravel_agent",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "platforms": [
       "ios",
@@ -60,7 +63,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "7b53e068-e645-432f-b550-677566a684aa"
+      }
     }
   }
 }
