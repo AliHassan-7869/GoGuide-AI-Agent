@@ -20,7 +20,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.alihassan78639.goguideaiagentstaging"
+      "package": "com.arrehman.AiTravel_agent",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "platforms": [
       "ios",
@@ -62,7 +65,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ffc2def6-05fd-436c-a96f-f57507d87f5a"
+        "projectId": "7b53e068-e645-432f-b550-677566a684aa"
       }
     }
   }
