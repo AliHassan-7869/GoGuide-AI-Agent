@@ -6,6 +6,11 @@ const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
 
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
 function resolveApiUrl() {
+  // Always use the live secure backend when hosted on HTTPS (Vercel, custom domain, etc.)
+  if (typeof window !== "undefined" && (window.location?.protocol === "https:" || window.location?.hostname?.includes("vercel.app"))) {
+    return LIVE_BACKEND_URL;
+  }
+
   const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
 

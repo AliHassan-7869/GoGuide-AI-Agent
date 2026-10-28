@@ -1,0 +1,22 @@
+name: Render Backend 24/7 Keep-Alive
+
+on:
+  schedule:
+    # Run every 14 minutes to prevent Render from idling/sleeping
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping GoGuide AI Backend
+        run: |
+          echo "Pinging GoGuide AI backend to keep it awake..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://goguide-ai-agent.onrender.com/)
+          echo "Render backend response code: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Render backend is active and awake!"
+          else
+            echo "⚠️ Render backend response: $HTTP_STATUS"
+          fi

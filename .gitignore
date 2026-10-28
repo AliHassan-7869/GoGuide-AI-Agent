@@ -31,3 +31,5 @@ Thumbs.db
 # Test cache
 .pytest_cache/
 node_modules
+.vercel
+.env*
