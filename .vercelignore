@@ -1,0 +1,12 @@
+# Python backend (runs on Render, not Vercel)
+app.py
+TravelAgents.py
+TravelTasks.py
+TravelTools.py
+streamlit.py
+requirements*.txt
+ai_env/
+travel_env/
+*.py
+*.pyc
+__pycache__/
