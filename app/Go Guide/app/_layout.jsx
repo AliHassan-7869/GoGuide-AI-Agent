@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useContext } from "react";
-import { View } from "react-native";
+import { View, Platform, StyleSheet, useWindowDimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";
@@ -10,8 +10,11 @@ import ErrorBoundary from "../Components/ErrorBoundary";
 function AppContent() {
   const context = useContext(CreateTripContext);
   const isDark = context?.preferences?.darkMode;
+  const { width } = useWindowDimensions();
 
-  return (
+  const isDesktopWeb = Platform.OS === "web" && width > 520;
+
+  const stack = (
     <>
       <StatusBar style={isDark ? "light" : "dark"} translucent backgroundColor="transparent" />
       <Stack>
@@ -54,6 +57,26 @@ function AppContent() {
       </Stack>
     </>
   );
+
+  if (isDesktopWeb) {
+    return (
+      <View style={[styles.webOuter, { backgroundColor: isDark ? "#080C14" : "#0F172A" }]}>
+        <View
+          style={[
+            styles.webContainer,
+            {
+              backgroundColor: isDark ? "#121212" : "#FFFFFF",
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.12)",
+            },
+          ]}
+        >
+          {stack}
+        </View>
+      </View>
+    );
+  }
+
+  return stack;
 }
 
 export default function RootLayout() {
@@ -75,4 +98,25 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  webOuter: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    minHeight: "100vh",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  webContainer: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 460,
+    height: "100%",
+    overflow: "hidden",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+  },
+});
 
