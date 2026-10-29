@@ -90,8 +90,8 @@ export class ErrorBoundary extends React.Component {
               </TouchableOpacity>
             </View>
 
-            {/* Development Trace Toggle */}
-            {__DEV__ && this.state.error && (
+            {/* Developer Trace Toggle */}
+            {this.state.error && (
               <View style={styles.debugSection}>
                 <TouchableOpacity
                   onPress={() =>

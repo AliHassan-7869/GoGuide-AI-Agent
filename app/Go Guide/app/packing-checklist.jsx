@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   Share,
   StatusBar,
   StyleSheet,
@@ -122,16 +123,22 @@ export default function PackingChecklist() {
     }
   };
 
+  const triggerHaptic = (style = Haptics.ImpactFeedbackStyle.Light) => {
+    try {
+      Haptics.impactAsync(style);
+    } catch {}
+  };
+
   // Toggle item packed status
   const toggleItem = (id) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     const updated = items.map((it) => (it.id === id ? { ...it, packed: !it.packed } : it));
     saveItems(updated);
   };
 
   // Delete item
   const deleteItem = (id) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     const updated = items.filter((it) => it.id !== id);
     saveItems(updated);
   };
@@ -139,10 +146,14 @@ export default function PackingChecklist() {
   // Add custom item
   const handleAddItem = () => {
     if (!newItemName.trim()) {
-      Alert.alert("Item Name Required", "Please enter what you want to pack.");
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert("Please enter what you want to pack.");
+      } else {
+        Alert.alert("Item Name Required", "Please enter what you want to pack.");
+      }
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     const newItem = {
       id: "custom_" + Date.now(),
       name: newItemName.trim(),
@@ -162,7 +173,7 @@ export default function PackingChecklist() {
 
   // Toggle Select All / Deselect All
   const handleToggleSelectAll = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     const targetState = !allPacked;
     const updated = items.map((it) => ({ ...it, packed: targetState }));
     saveItems(updated);
@@ -170,6 +181,15 @@ export default function PackingChecklist() {
 
   // Reset checklist (Uncheck all)
   const handleResetChecklist = () => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      if (window.confirm("Uncheck all items? This will mark all items as unpacked.")) {
+        triggerHaptic(Haptics.ImpactFeedbackStyle.Heavy);
+        const reset = items.map((it) => ({ ...it, packed: false }));
+        saveItems(reset);
+      }
+      return;
+    }
+
     Alert.alert(
       "Uncheck All Items?",
       "This will mark all items as unpacked so you can pack for your next journey.",
@@ -179,7 +199,7 @@ export default function PackingChecklist() {
           text: "Uncheck All",
           style: "destructive",
           onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            triggerHaptic(Haptics.ImpactFeedbackStyle.Heavy);
             const reset = items.map((it) => ({ ...it, packed: false }));
             saveItems(reset);
           },
@@ -190,7 +210,7 @@ export default function PackingChecklist() {
 
   // Open Recommended Essentials Modal
   const handleOpenRecommendations = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
     const missingIds = DEFAULT_PACKING_ITEMS.filter(
       (rec) => !existingNames.has(rec.name.toLowerCase().trim())
@@ -201,7 +221,7 @@ export default function PackingChecklist() {
   };
 
   const toggleRecSelection = (recId) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     setSelectedRecIds((prev) =>
       prev.includes(recId) ? prev.filter((id) => id !== recId) : [...prev, recId]
     );
@@ -212,7 +232,7 @@ export default function PackingChecklist() {
       setRecommendModalVisible(false);
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
     const toAdd = DEFAULT_PACKING_ITEMS.filter(
       (rec) =>
@@ -232,7 +252,7 @@ export default function PackingChecklist() {
   };
 
   const handleAddAllMissingRecommendations = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Heavy);
     const existingNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
     const missing = DEFAULT_PACKING_ITEMS.filter(
       (rec) => !existingNames.has(rec.name.toLowerCase().trim())
@@ -251,7 +271,7 @@ export default function PackingChecklist() {
 
   // Share checklist
   const handleShareChecklist = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     const total = items.length;
     const packed = items.filter((i) => i.packed).length;
 
@@ -314,7 +334,7 @@ export default function PackingChecklist() {
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
             router.back();
           }}
           style={[styles.backBtn, { backgroundColor: theme.card }]}
@@ -434,7 +454,7 @@ export default function PackingChecklist() {
             return (
               <TouchableOpacity
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
                   setActiveCategory(item.id);
                 }}
                 style={[
@@ -503,7 +523,7 @@ export default function PackingChecklist() {
               <TouchableOpacity
                 key={tab.id}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
                   setFilterMode(tab.id);
                 }}
                 style={[
@@ -731,7 +751,7 @@ export default function PackingChecklist() {
                 <TouchableOpacity
                   key={cat.id}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
                     setNewItemCategory(cat.id);
                   }}
                   style={[
@@ -820,7 +840,7 @@ export default function PackingChecklist() {
                   <TouchableOpacity
                     key={cat.id}
                     onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
                       setRecCategoryFilter(cat.id);
                     }}
                     style={[
