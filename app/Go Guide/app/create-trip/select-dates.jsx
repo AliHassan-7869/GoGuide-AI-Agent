@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CalendarPicker from "react-native-calendar-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -21,6 +20,208 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Lightweight, cross-platform calendar component (eliminates date-fns web bundler bug)
+function CustomCalendarView({
+  startDate,
+  endDate,
+  onDateChange,
+  theme,
+  activeAccent,
+}) {
+  const [viewDate, setViewDate] = useState(() => startDate || new Date());
+
+  const currentYear = viewDate.getFullYear();
+  const currentMonth = viewDate.getMonth();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  const dayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const handlePrevMonth = () => {
+    setViewDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setViewDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const normStart = startDate
+    ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+    : null;
+  const normEnd = endDate
+    ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+    : null;
+
+  const handleDayPress = (day) => {
+    const selected = new Date(currentYear, currentMonth, day);
+    selected.setHours(0, 0, 0, 0);
+
+    if (!normStart || (normStart && normEnd)) {
+      onDateChange(selected, "START_DATE");
+    } else if (normStart && !normEnd) {
+      if (selected.getTime() < normStart.getTime()) {
+        onDateChange(selected, "START_DATE");
+      } else {
+        onDateChange(selected, "END_DATE");
+      }
+    }
+  };
+
+  const cells = [];
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    cells.push({ empty: true, key: `empty-${i}` });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dDate = new Date(currentYear, currentMonth, d);
+    dDate.setHours(0, 0, 0, 0);
+    const time = dDate.getTime();
+
+    const isPast = time < today.getTime();
+    const isToday = time === today.getTime();
+    const isStart = normStart && time === normStart.getTime();
+    const isEnd = normEnd && time === normEnd.getTime();
+    const isInRange =
+      normStart && normEnd && time > normStart.getTime() && time < normEnd.getTime();
+
+    cells.push({
+      empty: false,
+      day: d,
+      date: dDate,
+      isPast,
+      isToday,
+      isStart,
+      isEnd,
+      isInRange,
+      key: `day-${d}`,
+    });
+  }
+
+  return (
+    <View style={{ width: "100%", paddingVertical: 10 }}>
+      {/* Month Navigation */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <TouchableOpacity
+          onPress={handlePrevMonth}
+          style={{
+            padding: 8,
+            borderRadius: 8,
+            backgroundColor: theme.isDark ? "#242436" : "#F1F5F9",
+          }}
+        >
+          <Ionicons name="chevron-back" size={18} color={activeAccent} />
+        </TouchableOpacity>
+
+        <Text style={{ fontSize: 16, fontFamily: "Outfit-Bold", color: theme.text }}>
+          {monthNames[currentMonth]} {currentYear}
+        </Text>
+
+        <TouchableOpacity
+          onPress={handleNextMonth}
+          style={{
+            padding: 8,
+            borderRadius: 8,
+            backgroundColor: theme.isDark ? "#242436" : "#F1F5F9",
+          }}
+        >
+          <Ionicons name="chevron-forward" size={18} color={activeAccent} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Week Day Labels */}
+      <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 10 }}>
+        {dayLabels.map((lbl, idx) => (
+          <Text
+            key={idx}
+            style={{
+              width: 38,
+              textAlign: "center",
+              fontSize: 12,
+              fontFamily: "Outfit-Bold",
+              color: idx === 0 || idx === 6 ? activeAccent : theme.subtext,
+            }}
+          >
+            {lbl}
+          </Text>
+        ))}
+      </View>
+
+      {/* Days Grid */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-start" }}>
+        {cells.map((cell) => {
+          if (cell.empty) {
+            return <View key={cell.key} style={{ width: `${100 / 7}%`, height: 40 }} />;
+          }
+
+          const isSelected = cell.isStart || cell.isEnd;
+          let bgColor = "transparent";
+          let textColor = theme.text;
+
+          if (isSelected) {
+            bgColor = activeAccent;
+            textColor = "#FFFFFF";
+          } else if (cell.isInRange) {
+            bgColor = activeAccent + "22";
+            textColor = activeAccent;
+          } else if (cell.isToday) {
+            bgColor = theme.isDark ? "#2E384D" : "#E2E8F0";
+          }
+
+          return (
+            <TouchableOpacity
+              key={cell.key}
+              disabled={cell.isPast}
+              onPress={() => handleDayPress(cell.day)}
+              style={{
+                width: `${100 / 7}%`,
+                height: 40,
+                justifyContent: "center",
+                alignItems: "center",
+                opacity: cell.isPast ? 0.3 : 1,
+              }}
+            >
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: isSelected ? 17 : cell.isInRange ? 6 : 17,
+                  backgroundColor: bgColor,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontFamily: isSelected ? "Outfit-Bold" : "Outfit-Medium",
+                    color: textColor,
+                  }}
+                >
+                  {cell.day}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 export default function SelectDates() {
   const router = useRouter();
@@ -491,25 +692,12 @@ export default function SelectDates() {
             { backgroundColor: theme.card, borderColor: theme.border },
           ]}
         >
-          <CalendarPicker
-            allowRangeSelection
+          <CustomCalendarView
+            startDate={startDate}
+            endDate={endDate}
             onDateChange={onDateChange}
-            minDate={new Date()}
-            maxRangeDuration={30}
-            selectedRangeStyle={{ backgroundColor: activeAccent }}
-            selectedDayTextStyle={{ color: "#FFFFFF", fontFamily: "Outfit-Bold" }}
-            todayBackgroundColor={theme.isDark ? "#333348" : "#E2E8F0"}
-            textStyle={{
-              color: theme.text,
-              fontFamily: "Outfit-Medium",
-              fontSize: 13,
-            }}
-            previousTitle="‹ Prev"
-            nextTitle="Next ›"
-            previousTitleStyle={{ color: activeAccent, fontFamily: "Outfit-Bold" }}
-            nextTitleStyle={{ color: activeAccent, fontFamily: "Outfit-Bold" }}
-            monthTitleStyle={{ color: theme.text, fontFamily: "Outfit-Bold", fontSize: 16 }}
-            yearTitleStyle={{ color: theme.text, fontFamily: "Outfit-Bold", fontSize: 16 }}
+            theme={theme}
+            activeAccent={activeAccent}
           />
         </View>
       </ScrollView>
