@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — GoGuide AI Travel Agent</title>
+  <style>
+    :root {
+      --primary: #0A7EA4;
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --subtext: #475569;
+      --border: #E2E8F0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F172A;
+        --card: #1E293B;
+        --text: #F8FAFC;
+        --subtext: #94A3B8;
+        --border: #334155;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.7;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 28px;
+      color: var(--primary);
+      margin: 0 0 8px 0;
+    }
+    .date {
+      color: var(--subtext);
+      font-size: 14px;
+    }
+    h2 {
+      font-size: 20px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p, li {
+      color: var(--subtext);
+      font-size: 15px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(10, 126, 164, 0.1);
+      color: var(--primary);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .footer {
+      margin-top: 40px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      font-size: 13px;
+      color: var(--subtext);
+      text-align: center;
+    }
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">Official Legal Document</span>
+      <h1>Privacy Policy for GoGuide AI</h1>
+      <div class="date">Last updated: October 28, 2026</div>
+    </div>
+
+    <p>Welcome to <strong>GoGuide AI</strong> ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy applies to our mobile application and web services.</p>
+
+    <h2>1. Information We Collect</h2>
+    <p>We collect information necessary to provide and optimize your personalized travel itineraries:</p>
+    <ul>
+      <li><strong>Account Credentials:</strong> When you register or sign in, we process your email address and authentication identifiers securely via Firebase Authentication.</li>
+      <li><strong>Travel Preferences:</strong> Destination choices, duration, group size (solo, couple, family, friends), budget categories, and activity preferences entered to generate customized trips.</li>
+      <li><strong>Local Device Storage:</strong> We cache generated itineraries on your device via <code>AsyncStorage</code> to enable offline flight-mode access. This data remains on your physical device.</li>
+    </ul>
+
+    <h2>2. Third-Party AI & Infrastructure Services</h2>
+    <p>To deliver advanced itinerary generation and navigation, we integrate with industry-standard third-party providers:</p>
+    <ul>
+      <li><strong>Google Gemini AI:</strong> Used to generate intelligent travel schedules, hotel recommendations, and safety intelligence. Prompts contain travel parameters and exclude personal identity data.</li>
+      <li><strong>Firebase (Google LLC):</strong> Used for secure user authentication and cloud storage of saved itineraries.</li>
+      <li><strong>Google Maps:</strong> Used to render multi-stop navigation routes and turn-by-turn directions when you explicitly select navigation actions.</li>
+    </ul>
+
+    <h2>3. Data Security & Storage</h2>
+    <p>We implement strict security measures to protect your information. All communications between our client application and backend servers use encrypted HTTPS / TLS protocols. We do not sell, rent, or monetize your personal information to third-party data brokers or advertisers.</p>
+
+    <h2>4. Offline Data & Retention</h2>
+    <p>Itineraries stored offline on your device can be cleared at any time by logging out or clearing the app cache. You may also request account and trip deletion at any time by contacting our support team.</p>
+
+    <h2>5. Children's Privacy</h2>
+    <p>GoGuide AI is not intended for use by children under the age of 13. We do not knowingly collect personal identifiable information from children.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions, feedback, or requests regarding this Privacy Policy, please contact us at:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:alihassanu055@gmail.com">alihassanu055@gmail.com</a></li>
+      <li><strong>Project:</strong> GoGuide AI Travel Agent</li>
+      <li><strong>Repository:</strong> <a href="https://github.com/AliHassan-7869/GoGuide-AI-Agent" target="_blank">github.com/AliHassan-7869/GoGuide-AI-Agent</a></li>
+    </ul>
+
+    <div class="footer">
+      &copy; 2026 GoGuide AI Travel Agent. All rights reserved. Compliant with Google Play Developer Policy.
+    </div>
+  </div>
+</body>
+</html>
