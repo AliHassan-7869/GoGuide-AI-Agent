@@ -475,19 +475,53 @@ export default function SelectDates() {
           How long will this journey be?
         </Text>
 
-        {/* LIVE TRIP DURATION BADGE */}
-        <View style={styles.durationPillBadge}>
-          <Text style={styles.durationBadgeSparkle}>✨</Text>
-          <Text style={styles.durationBadgeText}>
-            {selectedDuration} Days, {Math.max(1, selectedDuration - 1)} Nights Selected
-          </Text>
+        {/* LIVE DATE RANGE SUMMARY ROW */}
+        <View
+          style={[
+            styles.dateRangeSummaryCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
+          <View style={styles.dateRangeSide}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+              <Ionicons name="airplane-outline" size={13} color={activeAccent} />
+              <Text style={[styles.dateRangeLabel, { color: theme.subtext }]}>DEPARTURE</Text>
+            </View>
+            <Text style={[styles.dateRangeValue, { color: theme.text }]}>
+              {formatDateBrief(startDate) || "Select"}
+            </Text>
+          </View>
+
+          <View style={styles.dateRangeMid}>
+            <View style={[styles.dateRangePill, { backgroundColor: activeAccent + "18" }]}>
+              <Text style={[styles.dateRangePillText, { color: activeAccent }]}>
+                {selectedDuration} Days
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={14} color={activeAccent} style={{ marginTop: 2 }} />
+          </View>
+
+          <View style={[styles.dateRangeSide, { alignItems: "flex-end" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+              <Ionicons name="flag-outline" size={13} color={activeAccent} />
+              <Text style={[styles.dateRangeLabel, { color: theme.subtext }]}>RETURN</Text>
+            </View>
+            <Text style={[styles.dateRangeValue, { color: theme.text }]}>
+              {formatDateBrief(endDate) || "Select"}
+            </Text>
+          </View>
         </View>
 
-        {/* 1. INTERACTIVE DURATION PILLS (Quick Select) */}
+        {/* 1. INTERACTIVE DURATION PILLS (Quick Select in a sleek horizontal row) */}
         <Text style={[styles.subSectionTitle, { color: theme.subtext }]}>
           QUICK DURATION PRESETS
         </Text>
-        <View style={styles.durationGrid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.durationRowContainer}
+          style={styles.durationRowScroll}
+        >
           {[3, 5, 7, 10, 14, 21].map((days) => {
             const isSel = selectedDuration === days && !isManualActive && !selectedBlockId;
             return (
@@ -496,26 +530,25 @@ export default function SelectDates() {
                 onPress={() => handlePillSelect(days)}
                 activeOpacity={0.75}
                 style={[
-                  styles.durationOptionCard,
+                  styles.durationPillBtn,
                   {
-                    backgroundColor: theme.card,
-                    borderColor: isSel ? "#F59E0B" : theme.border,
+                    backgroundColor: isSel ? activeAccent : theme.card,
+                    borderColor: isSel ? activeAccent : theme.border,
                   },
-                  isSel && styles.durationOptionCardActive,
                 ]}
               >
                 <Text
                   style={[
-                    styles.durationDayCount,
-                    { color: isSel ? "#F59E0B" : theme.text },
+                    styles.durationPillNumber,
+                    { color: isSel ? "#FFFFFF" : theme.text },
                   ]}
                 >
                   {days}
                 </Text>
                 <Text
                   style={[
-                    styles.durationDayLabel,
-                    { color: isSel ? "#F59E0B" : theme.subtext },
+                    styles.durationPillText,
+                    { color: isSel ? "rgba(255,255,255,0.9)" : theme.subtext },
                   ]}
                 >
                   DAYS
@@ -523,7 +556,7 @@ export default function SelectDates() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* 2. MANUAL CUSTOM DAYS SELECTOR (User can enter days manually) */}
         <View
@@ -785,31 +818,77 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 10,
   },
-  durationGrid: {
+  dateRangeSummaryCard: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 18,
-  },
-  durationOptionCard: {
-    width: (SCREEN_WIDTH - 60) / 3,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  durationOptionCardActive: {
-    borderColor: "#F59E0B",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+  dateRangeSide: {
+    flex: 1,
   },
-  durationDayCount: {
-    fontSize: 22,
+  dateRangeLabel: {
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.8,
+    marginTop: 1,
+  },
+  dateRangeValue: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+    marginTop: 4,
+  },
+  dateRangeMid: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  dateRangePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginBottom: 2,
+  },
+  dateRangePillText: {
+    fontSize: 11,
     fontFamily: "Outfit-Bold",
   },
-  durationDayLabel: {
+  durationRowScroll: {
+    marginBottom: 20,
+    marginHorizontal: -4,
+  },
+  durationRowContainer: {
+    paddingHorizontal: 4,
+    gap: 10,
+    flexDirection: "row",
+  },
+  durationPillBtn: {
+    minWidth: 76,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  durationPillNumber: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+  },
+  durationPillText: {
     fontSize: 10,
     fontFamily: "Outfit-Bold",
     marginTop: 2,
+    letterSpacing: 0.5,
   },
   // Manual Custom Days Card
   manualDaysCard: {
