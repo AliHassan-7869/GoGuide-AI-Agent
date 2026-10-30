@@ -46,6 +46,7 @@ export default function ExpenseTrackerModal({
   const [expenseAmount, setExpenseAmount] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Food");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
 
   const triggerHaptic = () => {
     try {
@@ -85,10 +86,34 @@ export default function ExpenseTrackerModal({
     setExpenseTitle(preset.title);
     setExpenseAmount(String(converted));
     setSelectedCategory(preset.category);
+    setEditingExpenseId(null);
     setShowAddForm(true);
   };
 
-  const handleAddExpense = () => {
+  const handleStartEdit = (item) => {
+    triggerHaptic();
+    setEditingExpenseId(item.id);
+    setExpenseTitle(item.title);
+    setExpenseAmount(String(item.amount));
+    setSelectedCategory(item.category || "Food");
+    setShowAddForm(true);
+  };
+
+  const handleQuickRenew = (item) => {
+    triggerHaptic();
+    const renewed = {
+      id: Date.now().toString(),
+      title: item.title,
+      amount: item.amount,
+      category: item.category,
+      createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    const updated = [renewed, ...expenses];
+    onSaveExpenses(updated);
+    showAlert("Expense Renewed!", `"${item.title}" re-logged for today.`);
+  };
+
+  const handleSaveOrUpdate = (asNewEntry = false) => {
     triggerHaptic();
     const amountNum = parseFloat(expenseAmount.trim());
     if (!expenseTitle.trim()) {
@@ -100,20 +125,49 @@ export default function ExpenseTrackerModal({
       return;
     }
 
-    const newExpense = {
-      id: Date.now().toString(),
-      title: expenseTitle.trim(),
-      amount: amountNum,
-      category: selectedCategory,
-      createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
+    if (editingExpenseId && !asNewEntry) {
+      // Update existing expense in-place
+      const updated = expenses.map((e) => {
+        if (e.id === editingExpenseId) {
+          return {
+            ...e,
+            title: expenseTitle.trim(),
+            amount: amountNum,
+            category: selectedCategory,
+            updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+        }
+        return e;
+      });
+      onSaveExpenses(updated);
+      showAlert("Expense Updated", `"${expenseTitle.trim()}" has been updated.`);
+    } else {
+      // Add new or Renew as new expense
+      const newExpense = {
+        id: Date.now().toString(),
+        title: expenseTitle.trim(),
+        amount: amountNum,
+        category: selectedCategory,
+        createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      const updated = [newExpense, ...expenses];
+      onSaveExpenses(updated);
+      if (asNewEntry) {
+        showAlert("Expense Renewed", `"${expenseTitle.trim()}" added as a new entry.`);
+      }
+    }
 
-    const updated = [newExpense, ...expenses];
-    onSaveExpenses(updated);
-
+    setEditingExpenseId(null);
     setExpenseTitle("");
     setExpenseAmount("");
     setShowAddForm(false);
+  };
+
+  const handleCancelForm = () => {
+    setShowAddForm(false);
+    setEditingExpenseId(null);
+    setExpenseTitle("");
+    setExpenseAmount("");
   };
 
   const handleDeleteExpense = (id) => {
@@ -231,8 +285,10 @@ export default function ExpenseTrackerModal({
           ) : (
             <View style={[styles.formCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <View style={styles.formCardHeader}>
-                <Text style={[styles.formTitle, { color: theme.text }]}>Add Expense</Text>
-                <TouchableOpacity onPress={() => setShowAddForm(false)}>
+                <Text style={[styles.formTitle, { color: theme.text }]}>
+                  {editingExpenseId ? "✏️ Edit & Renew Expense" : "Add Expense"}
+                </Text>
+                <TouchableOpacity onPress={handleCancelForm}>
                   <Ionicons name="close-circle-outline" size={22} color={theme.subtext} />
                 </TouchableOpacity>
               </View>
@@ -310,13 +366,35 @@ export default function ExpenseTrackerModal({
                 })}
               </View>
 
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handleAddExpense}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.submitBtnText}>Save Expense</Text>
-              </TouchableOpacity>
+              {editingExpenseId ? (
+                <View style={styles.editActionRow}>
+                  <TouchableOpacity
+                    style={[styles.submitBtn, { flex: 1, marginRight: 8, backgroundColor: Colors.PRIMARY }]}
+                    onPress={() => handleSaveOrUpdate(false)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.submitBtnText}>Update</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.submitBtn, { flex: 1, backgroundColor: "#10B981" }]}
+                    onPress={() => handleSaveOrUpdate(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="repeat-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.submitBtnText}>Re-Add (Renew)</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.submitBtn}
+                  onPress={() => handleSaveOrUpdate(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.submitBtnText}>Save Expense</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -360,12 +438,34 @@ export default function ExpenseTrackerModal({
                     {symbol}{Number(item.amount).toLocaleString()}
                   </Text>
 
-                  <TouchableOpacity
-                    onPress={() => handleDeleteExpense(item.id)}
-                    style={styles.deleteBtn}
-                  >
-                    <Ionicons name="trash-outline" size={17} color="#EF4444" />
-                  </TouchableOpacity>
+                  <View style={styles.itemActionGroup}>
+                    {/* Quick Edit */}
+                    <TouchableOpacity
+                      onPress={() => handleStartEdit(item)}
+                      style={styles.iconBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="pencil-outline" size={16} color={Colors.PRIMARY} />
+                    </TouchableOpacity>
+
+                    {/* Quick Renew / Repeat */}
+                    <TouchableOpacity
+                      onPress={() => handleQuickRenew(item)}
+                      style={[styles.iconBtn, { marginHorizontal: 2 }]}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="repeat-outline" size={16} color="#10B981" />
+                    </TouchableOpacity>
+
+                    {/* Delete */}
+                    <TouchableOpacity
+                      onPress={() => handleDeleteExpense(item.id)}
+                      style={styles.iconBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               );
             })
@@ -572,6 +672,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Outfit-Bold",
     marginRight: 12,
+  },
+  itemActionGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  editActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   deleteBtn: {
     padding: 6,

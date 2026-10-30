@@ -452,7 +452,7 @@ export default function Discover() {
           <View style={styles.aiBadgeRow}>
             <View style={styles.aiGlowBadge}>
               <MaterialCommunityIcons name="creation" size={14} color="#8B5CF6" />
-              <Text style={styles.aiGlowBadgeText}>AI TRAVEL COPILOT</Text>
+              <Text style={styles.aiGlowBadgeText}>AI TRIP GENERATOR</Text>
             </View>
             <Text style={styles.aiStatusDot}>• Ready</Text>
           </View>
@@ -461,7 +461,7 @@ export default function Discover() {
             Where should AI take you today? ✨
           </Text>
           <Text style={[styles.aiHeroSub, { color: themeStyles.subTextColor }]}>
-            Type any destination or tap a vibe card to plan instantly
+            Type any destination to generate a full personalized itinerary instantly
           </Text>
 
           {/* AI Magic Prompt Input */}
@@ -760,7 +760,7 @@ export default function Discover() {
             </View>
 
             <Text style={[styles.aiModalTitle, { color: themeStyles.textColor }]}>
-              AI Copilot at Work ✨
+              AI Trip Generator at Work ✨
             </Text>
             <Text style={[styles.aiModalSub, { color: themeStyles.subTextColor }]}>
               Crafting your seamless, personalized itinerary
