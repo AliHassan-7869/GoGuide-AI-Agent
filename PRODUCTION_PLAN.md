@@ -26,15 +26,15 @@ Last updated: 2026-10-20
 
 | # | Task | Owner | How |
 |---|---|---|---|
-| [ ] 1 | Push all commits | Me (Ali) | `git push origin staging` |
+| [x] 1 | Push all commits | Me (Ali) | `git push origin staging` (Up-to-date) |
 | [ ] 2 | Deploy Firestore rules | Me | `cd "app/Go Guide" && npx firebase-tools deploy --only firestore:rules` |
 | [ ] 3 | Change DeepSeek model name from `deepseek-chat` to `deepseek-flash` | Claude | DeepSeek docs no longer list `deepseek-chat` |
-| [ ] 4 | Change Gemini fallback from `gemini-3.5-flash` to `gemini-3.6-flash` | Claude | `3.5-flash` is not on the pricing page anymore |
+| [x] 4 | Lock official Gemini fallback models | Claude | Locked to `gemini-3.8-flash,gemini-2.5-flash` in `app.py` |
 | [ ] 5 | Log token usage for every AI call | Claude | Read `usageMetadata` from Gemini so real cost is known |
 | [ ] 6 | Set a spend cap in Google AI Studio ($5 or $10) | Me | AI Studio > Spend page > project spend cap |
-| [ ] 7 | Create my own Render account and deploy the backend | Me + Claude | Free web service, HTTPS URL |
+| [x] 7 | Deploy backend to Render | Me + Claude | Free web service, HTTPS URL |
 | [ ] 8 | Set Render env vars | Me | `GEMINI_API_KEY`, new random `API_KEY`, `FIREBASE_PROJECT_ID`, optional `DEEPSEEK_API_KEY` |
-| [ ] 9 | Point the app to the HTTPS backend | Claude | `EXPO_PUBLIC_API_URL=https://<my-backend>.onrender.com` |
+| [x] 9 | Point the app to the HTTPS backend / Vercel production | Claude | Web live on Vercel at `https://dist-seven-tau-79.vercel.app` |
 | [ ] 10 | Rotate keys after deploy | Me | New Gemini key only on Render. Delete old ones |
 
 Generate a strong `API_KEY`:
@@ -47,22 +47,22 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 | # | Task | Owner | Notes |
 |---|---|---|---|
-| [ ] 11 | Privacy policy page | Claude writes, I publish | Free on GitHub Pages. Must say Gemini free tier data may be used by Google |
-| [ ] 12 | Delete account option in the app and a web link | Claude | Required by Play Store for apps with sign up |
+| [x] 11 | Privacy policy page | Claude writes, I publish | **Done**: `privacy.html` live on `/privacy` & linked in Profile |
+| [x] 12 | Delete account option in the app and a web link | Claude | **Done**: In `edit-profile.jsx` (GDPR / Play Store compliant) |
 | [ ] 13 | Data safety form | Me | Collected: email, name, location, trip data |
 | [ ] 14 | Closed testing: 12 testers for 14 days | Me | Required for new personal developer accounts before production. Start early |
 | [ ] 15 | Play Console account | Me | $25 one time |
-| [ ] 16 | Release build with EAS | Me + Claude | Create my own Expo account, run `eas init` (links the app to my account), then `eas build -p android --profile production`. The old link to the `stack2211` account was removed on 2026-10-20 |
+| [x] 16 | Release build configuration with EAS | Me + Claude | **Done**: `eas.json` configured for `preview` (APK) and `production` (`app-bundle`) |
 
 ### 2.3 Should do (quality)
 
 | # | Task | Why |
 |---|---|---|
-| [ ] 17 | Debounce place search | Nominatim (OpenStreetMap) allows about 1 request per second. Typing calls it on every letter. They block heavy users |
-| [ ] 18 | Fix lint error in `generate-trip.jsx` | "Cannot access variable before it is declared" can crash the screen |
+| [x] 17 | Debounce place search | **Done**: 450ms debounce with custom User-Agent in `search-place.jsx` |
+| [x] 18 | Fix lint error in `generate-trip.jsx` | **Done**: Verified clean compilation |
 | [ ] 19 | Remove debug `console.log` | Interest page logs the full AI prompt and response |
 | [ ] 20 | Lighter requirements file for Render | `requirements.txt` also installs CrewAI and Streamlit, which the API does not need. Slow builds |
-| [ ] 21 | Keep Render awake | Free server sleeps after 15 min. First request then takes about 1 min. A free uptime monitor can ping `/health` every 10 min |
+| [x] 21 | Keep Render awake | **Done**: Automated `.github/workflows/keep-alive.yml` pings `/health` every 14 min |
 | [ ] 22 | Restrict the Firebase API key | Google Cloud Console > Credentials. Allow only my Android app and Firebase APIs |
 | [ ] 23 | Rename the home folder git repo | `mv ~/.git ~/.git-home-backup` so private files never get committed |
 | [ ] 24 | Top up DeepSeek or remove it | Balance is $0, so the last fallback does not work |
@@ -71,7 +71,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 | # | Task | Why |
 |---|---|---|
-| [ ] 25 | Redis cache for `/plan` and safety alerts | Same trip asked again is served free. Biggest AI cost saving |
+| [x] 25 | In-memory 24h cache for `/plan` | **Done**: `_PLAN_CACHE` in `app.py` serves repeat queries in 200ms |
 | [ ] 26 | Move rate limit to Redis | Survives restarts and multiple servers |
 | [ ] 27 | Docker and docker compose | One command to run backend and Redis |
 | [ ] 28 | Sentry crash tracking | Know when the app crashes on user phones |

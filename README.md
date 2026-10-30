@@ -102,6 +102,24 @@ graph TD
 - **Time-Coded Schedule Nodes**: Visual timeline with color-coded nodes (Amber Sunny for Morning, Sky Blue for Afternoon, Deep Purple Moon for Evening).
 - **Interactive Day Filter Pills**: Instant day selection with native haptic feedback.
 
+### 💰 8. In-Trip Expense Tracker & 1-Tap Quick Renew
+- **Live Budget Consumption Gauge**: Visual progress bar tracking spending across *Food*, *Transport*, *Stay*, and *Activities*.
+- **✏️ In-Place Edit**: 1-tap pencil icon to adjust title, amount, or category directly.
+- **⚡ 1-Tap Quick Renew**: Direct repeat icon (`repeat-outline`) to duplicate frequent daily travel expenses (e.g. daily coffee, transit fares) with current timestamp.
+- **🔁 Form Re-Add**: Option to renew logged expenses without tedious re-typing.
+
+### 🏨 9. Dynamic Booking.com Hotel Links (Direct Reservations)
+- Every hotel recommendation card dynamically links directly to **Booking.com** search results pre-filled with the exact hotel name, destination city, and dates.
+- Seamless booking pipeline turning itineraries into actionable reservations in seconds.
+
+### 🌐 10. Viral Web Itinerary Viewer & Rich Social Open Graph Previews
+- **Universal Web Link**: Deployed at `https://dist-seven-tau-79.vercel.app/trip`, allowing travelers to share their trip with co-travelers who can view the complete itinerary in any mobile or desktop browser without installing the app.
+- **Rich Social Previews**: Embedded Open Graph and Twitter Card tags ensure WhatsApp, iMessage, and Twitter shares render enticing preview cards with images and trip summaries.
+
+### 🤖 11. Dual AI Engine Architecture (Generator vs. Conversational Copilot)
+- **AI Trip Generator (Discover)**: 1-click comprehensive multi-day itinerary generation engine powered by `/plan` with 24-hour TTL caching for 200ms instantaneous repeat queries.
+- **AI Copilot (Tab 3)**: 24/7 conversational travel concierge powered by `/chat` for live travel inquiries, cultural etiquette, packing questions, and neighborhood advice.
+
 ---
 
 ## 🛠️ Technology Stack

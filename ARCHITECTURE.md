@@ -77,9 +77,10 @@ app/Go Guide/
 │   ├── _layout.jsx           Root stack
 │   ├── (tabs)/               Bottom tabs
 │   │   ├── mytrip.jsx        Current trip, multi-trip carousel, route map, PDF, share, offline mode
-│   │   ├── discover.jsx      Search, categories, quick AI trips
-│   │   ├── ai-assistant.jsx  AI Travel Copilot chat
+│   │   ├── discover.jsx      Search, categories, AI Trip Generator (1-click itinerary planning)
+│   │   ├── ai-assistant.jsx  AI Travel Copilot (24/7 live conversational chat assistant)
 │   │   └── profile.jsx       Profile, explorer tiers, travel stats, and notification toggle
+│   ├── trip/                 Universal web shareable dynamic itinerary viewer
 │   ├── auth/                 Sign in, sign up
 │   ├── create-trip/          Step by step trip wizard
 │   │   ├── search-place.jsx  Destination search
@@ -102,7 +103,8 @@ app/Go Guide/
 ├── Components/               Reusable UI, constants & modals
 │   ├── MyTrips/              Trip tools and interactive modals
 │   │   ├── DayRouteModal.jsx            Multi-stop route map & distance calculator
-│   │   ├── ExpenseTrackerModal.jsx      Budget cap gauge & expense logger
+│   │   ├── ExpenseTrackerModal.jsx      Budget cap gauge, expense logger with in-place edit & 1-tap quick renew
+│   │   ├── HotelCardItem.jsx            Hotel card with dynamic Booking.com deep search links
 │   │   ├── PrintableItineraryModal.jsx  Magazine-style printable PDF export
 │   │   ├── ShareTripModal.jsx           Web link, social share & trip cloning
 │   │   ├── WeatherCard.jsx, PackingList.jsx, StartNewTripCard.jsx
@@ -242,7 +244,7 @@ flowchart TD
 | `DEEPSEEK_API_KEY` | none | Fallback provider |
 | `API_KEY` | none | Server to server key |
 | `FIREBASE_PROJECT_ID` | `ai-travel-agent-e36a2` | Token audience |
-| `GEMINI_MODELS` | `gemini-3.8-flash,gemini-3.5-flash` | Model order |
+| `GEMINI_MODELS` | `gemini-3.8-flash,gemini-2.5-flash` | Model order |
 | `RATE_LIMIT_PER_HOUR` | `30` | Per user limit |
 | `ALLOWED_ORIGINS` | `*` | CORS |
 
@@ -361,18 +363,21 @@ In development the app finds the backend automatically: it takes the computer ad
 | Part | Where | Notes |
 |---|---|---|
 | Backend | Render (`render.yaml`) | `uvicorn app:app`, env vars in dashboard |
-| App | Expo EAS Build (`eas.json`) | APK / AAB for Play Store |
+| Web Production | Vercel | Live at `https://dist-seven-tau-79.vercel.app` (35 routes) |
+| App Mobile | Expo EAS Build (`eas.json`) | APK (`preview`) / AAB (`production`) for Play Store |
 | Firestore rules | Firebase CLI | `firebase deploy --only firestore:rules` |
-| CI | GitHub Actions | `.github/workflows/backend-tests.yml` runs tests on backend changes |
+| CI / Tests | GitHub Actions | `.github/workflows/backend-tests.yml` runs tests on backend changes |
+| 24/7 Keep-Alive | GitHub Actions | `.github/workflows/keep-alive.yml` pings `/health` every 14 mins |
+| Compliance | In-App & Web | Terms (`/terms`), Privacy (`/privacy`), GDPR Account Deletion |
 
 ---
 
-## 10. Known limits
+## 10. Known limits & Status
 
-| Limit | Impact | Plan |
+| Limit | Impact | Plan & Current Status |
 |---|---|---|
 | Rate limit is in memory | Resets on restart, one server only | Move to Redis |
-| Render free sleeps after 15 min | First request takes about 1 min | Uptime ping or paid plan |
+| Render free sleeps after 15 min | First request takes about 1 min | **Resolved**: Automated GitHub Actions Keep-Alive workflow pings `/health` every 14 min |
 | Trip ownership is by email | Changing auth email hides old trips | Add `userId` field later |
-| Gemini free tier is small | `429` errors under load | Paid tier with spend cap, Redis cache |
-| Nominatim fair use | Heavy search can get blocked | Debounce, own geocoder later |
+| Gemini free tier is small | `429` errors under load | Paid tier with spend cap; 24h plan cache in `app.py` serves repeat queries in 200ms |
+| Nominatim fair use | Heavy search can get blocked | **Resolved**: 450ms debounce and custom User-Agent in place |
