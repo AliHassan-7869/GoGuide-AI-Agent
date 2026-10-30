@@ -44,7 +44,7 @@ FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "ai-travel-agent-e36a2")
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 
 # Tried in order. If one is down or overloaded, the next one is used.
-GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-2.0-flash,gemini-1.5-flash").split(",") if m.strip()]
+GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-3.8-flash,gemini-2.5-flash").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"

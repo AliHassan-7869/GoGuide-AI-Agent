@@ -25,6 +25,14 @@ const EXPENSE_CATEGORIES = [
   { id: "Other", label: "Other", icon: "wallet-outline", color: "#64748B" },
 ];
 
+const QUICK_PRESETS = [
+  { title: "Coffee & Snacks", amount: 6, category: "Food", icon: "cafe-outline" },
+  { title: "Taxi / Transit", amount: 16, category: "Transit", icon: "car-outline" },
+  { title: "Lunch / Dinner", amount: 32, category: "Food", icon: "restaurant-outline" },
+  { title: "Entry Ticket", amount: 20, category: "Tickets", icon: "ticket-outline" },
+  { title: "Shopping / Gifts", amount: 25, category: "Shopping", icon: "bag-handle-outline" },
+];
+
 export default function ExpenseTrackerModal({
   visible,
   expenses = [],
@@ -47,6 +55,14 @@ export default function ExpenseTrackerModal({
     } catch (e) {}
   };
 
+  const showAlert = (title, message) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const symbol = getCurrencySymbol(currency);
 
   // Estimate target budget from tier if not custom, converted to user currency
@@ -63,15 +79,24 @@ export default function ExpenseTrackerModal({
   const remainingBudget = Math.max(0, targetBudgetNumber - totalSpent);
   const percentSpent = Math.min(100, Math.round((totalSpent / targetBudgetNumber) * 100));
 
+  const applyPreset = (preset) => {
+    triggerHaptic();
+    const converted = convertAmount(preset.amount, currency);
+    setExpenseTitle(preset.title);
+    setExpenseAmount(String(converted));
+    setSelectedCategory(preset.category);
+    setShowAddForm(true);
+  };
+
   const handleAddExpense = () => {
     triggerHaptic();
     const amountNum = parseFloat(expenseAmount.trim());
     if (!expenseTitle.trim()) {
-      Alert.alert("Input Required", "Please enter an expense name.");
+      showAlert("Input Required", "Please enter an expense name.");
       return;
     }
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert("Invalid Amount", "Please enter a valid expense amount.");
+      showAlert("Invalid Amount", "Please enter a valid expense amount.");
       return;
     }
 
@@ -165,6 +190,29 @@ export default function ExpenseTrackerModal({
               <Text style={[styles.progressHint, { color: theme.subtext }]}>{percentSpent}% of budget used</Text>
               <Text style={[styles.progressHint, { color: theme.subtext }]}>Cap: {symbol}{targetBudgetNumber.toLocaleString()}</Text>
             </View>
+          </View>
+
+          {/* 1-Tap Quick Expense Presets */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={[styles.presetsTitle, { color: theme.subtext }]}>⚡ 1-Tap Quick Presets:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+              {QUICK_PRESETS.map((p, idx) => {
+                const converted = convertAmount(p.amount, currency);
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.presetChip, { backgroundColor: theme.card, borderColor: theme.border }]}
+                    onPress={() => applyPreset(p)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={p.icon} size={14} color={Colors.PRIMARY} style={{ marginRight: 5 }} />
+                    <Text style={[styles.presetChipText, { color: theme.text }]}>
+                      {p.title} ({symbol}{converted})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
 
           {/* Add Expense Toggle Button */}
@@ -527,5 +575,24 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     padding: 6,
+  },
+  presetsTitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  presetChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
   },
 });

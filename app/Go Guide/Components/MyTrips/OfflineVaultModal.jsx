@@ -167,14 +167,28 @@ export default function OfflineVaultModal({
                   <Text style={[styles.hotelAddress, { color: theme.subtext }]}>{h.address || "Central Area"}</Text>
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => handleCopy(`${h.name}\n${h.address || ""}`, h.name)}
-                  style={[styles.copyPill, { backgroundColor: Colors.PRIMARY + "15", borderColor: Colors.PRIMARY + "40" }]}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="copy-outline" size={14} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
-                  <Text style={[styles.copyPillText, { color: Colors.PRIMARY }]}>Copy Address</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={() => handleCopy(`${h.name}\n${h.address || ""}`, h.name)}
+                    style={[styles.copyPill, { backgroundColor: Colors.PRIMARY + "15", borderColor: Colors.PRIMARY + "40" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
+                    <Text style={[styles.copyPillText, { color: Colors.PRIMARY }]}>Copy</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      const q = encodeURIComponent(`${h.name} ${destination || ""}`.trim());
+                      Linking.openURL(`https://www.booking.com/searchresults.html?ss=${q}`);
+                    }}
+                    style={[styles.copyPill, { backgroundColor: "#00358018", borderColor: "#00358040", marginLeft: 6 }]}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="bed-outline" size={14} color="#003580" style={{ marginRight: 4 }} />
+                    <Text style={[styles.copyPillText, { color: "#003580" }]}>Book</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))
           ) : (

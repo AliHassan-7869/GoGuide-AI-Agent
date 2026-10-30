@@ -36,6 +36,12 @@ service cloud.firestore {
       allow read: if signedIn();
     }
 
+    // Public shared trips viewable by anyone with the link
+    match /SharedTrips/{tripId} {
+      allow read: if true;
+      allow create, update: if true;
+    }
+
     // Everything else is denied by default.
   }
 }

@@ -54,6 +54,7 @@ function AppContent() {
         <Stack.Screen name="forest" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
+        <Stack.Screen name="trip" options={{ headerShown: false }} />
       </Stack>
     </>
   );

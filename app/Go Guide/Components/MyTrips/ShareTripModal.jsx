@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../Configs/FirebaseConfig";
 import { Colors } from "../constants/constants";
 
 export default function ShareTripModal({
@@ -35,10 +37,27 @@ export default function ShareTripModal({
     } catch (e) {}
   };
 
-  const shareableUrl = `https://goguide.ai/trip/${tripId || "shared-pass"}`;
+  const cleanTripId = tripId || "current-trip";
+  const shareableUrl = `https://dist-seven-tau-79.vercel.app/trip/${cleanTripId}`;
+
+  const syncPublicShare = async () => {
+    try {
+      if (cleanTripId && plan) {
+        await setDoc(doc(db, "SharedTrips", String(cleanTripId)), {
+          id: String(cleanTripId),
+          destination: plan.destination || destination || "Destination",
+          plan: plan,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.log("SharedTrips sync notice:", e?.message);
+    }
+  };
 
   const handleCopyLink = () => {
     triggerHaptic();
+    syncPublicShare();
 
     if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(shareableUrl);
@@ -47,15 +66,29 @@ export default function ShareTripModal({
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
 
-    Alert.alert("Link Copied!", "Shareable trip link copied to clipboard. Share it with friends or co-travelers!");
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.alert("Link Copied! Shareable trip link copied to clipboard. Share it with friends on WhatsApp or social media!");
+    } else {
+      Alert.alert("Link Copied!", "Shareable trip link copied to clipboard. Share it with friends or co-travelers!");
+    }
   };
 
   const handleNativeShare = async () => {
     triggerHaptic();
+    syncPublicShare();
     try {
+      const dest = plan.destination || destination || "Destination";
+      const shareMessage = `✈️ Check out our trip to ${dest} on GoGuide AI!\n\n` +
+        `📅 Duration: ${plan.duration || "Multi-Day"}\n` +
+        `👥 Travelers: ${plan.traveler || "Explorer"}\n` +
+        `💰 Budget: ${plan.budget || "Curated"}\n\n` +
+        `🔗 View Full Interactive Itinerary & Hotels:\n` +
+        `${shareableUrl}\n\n` +
+        `Plan your trip with GoGuide AI 🌍`;
+
       await Share.share({
-        title: `Trip to ${plan.destination || destination}`,
-        message: `Check out our upcoming trip to ${plan.destination || destination} on GoGuide AI!\n\nLink: ${shareableUrl}\nDuration: ${plan.duration || "Multi-Day"}\nTraveler: ${plan.traveler || "Explorer"}`,
+        title: `Trip to ${dest} - GoGuide AI`,
+        message: shareMessage,
       });
     } catch (e) {
       console.log("Share error:", e);

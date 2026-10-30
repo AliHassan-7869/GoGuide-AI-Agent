@@ -33,7 +33,7 @@ import PrintableItineraryModal from "../../Components/MyTrips/PrintableItinerary
 import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
 import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
 import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
-import { convertPriceString } from "../../Components/constants/Currency";
+import { convertPriceString, getCurrencySymbol, convertAmount } from "../../Components/constants/Currency";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
@@ -467,6 +467,14 @@ export default function MyTrip() {
       url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName + " " + (plan?.destination || ""))}`;
     }
     Linking.openURL(url);
+  };
+
+  const openBookingCom = (hotelName) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const dest = plan?.destination || tripData?.destination || "";
+    const query = encodeURIComponent(`${hotelName} ${dest}`.trim());
+    const bookingUrl = `https://www.booking.com/searchresults.html?ss=${query}`;
+    Linking.openURL(bookingUrl);
   };
 
   // Synchronize trip modifications across Active State, Local Storage, and Cloud Firestore
@@ -1074,6 +1082,108 @@ export default function MyTrip() {
           </View>
         )}
 
+        {/* In-Trip Live Budget & Expense Snapshot Card */}
+        {(() => {
+          const userCurrency = preferences?.currency || "USD";
+          const curSymbol = getCurrencySymbol(userCurrency);
+          const rawTier = plan?.budget || tripData?.budget || "Moderate";
+          const baseBudgetUSD = rawTier.toLowerCase().includes("luxury")
+            ? 3000
+            : rawTier.toLowerCase().includes("economical") || rawTier.toLowerCase().includes("cheap")
+            ? 600
+            : 1500;
+          const targetBudget = convertAmount(baseBudgetUSD, userCurrency);
+          const expensesList = tripData?.expenses || [];
+          const totalSpent = expensesList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          const remainingBudget = Math.max(0, targetBudget - totalSpent);
+          const percentSpent = Math.min(100, Math.round((totalSpent / targetBudget) * 100));
+
+          return (
+            <View style={[styles.expenseSnapshotCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.expenseSnapshotHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={[styles.expenseIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.14)" }]}>
+                    <Ionicons name="wallet" size={18} color="#F59E0B" />
+                  </View>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={[styles.expenseSnapshotTitle, { color: theme.text }]}>Trip Budget & Live Expenses</Text>
+                    <Text style={[styles.expenseSnapshotSub, { color: theme.subtext }]}>
+                      Cap: {curSymbol}{targetBudget.toLocaleString()} ({rawTier})
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.logExpenseQuickBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowExpenseModal(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={15} color="#FFF" />
+                  <Text style={styles.logExpenseQuickBtnText}>Log Expense</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Numbers Row */}
+              <View style={styles.expenseNumbersRow}>
+                <View>
+                  <Text style={[styles.expenseLabel, { color: theme.subtext }]}>Total Spent</Text>
+                  <Text style={[styles.expenseValue, { color: theme.text }]}>
+                    {curSymbol}{totalSpent.toLocaleString()}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.expenseLabel, { color: theme.subtext }]}>Remaining</Text>
+                  <Text style={[styles.expenseValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
+                    {curSymbol}{remainingBudget.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Progress Bar */}
+              <View style={[styles.expenseProgressBarTrack, { backgroundColor: theme.isDark ? "#282828" : "#E2E8F0" }]}>
+                <View 
+                  style={[
+                    styles.expenseProgressBarFill, 
+                    { 
+                      width: `${percentSpent}%`,
+                      backgroundColor: percentSpent > 90 ? "#EF4444" : percentSpent > 70 ? "#F59E0B" : "#10B981",
+                    }
+                  ]} 
+                />
+              </View>
+
+              {/* Recent expenses quick preview */}
+              {expensesList.length > 0 ? (
+                <View style={styles.recentExpensesRow}>
+                  <Text style={[styles.recentExpensesLabel, { color: theme.subtext }]}>Recent:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginLeft: 6 }}>
+                    {expensesList.slice(0, 3).map((exp) => (
+                      <View key={exp.id} style={[styles.recentExpenseChip, { backgroundColor: theme.isDark ? "#252525" : "#F1F5F9" }]}>
+                        <Text style={[styles.recentExpenseChipText, { color: theme.text }]}>
+                          {exp.title} ({curSymbol}{exp.amount})
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  onPress={() => setShowExpenseModal(true)} 
+                  style={{ marginTop: 8 }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.expenseEmptyHint, { color: theme.subtext }]}>
+                    No expenses logged yet. Tap "+ Log Expense" to track coffee, cabs, and meals on the go ➔
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })()}
+
         {/* Recommended Hotels Section */}
         {plan.hotels?.length > 0 && (
           <View style={styles.section}>
@@ -1108,12 +1218,23 @@ export default function MyTrip() {
                       {hotel.address || hotel.details || "Convenient location"}
                     </Text>
 
+                    {/* Direct Booking.com Action Button */}
+                    <TouchableOpacity 
+                      style={styles.hotelBookBtn}
+                      onPress={() => openBookingCom(hotel.name)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="bed" size={13} color="#FFF" style={{ marginRight: 5 }} />
+                      <Text style={styles.hotelBookBtnText}>Book on Booking.com</Text>
+                      <Ionicons name="open-outline" size={12} color="#93C5FD" style={{ marginLeft: 5 }} />
+                    </TouchableOpacity>
+
                     <View style={styles.hotelButtonRow}>
                       <TouchableOpacity 
                         style={styles.hotelMapBtn}
                         onPress={() => openInMaps(hotel.name, hotel.coordinates)}
                       >
-                        <Ionicons name="location-outline" size={15} color={Colors.PRIMARY} />
+                        <Ionicons name="location-outline" size={14} color={Colors.PRIMARY} />
                         <Text style={styles.hotelMapBtnText}>Map</Text>
                       </TouchableOpacity>
 
@@ -1121,7 +1242,7 @@ export default function MyTrip() {
                         style={[styles.hotelMapBtn, { backgroundColor: "rgba(16, 185, 129, 0.12)", marginLeft: 8 }]}
                         onPress={() => getDirectDirections(hotel.name, hotel.coordinates)}
                       >
-                        <Ionicons name="navigate-outline" size={15} color="#10B981" />
+                        <Ionicons name="navigate-outline" size={14} color="#10B981" />
                         <Text style={[styles.hotelMapBtnText, { color: "#10B981" }]}>Directions</Text>
                       </TouchableOpacity>
                     </View>
@@ -1723,9 +1844,110 @@ const styles = StyleSheet.create({
   },
   bookButtonText: { color: "#FFF", fontSize: 13, fontFamily: "Outfit-Bold" },
 
+  // In-Trip Expense Snapshot Card
+  expenseSnapshotCard: {
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  expenseSnapshotHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  expenseIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  expenseSnapshotTitle: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+  },
+  expenseSnapshotSub: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 1,
+  },
+  logExpenseQuickBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F59E0B",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  logExpenseQuickBtnText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 3,
+  },
+  expenseNumbersRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  expenseLabel: {
+    fontSize: 11,
+    fontFamily: "Outfit-Medium",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  expenseValue: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+    marginTop: 2,
+  },
+  expenseProgressBarTrack: {
+    height: 7,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginVertical: 6,
+  },
+  expenseProgressBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  recentExpensesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  recentExpensesLabel: {
+    fontSize: 11,
+    fontFamily: "Outfit-Medium",
+  },
+  recentExpenseChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  recentExpenseChipText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Medium",
+  },
+  expenseEmptyHint: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+
   // Hotel Cards
   hotelCard: { 
-    width: 240, 
+    width: 255, 
     borderRadius: 20, 
     marginRight: 14,
     overflow: "hidden",
@@ -1762,6 +1984,20 @@ const styles = StyleSheet.create({
   hotelBody: { padding: 12 },
   hotelName: { fontSize: 15, fontFamily: 'Outfit-Bold', marginBottom: 2 },
   hotelAddress: { fontSize: 12, fontFamily: 'Outfit-Regular', marginBottom: 10 },
+  hotelBookBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#003580", // Iconic Booking.com Navy
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  hotelBookBtnText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+  },
   hotelButtonRow: {
     flexDirection: "row",
     alignItems: "center",
