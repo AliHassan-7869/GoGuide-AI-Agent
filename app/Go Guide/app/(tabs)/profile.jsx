@@ -11,6 +11,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
@@ -245,10 +246,14 @@ export default function Profile() {
     }
   };
 
-  const handleNavigate = (route) => {
+  const handleNavigate = (target) => {
     triggerHaptic();
-    if (route) {
-      router.push(route);
+    if (typeof target === "object" && target?.onPress) {
+      target.onPress();
+    } else if (typeof target === "object" && target?.route) {
+      router.push(target.route);
+    } else if (typeof target === "string") {
+      router.push(target);
     } else {
       Alert.alert("Coming Soon", "This feature is currently being curated.");
     }
@@ -337,6 +342,20 @@ export default function Profile() {
       icon: "help-circle-outline",
       route: "/help-center",
     },
+    {
+      id: "privacy",
+      title: "Privacy Policy",
+      subtitle: "Data protection, GDPR & traveler rights",
+      icon: "shield-checkmark-outline",
+      onPress: () => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy"),
+    },
+    {
+      id: "terms",
+      title: "Terms of Service",
+      subtitle: "AI disclaimer, bookings & terms of use",
+      icon: "document-text-outline",
+      onPress: () => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms"),
+    },
   ];
 
   const renderMenuItem = (item, isLast) => (
@@ -346,7 +365,7 @@ export default function Profile() {
         styles.menuRow,
         !isLast && { borderBottomWidth: 1, borderBottomColor: theme.isDark ? "#282828" : "#F0F0F0" },
       ]}
-      onPress={() => handleNavigate(item.route)}
+      onPress={() => handleNavigate(item)}
       activeOpacity={0.7}
     >
       <View

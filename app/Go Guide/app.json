@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ai-Travel_agent",
+    "name": "GoGuide AI",
     "slug": "Ai-Travel_agent",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

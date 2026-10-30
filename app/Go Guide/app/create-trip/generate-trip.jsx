@@ -21,6 +21,7 @@ import { auth, db } from "../../Configs/FirebaseConfig";
 import { addDoc, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { scheduleTripCountdown, sendLocalNotification } from "../../Components/utils/NotificationService";
 
 const { width } = Dimensions.get("window");
 
@@ -194,7 +195,16 @@ export default function GenerateTrip() {
       };
       const updatedList = [newTripRecord, ...existingTrips.filter(t => t.id !== newTripRecord.id)];
       await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
-      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(completeTripData));
+      // 3. Schedule Smart Travel Reminders & Countdown Notification
+      scheduleTripCountdown(
+        destName,
+        completeTripData?.startDate,
+        completeTripData?.aiTripPlan?.hotels?.[0]?.name
+      );
+      sendLocalNotification(
+        `Trip to ${destName} Ready! ✈️`,
+        `Your ${tripData?.totalNoOfDays || "multi-day"} itinerary with hotels and route mapping is saved.`
+      );
     } catch (localErr) {
       console.warn("Could not save to local storage:", localErr);
     }

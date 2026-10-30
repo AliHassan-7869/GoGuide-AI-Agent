@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../Configs/FirebaseConfig";
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -30,6 +32,20 @@ export class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error("[GoGuide ErrorBoundary caught exception]:", error, errorInfo);
     this.setState({ errorInfo });
+
+    // Production Telemetry: Log to Firestore AppErrors collection
+    try {
+      const errorReport = {
+        message: String(error?.message || error || "Unknown error"),
+        stack: String(error?.stack || "").slice(0, 1500),
+        componentStack: String(errorInfo?.componentStack || "").slice(0, 1500),
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      };
+      addDoc(collection(db, "AppErrors"), errorReport).catch(() => {});
+    } catch (e) {
+      // Non-blocking telemetry
+    }
   }
 
   handleReset = () => {

@@ -233,9 +233,23 @@ async def root():
 async def health():
     return {"status": "ok"}
 
+# -------------------- ITINERARY CACHE --------------------
+# In-memory TTL cache for generated travel plans (24-hour TTL)
+_PLAN_CACHE: dict[str, dict] = {}
+_CACHE_TTL_SECONDS = 86400
+
 # -------------------- POST /plan (main functionality) --------------------
 @app.post("/plan")
 def generate_plan(request: TravelRequest, client_id: str = Depends(require_client)):
+    # Check cache first for 200ms instantaneous response
+    cache_key = f"{request.destination.strip().lower()}_{request.days}_{request.budget.strip().lower()}_{request.categories or ''}_{request.interests or ''}"
+    now = time.time()
+    if cache_key in _PLAN_CACHE:
+        entry = _PLAN_CACHE[cache_key]
+        if now - entry.get("timestamp", 0) < _CACHE_TTL_SECONDS:
+            logger.info("Serving cached itinerary for %s (%s days)", request.destination, request.days)
+            return entry["response"]
+
     extra_instructions = []
     if request.categories:
         extra_instructions.append(f"Focus heavily on these travel themes/categories: {request.categories}.")
@@ -305,7 +319,7 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
     except json.JSONDecodeError:
         plan_data = clean_content
 
-    return {
+    response_payload = {
         "status": "success",
         "data": {
             "destination": request.destination,
@@ -314,6 +328,13 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
             "plan": plan_data
         }
     }
+
+    _PLAN_CACHE[cache_key] = {
+        "timestamp": now,
+        "response": response_payload
+    }
+
+    return response_payload
 
 # -------------------- GET /plan (browser-friendly) --------------------
 @app.get("/plan")

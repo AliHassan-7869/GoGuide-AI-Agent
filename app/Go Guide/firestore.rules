@@ -42,6 +42,12 @@ service cloud.firestore {
       allow create, update: if true;
     }
 
+    // Telemetry & Error Logging (Crash reports from ErrorBoundary)
+    match /AppErrors/{errorId} {
+      allow create: if true;
+      allow read: if signedIn();
+    }
+
     // Everything else is denied by default.
   }
 }
