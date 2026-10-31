@@ -269,7 +269,7 @@ export default function PackingChecklist() {
     setRecommendModalVisible(false);
   };
 
-  // Share checklist
+  // Share checklist (Supports Web Navigator Share, Native Share & Clipboard Fallback)
   const handleShareChecklist = async () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     const total = items.length;
@@ -291,9 +291,44 @@ export default function PackingChecklist() {
     });
 
     try {
+      // 1. Web Native Share API (Mobile Chrome / Safari / Edge)
+      if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: `Packing List - ${destinationName}`,
+          text: text,
+        });
+        return;
+      }
+
+      // 2. Mobile Native Share (iOS / Android React Native)
+      if (Platform.OS !== "web") {
+        await Share.share({ message: text, title: `Packing List - ${destinationName}` });
+        return;
+      }
+
+      // 3. Web Clipboard Fallback (Desktop / Browser where navigator.share is restricted)
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        Alert.alert(
+          "Checklist Copied! 📋",
+          "Your complete packing checklist has been copied to your clipboard. You can paste it directly into WhatsApp or Messages!"
+        );
+        return;
+      }
+
+      // 4. Fallback Share.share
       await Share.share({ message: text, title: `Packing List - ${destinationName}` });
     } catch (e) {
-      console.log("Error sharing checklist:", e);
+      if (e?.name !== "AbortError") {
+        try {
+          if (typeof navigator !== "undefined" && navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+            Alert.alert("Checklist Copied! 📋", "Your checklist was copied to clipboard.");
+          }
+        } catch (copyErr) {
+          console.log("Error sharing checklist:", e);
+        }
+      }
     }
   };
 
@@ -668,7 +703,7 @@ export default function PackingChecklist() {
                       styles.itemName,
                       {
                         color: theme.text,
-                        textDecorationLine: item.packed ? "line-through" : "none",
+                        opacity: item.packed ? 0.85 : 1,
                       },
                     ]}
                     numberOfLines={2}

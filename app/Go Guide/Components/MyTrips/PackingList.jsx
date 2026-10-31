@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../constants/constants';
@@ -118,7 +118,7 @@ export default function PackingList({ items }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <MaterialCommunityIcons name="briefcase-check" size={24} color={Colors.PRIMARY} />
+          <Ionicons name="briefcase-outline" size={22} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
           <Text style={[styles.title, { color: theme.text }]}>Packing Checklist</Text>
         </View>
         <View style={[styles.badge, { backgroundColor: checkedCount === displayItems.length ? "#10B98122" : Colors.PRIMARY + '20' }]}>
@@ -200,8 +200,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit-Medium',
   },
   checkedText: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
+    opacity: 0.75,
   },
   category: {
     fontSize: 12,
