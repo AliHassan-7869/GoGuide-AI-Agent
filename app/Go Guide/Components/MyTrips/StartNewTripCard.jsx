@@ -411,23 +411,50 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
         <Text style={[styles.sectionSubtitle, { color: theme.subtext }]}>Tap to browse</Text>
       </View>
 
-      <View style={styles.vibesContainer}>
-        {TRAVEL_VIBES.map((vibe) => (
-          <TouchableOpacity
-            key={vibe.id}
-            style={[
-              styles.vibeCard,
-              { backgroundColor: theme.card, borderColor: theme.border },
-            ]}
-            onPress={() => handleNavigate(vibe.route)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.vibeIconWrap, { backgroundColor: activeAccent + "14" }]}>
-              <Ionicons name={vibe.icon} size={18} color={activeAccent} />
-            </View>
-            <Text style={[styles.vibeText, { color: theme.text }]}>{vibe.label}</Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.vibesGrid}>
+        {/* Row 1: Beaches & Mountains */}
+        <View style={styles.vibeRow}>
+          {TRAVEL_VIBES.slice(0, 2).map((vibe) => (
+            <TouchableOpacity
+              key={vibe.id}
+              style={[
+                styles.vibeCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+              onPress={() => handleNavigate(vibe.route)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.vibeIconWrap, { backgroundColor: activeAccent + "14" }]}>
+                <Ionicons name={vibe.icon} size={18} color={activeAccent} />
+              </View>
+              <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
+                {vibe.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Row 2: Historic Cities & Forest */}
+        <View style={styles.vibeRow}>
+          {TRAVEL_VIBES.slice(2, 4).map((vibe) => (
+            <TouchableOpacity
+              key={vibe.id}
+              style={[
+                styles.vibeCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+              onPress={() => handleNavigate(vibe.route)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.vibeIconWrap, { backgroundColor: activeAccent + "14" }]}>
+                <Ionicons name={vibe.icon} size={18} color={activeAccent} />
+              </View>
+              <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
+                {vibe.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* 4. TRENDING DESTINATIONS SLIDER */}
@@ -752,17 +779,21 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Medium",
   },
 
-  // Vibes Container
-  vibesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  // Vibes 2x2 Grid (Two balanced rows)
+  vibesGrid: {
     gap: 10,
+    width: "100%",
+  },
+  vibeRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
   },
   vibeCard: {
-    width: (width - 42) / 2,
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
@@ -778,6 +809,7 @@ const styles = StyleSheet.create({
   vibeText: {
     fontSize: 13,
     fontFamily: "Outfit-Bold",
+    flex: 1,
   },
 
   // Trending Slider Cards
