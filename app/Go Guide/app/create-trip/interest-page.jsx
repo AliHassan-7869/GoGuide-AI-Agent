@@ -21,6 +21,7 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { INTEREST_PROMPT, DEFAULT_INTERESTS, DEFAULT_TRANSPORTS } from "../../Components/constants/Option";
 import { model, generationConfig } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Distinct category colors for visual distinction
 const getCategoryBadgeStyle = (category, isDark) => {
@@ -152,14 +153,47 @@ const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
   );
 };
 
+// Curated highlights tailored to destination geography (0ms instant initial render)
+const getSmartDestinationInterests = (dest = "") => {
+  const d = (dest || "").toLowerCase();
+  const isBeach = /beach|coast|island|bali|maldives|phuket|miami|cancun|hawaii|goa|santorini|bahamas|krabi/i.test(d);
+  const isHistoric = /rome|paris|cairo|athens|kyoto|lahore|london|istanbul|delhi|florence|beijing|agra/i.test(d);
+  const isMountain = /alps|mountain|hike|swiss|banff|aspen|manali|nepal|queenstown|murree|swat/i.test(d);
+
+  return [
+    ...(isBeach ? [
+      { id: 'smart-beach-1', name: '🏖️ Scenic Beach & Coastline', description: 'Sunbathing, turquoise waters & seaside promenades', category: 'Beaches' },
+      { id: 'smart-beach-2', name: '🌊 Coastal Water Sports & Cruise', description: 'Snorkeling, paddleboarding or sunset catamaran cruise', category: 'Beaches' },
+    ] : []),
+    ...(isHistoric ? [
+      { id: 'smart-hist-1', name: '🏛️ Iconic Ancient Monument & Heritage', description: 'World-renowned architectural marvels & ancient heritage', category: 'History' },
+      { id: 'smart-hist-2', name: '🏰 National Museum & Royal Palaces', description: 'Curated historic artifacts & grand royal halls', category: 'History' },
+    ] : [
+      { id: 'smart-hist-def', name: '🏛️ Historic Old Town & Heritage', description: 'Explore ancient architecture, squares & local heritage', category: 'History' },
+    ]),
+    ...(isMountain ? [
+      { id: 'smart-mount-1', name: '⛰️ Alpine Peak & Summit Viewpoint', description: 'Dramatic panoramic mountain ridges & fresh air', category: 'Nature' },
+      { id: 'smart-mount-2', name: '🥾 Scenic Forest & Hiking Trails', description: 'Curated alpine trails, waterfalls & nature walks', category: 'Nature' },
+    ] : [
+      { id: 'smart-nat-def', name: '🌳 Scenic Nature & Urban Parks', description: 'Relaxing botanical gardens & peaceful green oases', category: 'Nature' },
+    ]),
+    { id: 'smart-food-1', name: '🍴 Authentic Local Dining & Bistros', description: 'Taste legendary regional dishes & chef favorites', category: 'Food' },
+    { id: 'smart-food-2', name: '☕ Artisanal Cafe & Street Delights', description: 'Famous local coffee spots, bakeries & sweets', category: 'Food' },
+    { id: 'smart-view-1', name: '👀 360° Sky High Observation Deck', description: 'Breathtaking bird’s-eye perspective of the destination', category: 'Viewpoint' },
+    { id: 'smart-shop-1', name: '🛍️ Traditional Souk & Artisan Market', description: 'Handcrafted souvenirs, textiles & local treasures', category: 'Shopping' },
+  ];
+};
+
 export default function YourInterest() {
   const router = useRouter();
   const theme = useTheme();
 
   const { tripData, setTripData } = useContext(CreateTripContext);
 
-  const [placesList, setPlacesList] = useState([]);
-  const [transportList, setTransportList] = useState([]);
+  const [placesList, setPlacesList] = useState(() =>
+    getSmartDestinationInterests(tripData?.toLocation?.name)
+  );
+  const [transportList, setTransportList] = useState(DEFAULT_TRANSPORTS);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
   const [selectedTransport, setSelectedTransport] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -263,9 +297,9 @@ export default function YourInterest() {
   };
 
   const fetchOverpassInterests = async ({ lat, lng }) => {
-    const radius = 25000;
+    const radius = 12000;
     const query = `
-      [out:json][timeout:25];
+      [out:json][timeout:5];
       (
         nwr(around:${radius},${lat},${lng})[tourism~"^(attraction|museum|viewpoint)$"];
         nwr(around:${radius},${lat},${lng})[historic];
@@ -274,14 +308,23 @@ export default function YourInterest() {
         nwr(around:${radius},${lat},${lng})[amenity~"^(cafe|restaurant|marketplace)$"];
         nwr(around:${radius},${lat},${lng})[railway=station];
       );
-      out center 120;
+      out center 35;
     `.trim();
 
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `data=${encodeURIComponent(query)}`,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    let res;
+    try {
+      res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!res.ok) throw new Error(`Overpass error ${res.status}`);
     const data = await res.json();
     const elements = Array.isArray(data?.elements) ? data.elements : [];
@@ -402,7 +445,25 @@ export default function YourInterest() {
         return;
       }
 
-      // Try OpenStreetMap / Overpass first
+      const cacheKey = `@goguide_interests_${destinationName.trim().toLowerCase()}`;
+
+      // Check local cache for 0ms retrieval
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed?.interests) && parsed.interests.length > 0) {
+            setPlacesList(parsed.interests);
+            if (Array.isArray(parsed?.transports) && parsed.transports.length > 0) {
+              setTransportList(parsed.transports);
+            }
+            setLoadingInterests(false);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // Try OpenStreetMap / Overpass with fast 3.5s timeout
       const lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
       const lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
       if (lat != null && lng != null) {
@@ -412,10 +473,13 @@ export default function YourInterest() {
           if (osm?.transports?.length) setTransportList(osm.transports);
           if (osm?.interests?.length || osm?.transports?.length) {
             setLoadingInterests(false);
+            try {
+              await AsyncStorage.setItem(cacheKey, JSON.stringify(osm));
+            } catch (e) {}
             return;
           }
         } catch (osmErr) {
-          console.log("[DEBUG] Overpass notice, falling back to AI:", osmErr.message);
+          console.log("[DEBUG] Overpass fast fallback to AI:", osmErr.message);
         }
       }
 
@@ -435,31 +499,22 @@ export default function YourInterest() {
         const parsedResponse = JSON.parse(cleanResponse);
         if (Array.isArray(parsedResponse.interests) && parsedResponse.interests.length > 0) {
           setPlacesList(parsedResponse.interests);
-        } else {
-          setPlacesList(DEFAULT_INTERESTS);
         }
         if (Array.isArray(parsedResponse.transports) && parsedResponse.transports.length > 0) {
           setTransportList(parsedResponse.transports);
-        } else {
-          setTransportList(DEFAULT_TRANSPORTS);
         }
-      } else {
-        setPlacesList(DEFAULT_INTERESTS);
-        setTransportList(DEFAULT_TRANSPORTS);
+        try {
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(parsedResponse));
+        } catch (e) {}
       }
     } catch (error) {
       console.error("[DEBUG] Error fetching interests:", error);
       const msg = String(error?.message || "");
-      const isQuota = msg.includes("[429") || /quota exceeded/i.test(msg) || /rate limit/i.test(msg);
       const retrySec = extractRetrySeconds(error);
       if (retrySec > 0) {
         nextAllowedRequestAtRef.current = Date.now() + retrySec * 1000;
         startRetryCountdown(retrySec);
       }
-
-      // If all fails, provide curated defaults
-      setPlacesList(DEFAULT_INTERESTS);
-      setTransportList(DEFAULT_TRANSPORTS);
     } finally {
       setLoadingInterests(false);
     }
@@ -674,11 +729,20 @@ export default function YourInterest() {
               )}
             </View>
 
-            {loadingInterests && (
+            {loadingInterests && placesList.length === 0 && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.PRIMARY} />
                 <Text style={[styles.loadingText, { color: theme.subtext }]}>
                   Curating local highlights for {destinationName}...
+                </Text>
+              </View>
+            )}
+
+            {loadingInterests && placesList.length > 0 && (
+              <View style={[styles.loadingBannerPill, { backgroundColor: theme.isDark ? "#1F1F1F" : "#F0F9FF", borderColor: theme.isDark ? "#333" : "#BAE6FD" }]}>
+                <ActivityIndicator size="small" color={Colors.PRIMARY} style={{ marginRight: 8 }} />
+                <Text style={[styles.loadingBannerText, { color: theme.subtext }]}>
+                  Discovering live local highlights for {destinationName}...
                 </Text>
               </View>
             )}
@@ -930,6 +994,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
+    fontFamily: "Outfit-Medium",
+  },
+  loadingBannerPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  loadingBannerText: {
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   errorContainer: {

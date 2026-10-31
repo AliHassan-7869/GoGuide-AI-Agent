@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import PlanIcon from "../images/svg";
@@ -315,7 +315,7 @@ export default function GenerateTrip() {
       <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
         {/* Top Engine Pill */}
         <View style={styles.engineBadge}>
-          <MaterialCommunityIcons name="creation" size={14} color={Colors.PRIMARY} />
+          <Ionicons name="sparkles" size={13} color={Colors.PRIMARY} />
           <Text style={styles.engineBadgeText}>AI TRAVEL ARCHITECT</Text>
         </View>
 

@@ -77,17 +77,27 @@ function AppContent() {
     );
   }
 
+  // On Mobile Web, wrap in a full-height flex container so it fills mobile viewport cleanly
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ flex: 1, width: "100%", minHeight: "100vh", backgroundColor: isDark ? "#121212" : "#FFFFFF" }}>
+        {stack}
+      </View>
+    );
+  }
+
   return stack;
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     "Outfit-Regular": require("../assets/fonts/Outfit-Regular.ttf"),
     "Outfit-Bold": require("../assets/fonts/Outfit-Bold.ttf"),
     "Outfit-Medium": require("../assets/fonts/Outfit-Medium.ttf"),
   });
 
-  if (!fontsLoaded) return <View />;
+  // On Web, Google Fonts Outfit is injected via +html.jsx; never block web with an empty screen
+  if (!fontsLoaded && !fontError && Platform.OS !== "web") return <View />;
 
   return (
     <SafeAreaProvider style={{ flex: 1 }}>

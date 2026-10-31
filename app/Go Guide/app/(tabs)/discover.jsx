@@ -18,7 +18,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../Components/constants/constants";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { generateTripWithAgent } from "../../Configs/AiModel";
 import {
@@ -451,7 +450,7 @@ export default function Discover() {
         <View style={[styles.aiHeroCard, { backgroundColor: isDark ? "#1A1528" : "#F5F3FF", borderColor: isDark ? "#6D28D9" : "#DDD6FE" }]}>
           <View style={styles.aiBadgeRow}>
             <View style={styles.aiGlowBadge}>
-              <MaterialCommunityIcons name="creation" size={14} color="#8B5CF6" />
+              <Ionicons name="sparkles" size={13} color="#8B5CF6" />
               <Text style={styles.aiGlowBadgeText}>AI TRIP GENERATOR</Text>
             </View>
             <Text style={styles.aiStatusDot}>• Ready</Text>
@@ -480,7 +479,7 @@ export default function Discover() {
               onPress={handleCustomAiPrompt}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="sparkles" size={16} color="#FFF" />
+              <Ionicons name="sparkles" size={15} color="#FFF" style={{ marginRight: 3 }} />
               <Text style={styles.aiSendBtnText}>Plan</Text>
             </TouchableOpacity>
           </View>
@@ -728,7 +727,7 @@ export default function Discover() {
                           onPress={() => executeAiTrip(dest.title, 3, "Moderate", dest.image)}
                           activeOpacity={0.8}
                         >
-                          <MaterialCommunityIcons name="sparkles" size={13} color="#FFF" />
+                          <Ionicons name="sparkles" size={12} color="#FFF" style={{ marginRight: 3 }} />
                           <Text style={styles.aiPlanPillText}>1-Tap AI</Text>
                         </TouchableOpacity>
 
@@ -756,7 +755,7 @@ export default function Discover() {
         <View style={styles.aiModalOverlay}>
           <View style={[styles.aiModalContent, { backgroundColor: isDark ? "#1E1833" : "#FFFFFF" }]}>
             <View style={styles.aiPulseCircle}>
-              <MaterialCommunityIcons name="creation" size={32} color="#8B5CF6" />
+              <Ionicons name="sparkles" size={28} color="#8B5CF6" />
             </View>
 
             <Text style={[styles.aiModalTitle, { color: themeStyles.textColor }]}>
@@ -892,7 +891,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     marginRight: 10,
-    width: 145,
+    width: 155,
   },
   vibeIconCircle: { width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center", marginBottom: 6 },
   vibeCardTitle: { fontSize: 13, fontFamily: "Outfit-Bold", marginBottom: 2 },
@@ -964,7 +963,7 @@ const styles = StyleSheet.create({
 
   // Trending Places Cards
   popularCard: {
-    width: 220,
+    width: 240,
     borderRadius: 20,
     marginRight: 14,
     borderWidth: 1,
@@ -1010,6 +1009,8 @@ const styles = StyleSheet.create({
   richMetaRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 4,
     marginTop: 4,
     marginBottom: 6,
   },
@@ -1034,25 +1035,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 6,
   },
   aiPlanPillBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 7,
     borderRadius: 10,
   },
   aiPlanPillText: {
     color: "#FFF",
     fontSize: 11,
     fontFamily: "Outfit-Bold",
-    marginLeft: 4,
+    marginLeft: 3,
   },
   wizardPillBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
   },

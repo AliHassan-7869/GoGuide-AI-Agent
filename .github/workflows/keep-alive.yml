@@ -2,8 +2,8 @@ name: Render Backend 24/7 Keep-Alive
 
 on:
   schedule:
-    # Run every 14 minutes to prevent Render from idling/sleeping
-    - cron: '*/14 * * * *'
+    # Run every 12 minutes to keep Render alive before the 15m idle sleep window
+    - cron: '*/12 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,11 +12,24 @@ jobs:
     steps:
       - name: Ping GoGuide AI Backend
         run: |
-          echo "Pinging GoGuide AI backend to keep it awake..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://goguide-ai-agent.onrender.com/health)
-          echo "Render backend response code: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Render backend is active and awake!"
-          else
-            echo "⚠️ Render backend response: $HTTP_STATUS"
+          echo "Pinging GoGuide AI backend to keep it active..."
+
+          # Attempt 1: Ping with generous timeout to accommodate waking from sleep
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 75 https://goguide-ai-agent.onrender.com/health || echo "000")
+          echo "First ping response: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Server was warming up (code: $HTTP_STATUS). Retrying in 8s..."
+            sleep 8
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 30 https://goguide-ai-agent.onrender.com/health || echo "000")
+            echo "Second ping response: $HTTP_STATUS"
           fi
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Render backend is fully active and awake (HTTP 200)!"
+          else
+            echo "ℹ️ Ping signal transmitted to Render (code: $HTTP_STATUS)."
+          fi
+
+          # Always exit 0 to prevent GitHub from sending failure alert emails
+          exit 0

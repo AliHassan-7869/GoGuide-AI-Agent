@@ -1397,7 +1397,7 @@ export default function MyTrip() {
 
                       {act.tickets && (
                         <View style={styles.ticketPill}>
-                          <MaterialCommunityIcons name="ticket-outline" size={13} color={Colors.PRIMARY} />
+                          <Ionicons name="ticket-outline" size={13} color={Colors.PRIMARY} />
                           <Text style={styles.ticketPillText}>
                             Tickets: {convertPriceString(act.tickets, preferences?.currency)}
                           </Text>
