@@ -20,6 +20,8 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { generateTripWithAgent } from "../../Configs/AiModel";
+import { auth } from "../../Configs/FirebaseConfig";
+import { saveTripToBookings } from "../../Components/utils/BookingService";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
@@ -323,6 +325,14 @@ export default function Discover() {
       };
 
       setTripData(completeTripData);
+
+      // Auto-save to My Trips (@goguide_user_trips) and My Bookings (@goguide_user_bookings)
+      try {
+        await saveTripToBookings(completeTripData, auth.currentUser);
+      } catch (saveErr) {
+        console.warn("Could not auto-save trip to bookings:", saveErr);
+      }
+
       setAiLoading(false);
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);

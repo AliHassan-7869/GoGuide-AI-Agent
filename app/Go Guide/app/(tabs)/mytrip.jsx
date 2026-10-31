@@ -33,6 +33,8 @@ import PrintableItineraryModal from "../../Components/MyTrips/PrintableItinerary
 import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
 import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
 import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
+import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
+import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { convertPriceString, getCurrencySymbol, convertAmount } from "../../Components/constants/Currency";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
@@ -418,6 +420,50 @@ export default function MyTrip() {
       });
     } catch (err) {
       console.log("Error sharing:", err);
+    }
+  };
+
+  // 1-Click Direct PDF Downloader (No print/pdf dialog - direct file download)
+  const handleDirectDownloadPDF = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const dest = plan?.destination || tripData?.locationInfo?.name || "Trip";
+    try {
+      await downloadItineraryPDF(plan, dest);
+    } catch (e) {
+      console.log("PDF download error:", e);
+      Alert.alert("Download Error", "Unable to download PDF. Please try again.");
+    }
+  };
+
+  // 1-Click Save to My Bookings & Auto-Persist Trip in My Trips
+  const handleSaveToBookings = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const dest = plan?.destination || tripData?.locationInfo?.name || "Trip";
+    try {
+      await saveTripToBookings(tripData, auth.currentUser);
+      await GetMyTrips();
+
+      const successTitle = "Saved to My Bookings! 🎫";
+      const successMsg = `Your Hotel and Flight booking passes for "${dest}" have been saved to My Bookings, and your trip is automatically saved in My Trips.`;
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        const viewNow = window.confirm(`${successTitle}\n\n${successMsg}\n\nWould you like to open My Bookings now to view your passes?`);
+        if (viewNow) {
+          router.push("/my-bookings");
+        }
+      } else {
+        Alert.alert(
+          successTitle,
+          successMsg,
+          [
+            { text: "Stay on Trip", style: "cancel" },
+            { text: "View Bookings", onPress: () => router.push("/my-bookings") }
+          ]
+        );
+      }
+    } catch (e) {
+      console.error("Save to bookings error:", e);
+      Alert.alert("Save Error", "Could not save to bookings. Please try again.");
     }
   };
 
@@ -918,6 +964,22 @@ export default function MyTrip() {
                 <Ionicons name="people-outline" size={13} color="#FFF" />
                 <Text style={styles.glassBadgeText}>{plan.traveler || "Traveler"}</Text>
               </View>
+              <TouchableOpacity 
+                style={[styles.glassBadge, { backgroundColor: "rgba(139, 92, 246, 0.45)", borderColor: "#C4B5FD", borderWidth: 0.8 }]}
+                onPress={handleSaveToBookings}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="ticket-outline" size={12} color="#EDE9FE" />
+                <Text style={[styles.glassBadgeText, { color: "#EDE9FE", fontFamily: "Outfit-Bold" }]}>Save to Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.glassBadge, { backgroundColor: "rgba(16, 185, 129, 0.45)", borderColor: "#6EE7B7", borderWidth: 0.8 }]}
+                onPress={handleDirectDownloadPDF}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="download-outline" size={12} color="#D1FAE5" />
+                <Text style={[styles.glassBadgeText, { color: "#D1FAE5", fontFamily: "Outfit-Bold" }]}>Download PDF</Text>
+              </TouchableOpacity>
             </View>
             <Text style={styles.heroDestTitle}>{plan.destination}</Text>
           </View>
@@ -1012,13 +1074,18 @@ export default function MyTrip() {
 
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setShowPrintModal(true);
-            }}
+            onPress={handleDirectDownloadPDF}
           >
-            <Ionicons name="print" size={17} color="#10B981" />
-            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Print / PDF</Text>
+            <Ionicons name="download" size={17} color="#10B981" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Download PDF</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
+            onPress={handleSaveToBookings}
+          >
+            <Ionicons name="ticket" size={17} color="#8B5CF6" />
+            <Text style={[styles.quickActionLabel, { color: theme.text }]}>Save to Bookings</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 

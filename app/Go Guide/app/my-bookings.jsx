@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
   Alert,
@@ -86,22 +87,49 @@ export default function MyBookings() {
   const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
   const iconColor = theme.isDark ? "#CBD5E1" : "#475569";
 
-  // Load custom bookings from Firestore if present
+  // Load custom bookings from Local Storage (@goguide_user_bookings) & Firestore
   useEffect(() => {
     (async () => {
-      if (!auth.currentUser?.email) return;
+      let localBookings = [];
       try {
-        const q = query(
-          collection(db, "UserBookings"),
-          where("userEmail", "==", auth.currentUser.email)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const userBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          setBookings([...userBookings, ...SAMPLE_BOOKINGS]);
+        const stored = await AsyncStorage.getItem("@goguide_user_bookings");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localBookings = parsed;
         }
       } catch (e) {
-        // Sample bookings remain as fallback
+        console.log("Error reading local bookings:", e);
+      }
+
+      let remoteBookings = [];
+      if (auth.currentUser?.email) {
+        try {
+          const q = query(
+            collection(db, "UserBookings"),
+            where("userEmail", "==", auth.currentUser.email)
+          );
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            remoteBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          }
+        } catch (e) {
+          // Firestore offline fallback
+        }
+      }
+
+      // Merge remote and local bookings avoiding duplicate IDs or bookingRefs
+      const combined = [...remoteBookings];
+      localBookings.forEach((lb) => {
+        const isDuplicate = combined.some(
+          (b) => b.id === lb.id || (b.bookingRef && lb.bookingRef && b.bookingRef === lb.bookingRef)
+        );
+        if (!isDuplicate) {
+          combined.push(lb);
+        }
+      });
+
+      if (combined.length > 0) {
+        setBookings([...combined, ...SAMPLE_BOOKINGS]);
       }
     })();
   }, []);

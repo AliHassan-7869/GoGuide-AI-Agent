@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
+import { downloadItineraryPDF } from "../utils/PdfDownloadService";
 
 export default function PrintableItineraryModal({
   visible,
@@ -30,140 +31,9 @@ export default function PrintableItineraryModal({
     } catch (e) {}
   };
 
-  const handlePrintOrPdf = () => {
+  const handlePrintOrPdf = async () => {
     triggerHaptic();
-
-    if (Platform.OS === "web") {
-      // Build a dedicated print window with clean typography and branding
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        Alert.alert("Pop-up Blocked", "Please allow pop-ups to open the printable PDF.");
-        return;
-      }
-
-      const itineraryHtml = (plan.itinerary || [])
-        .map(
-          (day) => `
-        <div class="day-card">
-          <div class="day-header">
-            <span class="day-badge">Day ${day.day}</span>
-            <span class="day-theme">${day.theme || ""}</span>
-          </div>
-          <table class="activities-table">
-            <thead>
-              <tr>
-                <th style="width: 20%;">Time</th>
-                <th style="width: 35%;">Place</th>
-                <th style="width: 45%;">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(day.activities || [])
-                .map(
-                  (act) => `
-                <tr>
-                  <td><strong>${act.time || ""}</strong></td>
-                  <td>${act.placeName || ""}</td>
-                  <td>${act.details || ""}${act.tickets ? ` <span class="ticket-tag">(${act.tickets})</span>` : ""}</td>
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      `
-        )
-        .join("");
-
-      const hotelsHtml = (plan.hotels || [])
-        .map(
-          (h) => `
-        <div class="hotel-item">
-          <strong>${h.name}</strong> — ${h.address || h.details || ""} 
-          <span class="price-tag">${h.price || ""}</span>
-        </div>
-      `
-        )
-        .join("");
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>GoGuide Itinerary - ${plan.destination || destination}</title>
-          <style>
-            @page { size: A4; margin: 18mm; }
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 20px; }
-            .header-banner { border-bottom: 2px solid #0a7ea4; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-            .logo { font-size: 26px; font-weight: 800; color: #0a7ea4; letter-spacing: -0.5px; }
-            .logo span { color: #f2994a; }
-            .doc-title { font-size: 22px; font-weight: 700; margin: 0; }
-            .meta-bar { display: flex; gap: 15px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 18px; border-radius: 8px; margin-bottom: 25px; }
-            .meta-item { font-size: 13px; }
-            .meta-item strong { color: #0a7ea4; }
-            .day-card { page-break-inside: avoid; margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-            .day-header { background: #0a7ea4; color: white; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-            .day-badge { background: white; color: #0a7ea4; font-weight: 800; font-size: 12px; padding: 3px 8px; border-radius: 4px; }
-            .day-theme { font-weight: 600; font-size: 15px; }
-            .activities-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-            .activities-table th { background: #f1f5f9; text-align: left; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
-            .activities-table td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; }
-            .ticket-tag { color: #0284c7; font-weight: 600; }
-            .hotel-section { margin-top: 30px; page-break-inside: avoid; }
-            .hotel-item { background: #f8fafc; padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #0a7ea4; font-size: 13px; }
-            .price-tag { font-weight: 700; color: #16a34a; margin-left: 8px; }
-            .footer-note { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-size: 11px; color: #64748b; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="header-banner">
-            <div>
-              <div class="logo">GoGuide<span>.AI</span></div>
-              <div style="font-size: 12px; color: #64748b;">Smart Travel Itinerary & Official Pass</div>
-            </div>
-            <div style="text-align: right;">
-              <h1 class="doc-title">${plan.destination || destination}</h1>
-              <div style="font-size: 12px; color: #64748b;">Generated: ${new Date().toLocaleDateString()}</div>
-            </div>
-          </div>
-
-          <div class="meta-bar">
-            <div class="meta-item"><strong>Duration:</strong> ${plan.duration || "Multi-Day"}</div>
-            <div class="meta-item"><strong>Budget:</strong> ${plan.budget || "Standard"}</div>
-            <div class="meta-item"><strong>Traveler:</strong> ${plan.traveler || "Explorer"}</div>
-            <div class="meta-item"><strong>Weather:</strong> ${plan.weatherBrief || "Seasonal"}</div>
-          </div>
-
-          <h3 style="font-size: 16px; margin-bottom: 12px; color: #0f172a;">Day-by-Day Itinerary</h3>
-          ${itineraryHtml}
-
-          ${
-            hotelsHtml
-              ? `<div class="hotel-section"><h3 style="font-size: 16px; margin-bottom: 10px; color: #0f172a;">Recommended Hotels</h3>${hotelsHtml}</div>`
-              : ""
-          }
-
-          <div class="footer-note">
-            This document was created automatically by GoGuide AI Agent. Keep an offline copy or print for easy access during flights and customs.
-          </div>
-        </body>
-        </html>
-      `;
-
-      printWindow.document.open();
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    } else {
-      Alert.alert(
-        "PDF Document Ready",
-        "Your official GoGuide travel document is generated. You can share or save it via your device's print manager."
-      );
-    }
+    await downloadItineraryPDF(plan, destination);
   };
 
   return (
@@ -259,10 +129,8 @@ export default function PrintableItineraryModal({
             onPress={handlePrintOrPdf}
             activeOpacity={0.85}
           >
-            <Ionicons name="print-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.printBtnText}>
-              {Platform.OS === "web" ? "Print / Save as PDF" : "Export Official PDF Pass"}
-            </Text>
+            <Ionicons name="download-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.printBtnText}>Download Itinerary PDF</Text>
           </TouchableOpacity>
         </View>
       </View>

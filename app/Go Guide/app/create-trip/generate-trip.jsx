@@ -22,6 +22,7 @@ import { addDoc, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { scheduleTripCountdown, sendLocalNotification } from "../../Components/utils/NotificationService";
+import { saveTripToBookings } from "../../Components/utils/BookingService";
 
 const { width } = Dimensions.get("window");
 
@@ -181,6 +182,7 @@ export default function GenerateTrip() {
 
     const user = auth.currentUser;
     const email = user?.email || userData?.email || "traveler@goguide.com";
+    const destName = plan?.destination || tripData?.toLocation?.name || "Trip Destination";
 
     // 1. Save to local persistent trips list (always instant and reliable)
     try {
@@ -195,6 +197,10 @@ export default function GenerateTrip() {
       };
       const updatedList = [newTripRecord, ...existingTrips.filter(t => t.id !== newTripRecord.id)];
       await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
+
+      // Auto-save initial hotel & flight booking passes to My Bookings
+      await saveTripToBookings(completeTripData, user);
+
       // 3. Schedule Smart Travel Reminders & Countdown Notification
       scheduleTripCountdown(
         destName,

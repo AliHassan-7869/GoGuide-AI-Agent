@@ -48,6 +48,9 @@ export default function Root({ children }) {
           content="https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1200&auto=format&fit=crop"
         />
 
+        {/* html2pdf for direct 1-click itinerary PDF downloads */}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+
         <ScrollViewStyleReset />
 
         <style dangerouslySetInnerHTML={{ __html: `
