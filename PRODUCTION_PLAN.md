@@ -25,6 +25,9 @@ Last updated: 2026-10-20
 | 13 | Mandatory Email Verification Gatekeeper before unlocking AI trip generation | `d9c57de` |
 | 14 | Two-Factor Authentication (2FA) with 6-digit Email OTP (settings toggle & sign-in modal) | `d9c57de` |
 | 15 | Destination Essentials UI Card on trip viewer (`trip.jsx`) | `d9c57de` |
+| 16 | Migrate Firebase to `goguideai` & configure composite indexes (`firestore.indexes.json`) | `08dfe40` |
+| 17 | In-app same-page Terms & Privacy Modal (`PolicyModal.jsx`) for Profile & Auth | `3ccb16e` |
+| 18 | Profile auto-return on save and iOS bundle identifier (`com.arrehman.AiTravelagent`) | `c0a0c3f` |
 
 ---
 
@@ -35,9 +38,9 @@ Last updated: 2026-10-20
 | # | Task | Owner | How |
 |---|---|---|---|
 | [x] 1 | Push all commits | Me (Ali) | `git push origin staging` (Up-to-date) |
-| [ ] 2 | Deploy Firestore rules | Me | `cd "app/Go Guide" && npx firebase-tools deploy --only firestore:rules` |
+| [x] 2 | Deploy Firestore rules | Me | Published directly in Firebase Console rules editor |
 | [ ] 3 | Change DeepSeek model name from `deepseek-chat` to `deepseek-flash` | Claude | DeepSeek docs no longer list `deepseek-chat` |
-| [x] 4 | Lock official Gemini fallback models | Claude | Locked to `gemini-3.8-flash,gemini-2.5-flash` in `app.py` |
+| [x] 4 | Lock official Gemini fallback models | Claude | Locked to `gemini-2.0-flash,gemini-1.5-flash` in `app.py` |
 | [ ] 5 | Log token usage for every AI call | Claude | Read `usageMetadata` from Gemini so real cost is known |
 | [x] 6 | Credit card $0 spend cap guard | Claude + Ali | Built-in MAX_DAILY_AI_CALLS guard in app.py & Google Cloud $0 cap guide |
 | [x] 7 | Deploy backend to Render | Me + Claude | Free web service, HTTPS URL |

@@ -292,3 +292,4 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
 });
+
