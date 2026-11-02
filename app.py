@@ -102,7 +102,7 @@ def send_email_otp(to_email: str, otp_code: str) -> bool:
         return False
 
 # Tried in order. If one is down or overloaded, the next one is used.
-GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-3.8-flash,gemini-2.5-flash").split(",") if m.strip()]
+GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-2.0-flash,gemini-1.5-flash,gemini-2.5-flash").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
