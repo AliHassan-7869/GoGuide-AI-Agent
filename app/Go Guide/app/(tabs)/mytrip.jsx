@@ -209,10 +209,11 @@ export default function MyTrip() {
 
   const handleSelectTrip = (selectedTrip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setActiveTripId(selectedTrip.id);
-    setTripData(selectedTrip);
-    setSelectedDay("all");
     AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
+    router.push({
+      pathname: "/trip",
+      params: { id: selectedTrip.id },
+    });
   };
 
   const handleDeleteTrip = (tripToDelete) => {

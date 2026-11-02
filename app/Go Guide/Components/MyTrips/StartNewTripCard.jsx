@@ -241,91 +241,31 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
   return (
     <View style={styles.container}>
-      {/* 0. SAVED TRIPS SECTION (WHEN USER HAS SAVED TRIPS) */}
+      {/* 0. SHORTCUT TO PROFILE SAVED TRIPS */}
       {userTrips && userTrips.length > 0 && (
-        <View style={styles.savedTripsSection}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="bookmark" size={17} color={activeAccent} style={{ marginRight: 6 }} />
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Saved Trips</Text>
-              <View style={[styles.savedCountPill, { backgroundColor: activeAccent + "18" }]}>
-                <Text style={[styles.savedCountText, { color: activeAccent }]}>
-                  {userTrips.length}
-                </Text>
-              </View>
+        <TouchableOpacity
+          style={[styles.savedTripsBanner, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => {
+            triggerHaptic();
+            router.push("/(tabs)/profile");
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={[styles.savedTripsBannerIcon, { backgroundColor: activeAccent + "18" }]}>
+              <Ionicons name="bookmark" size={17} color={activeAccent} />
             </View>
-            <Text style={[styles.sectionSubtitle, { color: theme.subtext }]}>Tap to open</Text>
+            <View>
+              <Text style={[styles.savedTripsBannerTitle, { color: theme.text }]}>
+                {userTrips.length} Saved {userTrips.length === 1 ? "Trip" : "Trips"} in Profile
+              </Text>
+              <Text style={[styles.savedTripsBannerSub, { color: theme.subtext }]}>
+                Tap to view your complete saved itineraries in Profile
+              </Text>
+            </View>
           </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.savedTripsList}
-          >
-            {userTrips.map((trip, idx) => {
-              const destName =
-                trip.aiTripPlan?.destination ||
-                trip.destination ||
-                trip.locationInfo?.name ||
-                "Adventure";
-              const duration =
-                trip.aiTripPlan?.duration || `${trip.totalDays || 3} Days`;
-              const photo =
-                trip.toLocationImage ||
-                trip.locationInfo?.photoRef ||
-                "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=800&auto=format&fit=crop";
-
-              return (
-                <TouchableOpacity
-                  key={trip.id || idx}
-                  onPress={() => {
-                    triggerHaptic();
-                    if (onSelectTrip) onSelectTrip(trip);
-                  }}
-                  style={[
-                    styles.savedTripCard,
-                    { backgroundColor: theme.card, borderColor: theme.border },
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <Image source={{ uri: photo }} style={styles.savedTripImg} />
-                  <LinearGradient
-                    colors={["transparent", "rgba(0,0,0,0.85)"]}
-                    style={styles.savedTripGradient}
-                  />
-
-                  {onDeleteTrip && (
-                    <TouchableOpacity
-                      style={styles.savedTripDeleteBtn}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        triggerHaptic();
-                        onDeleteTrip(trip);
-                      }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="trash-outline" size={13} color="#EF4444" />
-                    </TouchableOpacity>
-                  )}
-
-                  <View style={styles.savedTripBody}>
-                    <Text style={styles.savedTripTitle} numberOfLines={1}>
-                      {destName}
-                    </Text>
-                    <Text style={styles.savedTripDuration}>
-                      {duration} • {trip.budget || "Moderate"}
-                    </Text>
-                    <View style={styles.viewItineraryBtn}>
-                      <Text style={styles.viewItineraryText}>Open Plan</Text>
-                      <Ionicons name="arrow-forward" size={11} color="#FFF" />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
+        </TouchableOpacity>
       )}
 
       {/* 1. HERO BANNER CARD */}
@@ -543,88 +483,37 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  // Saved Trips Section
-  savedTripsSection: {
-    marginBottom: 20,
-  },
-  savedCountPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 6,
-  },
-  savedCountText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-  },
-  savedTripsList: {
-    gap: 12,
-    paddingRight: 10,
-    paddingVertical: 4,
-  },
-  savedTripCard: {
-    width: 175,
-    height: 120,
-    borderRadius: 18,
-    overflow: "hidden",
-    position: "relative",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  savedTripImg: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-  },
-  savedTripGradient: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  savedTripBody: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    right: 10,
-  },
-  savedTripDeleteBtn: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-  },
-  savedTripTitle: {
-    fontSize: 14,
-    fontFamily: "Outfit-Bold",
-    color: "#FFFFFF",
-  },
-  savedTripDuration: {
-    fontSize: 10,
-    fontFamily: "Outfit-Medium",
-    color: "#CBD5E1",
-    marginBottom: 4,
-  },
-  viewItineraryBtn: {
+  // Saved Trips Shortcut Banner
+  savedTripsBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  viewItineraryText: {
-    fontSize: 10,
+  savedTripsBannerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  savedTripsBannerTitle: {
+    fontSize: 14,
     fontFamily: "Outfit-Bold",
-    color: "#38BDF8",
+  },
+  savedTripsBannerSub: {
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
   },
 
   // Hero Card Styles

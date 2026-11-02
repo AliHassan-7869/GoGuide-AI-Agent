@@ -183,13 +183,14 @@ export default function GenerateTrip() {
     const user = auth.currentUser;
     const email = user?.email || userData?.email || "traveler@goguide.com";
     const destName = plan?.destination || tripData?.toLocation?.name || "Trip Destination";
+    const createdTripId = "trip_" + Date.now();
 
     // 1. Save to local persistent trips list (always instant and reliable)
     try {
       const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
       const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
       const newTripRecord = {
-        id: "trip_" + Date.now(),
+        id: createdTripId,
         userEmail: email,
         tripData: completeTripData,
         ...completeTripData,
@@ -211,6 +212,8 @@ export default function GenerateTrip() {
         `Trip to ${destName} Ready! ✈️`,
         `Your ${tripData?.totalNoOfDays || "multi-day"} itinerary with hotels and route mapping is saved.`
       );
+      // Cache as active current trip
+      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(newTripRecord));
     } catch (localErr) {
       console.warn("Could not save to local storage:", localErr);
     }
@@ -229,7 +232,11 @@ export default function GenerateTrip() {
     }
 
     setLoading(false);
-    router.push("/(tabs)/mytrip");
+    // Navigate directly to the standalone dedicated trip page
+    router.push({
+      pathname: "/trip",
+      params: { id: createdTripId },
+    });
   };
 
   const GenerateAiTrip = async () => {

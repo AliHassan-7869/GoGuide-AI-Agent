@@ -14,7 +14,8 @@ import {
     TextInput,
     TouchableOpacity,
     View,
-    ScrollView
+    ScrollView,
+    Linking,
 } from "react-native";
 
 export default function SignIn() {
@@ -113,6 +114,24 @@ export default function SignIn() {
                 {loading ? "Signing in..." : "Sign In"}
               </Text>
             </TouchableOpacity>
+
+            {/* Terms of Service & Privacy Legal Disclaimer */}
+            <Text style={styles.legalDisclaimer}>
+              By signing in, you agree to GoGuide's{" "}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms")}
+              >
+                Terms of Service
+              </Text>{" "}
+              &{" "}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy")}
+              >
+                Privacy Policy
+              </Text>
+            </Text>
 
             {/* Sign Up */}
             <TouchableOpacity
@@ -213,5 +232,20 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
     fontSize: 14,
+  },
+  legalDisclaimer: {
+    textAlign: "center",
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    color: "#64748B",
+    marginTop: 14,
+    marginBottom: 4,
+    lineHeight: 16,
+    paddingHorizontal: 8,
+  },
+  legalLink: {
+    color: Colors.PRIMARY,
+    fontFamily: "Outfit-Bold",
+    textDecorationLine: "underline",
   },
 });

@@ -13,6 +13,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    Linking,
 } from "react-native";
 
 export default function Signup() {
@@ -24,12 +25,13 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, []);
 
-  const isDisabled = !fullName || !email || !password || loading;
+  const isDisabled = !fullName || !email || !password || !termsAccepted || loading;
 
   const handleCreateAccount = async () => {
     try {
@@ -119,6 +121,34 @@ export default function Signup() {
               />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Terms & Privacy Agreement Checkbox */}
+        <View style={styles.termsRow}>
+          <TouchableOpacity
+            style={[styles.checkbox, termsAccepted && styles.checkboxActive]}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            activeOpacity={0.8}
+            accessibilityLabel="Accept Terms and Conditions"
+          >
+            {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFF" />}
+          </TouchableOpacity>
+          <Text style={styles.termsText}>
+            I agree to GoGuide's{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms")}
+            >
+              Terms & Conditions
+            </Text>{" "}
+            and{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy")}
+            >
+              Privacy Policy
+            </Text>
+          </Text>
         </View>
 
         {/* Create Account */}
@@ -253,5 +283,40 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
     fontSize: 14,
+  },
+
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 18,
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#94A3B8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    backgroundColor: "#F8FAFC",
+  },
+  checkboxActive: {
+    backgroundColor: Colors.PRIMARY,
+    borderColor: Colors.PRIMARY,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    color: "#64748B",
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: Colors.PRIMARY,
+    fontFamily: "Outfit-Bold",
+    textDecorationLine: "underline",
   },
 });

@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
   Linking,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
@@ -24,6 +25,8 @@ import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import { getDestinationImage } from "../../Components/constants/Destinations";
+import { getFavoritePlaces, subscribeToFavorites, toggleFavoritePlace } from "../../Components/utils/FavoriteService";
 
 export default function Profile() {
   const router = useRouter();
@@ -35,6 +38,11 @@ export default function Profile() {
     places: 0,
     bookings: 0,
   });
+
+  const [savedTripsList, setSavedTripsList] = useState([]);
+  const [favoritePlacesList, setFavoritePlacesList] = useState([]);
+  const [showSavedTripsModal, setShowSavedTripsModal] = useState(false);
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
 
   const triggerHaptic = () => {
     try {
@@ -186,12 +194,17 @@ export default function Profile() {
         } catch (e) {}
       }
 
+      // Fetch favorites
+      const favPlaces = await getFavoritePlaces();
+
       const totalTripsCount = Math.max(remoteCount, localTrips.length);
 
       if (!cancelled) {
+        setSavedTripsList(localTrips);
+        setFavoritePlacesList(favPlaces);
         setStats({
           trips: totalTripsCount,
-          places: uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0),
+          places: favPlaces.length > 0 ? favPlaces.length : (uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0)),
           bookings: bookingsCount,
         });
       }
@@ -202,6 +215,60 @@ export default function Profile() {
       cancelled = true;
     };
   }, [userData]);
+
+  // Subscribe to real-time changes in favorites
+  useEffect(() => {
+    const unsubscribe = subscribeToFavorites((favs) => {
+      setFavoritePlacesList(favs);
+      setStats((prev) => ({ ...prev, places: favs.length }));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleDeleteSavedTrip = async (tripToDelete) => {
+    triggerHaptic();
+    if (!tripToDelete) return;
+    const destTitle =
+      tripToDelete?.aiTripPlan?.destination ||
+      tripToDelete?.destination ||
+      tripToDelete?.locationInfo?.name ||
+      "this trip";
+
+    const proceedDelete = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("@goguide_user_trips");
+        const list = stored ? JSON.parse(stored) : [];
+        const filtered = list.filter((t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt);
+        await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(filtered));
+        setSavedTripsList(filtered);
+        setStats((prev) => ({ ...prev, trips: filtered.length }));
+      } catch (e) {
+        console.error("Delete trip error:", e);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`Are you sure you want to delete your trip to "${destTitle}"?`)) {
+        proceedDelete();
+      }
+    } else {
+      Alert.alert(
+        "Delete Trip",
+        `Are you sure you want to delete your trip to "${destTitle}"?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive", onPress: proceedDelete },
+        ]
+      );
+    }
+  };
+
+  const handleRemoveFavorite = async (place) => {
+    triggerHaptic();
+    await toggleFavoritePlace(place);
+    const updated = await getFavoritePlaces();
+    setFavoritePlacesList(updated);
+  };
 
   const toggleTheme = () => {
     triggerHaptic();
@@ -279,6 +346,28 @@ export default function Profile() {
 
   // Menu Groups
   const travelHubItems = [
+    {
+      id: "saved-trips",
+      title: "My Saved Trips",
+      subtitle: "Personal AI vacation itineraries & plans",
+      icon: "map-outline",
+      badge: savedTripsList.length > 0 ? `${savedTripsList.length}` : null,
+      onPress: () => {
+        triggerHaptic();
+        setShowSavedTripsModal(true);
+      },
+    },
+    {
+      id: "favorites",
+      title: "Favorite Places & Wishlist",
+      subtitle: "Liked attractions, beaches & spots",
+      icon: "heart-outline",
+      badge: favoritePlacesList.length > 0 ? `${favoritePlacesList.length}` : null,
+      onPress: () => {
+        triggerHaptic();
+        setShowFavoritesModal(true);
+      },
+    },
     {
       id: "bookings",
       title: "My Bookings",
@@ -460,7 +549,10 @@ export default function Profile() {
         <View style={[styles.statsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <TouchableOpacity
             style={styles.statCol}
-            onPress={() => handleNavigate("/mytrip")}
+            onPress={() => {
+              triggerHaptic();
+              setShowSavedTripsModal(true);
+            }}
             activeOpacity={0.7}
           >
             <Text style={[styles.statValue, { color: theme.text }]}>{stats.trips}</Text>
@@ -471,7 +563,10 @@ export default function Profile() {
 
           <TouchableOpacity
             style={styles.statCol}
-            onPress={() => handleNavigate("/explore")}
+            onPress={() => {
+              triggerHaptic();
+              setShowFavoritesModal(true);
+            }}
             activeOpacity={0.7}
           >
             <Text style={[styles.statValue, { color: theme.text }]}>{stats.places}</Text>
@@ -565,6 +660,200 @@ export default function Profile() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* 1. SAVED TRIPS MODAL */}
+      <Modal
+        visible={showSavedTripsModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSavedTripsModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="map" size={22} color={brandIconColor} style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: theme.text }]}>My Saved Trips</Text>
+              <View style={[styles.modalBadge, { backgroundColor: brandIconBg }]}>
+                <Text style={[styles.modalBadgeText, { color: brandIconColor }]}>
+                  {savedTripsList.length}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
+              onPress={() => setShowSavedTripsModal(false)}
+            >
+              <Ionicons name="close" size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {savedTripsList.length === 0 ? (
+              <View style={styles.modalEmptyWrap}>
+                <Ionicons name="airplane-outline" size={54} color={theme.subtext} />
+                <Text style={[styles.modalEmptyTitle, { color: theme.text }]}>No Saved Trips Yet</Text>
+                <Text style={[styles.modalEmptySub, { color: theme.subtext }]}>
+                  Your generated itineraries will appear here with full offline access.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.modalPrimaryBtn, { backgroundColor: Colors.PRIMARY }]}
+                  onPress={() => {
+                    setShowSavedTripsModal(false);
+                    router.push("/create-trip/search-place");
+                  }}
+                >
+                  <Ionicons name="sparkles" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.modalPrimaryBtnText}>Plan a New Trip</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              savedTripsList.map((trip, idx) => {
+                const dest =
+                  trip?.aiTripPlan?.destination ||
+                  trip?.destination ||
+                  trip?.toLocation?.name ||
+                  trip?.locationInfo?.name ||
+                  "Trip Adventure";
+                const duration = trip?.aiTripPlan?.duration || trip?.totalNoOfDays || "3 Days";
+                const budget = trip?.aiTripPlan?.budget || trip?.budget || "Moderate";
+                const photo =
+                  trip?.toLocationImage ||
+                  trip?.locationInfo?.photoRef ||
+                  getDestinationImage(dest);
+
+                return (
+                  <View
+                    key={trip.id || idx}
+                    style={[styles.tripItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                  >
+                    <Image source={{ uri: photo }} style={styles.tripItemImg} />
+                    <View style={styles.tripItemBody}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <Text style={[styles.tripItemTitle, { color: theme.text }]} numberOfLines={1}>
+                          {dest}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteSavedTrip(trip)}
+                          style={styles.tripItemDelete}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={[styles.tripItemMeta, { color: theme.subtext }]}>
+                        {duration} • {budget}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={[styles.openTripBtn, { backgroundColor: Colors.PRIMARY }]}
+                        onPress={() => {
+                          setShowSavedTripsModal(false);
+                          router.push({
+                            pathname: "/trip",
+                            params: { id: trip.id },
+                          });
+                        }}
+                      >
+                        <Text style={styles.openTripBtnText}>Open Itinerary</Text>
+                        <Ionicons name="arrow-forward" size={13} color="#FFF" style={{ marginLeft: 4 }} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* 2. FAVORITE PLACES MODAL */}
+      <Modal
+        visible={showFavoritesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFavoritesModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="heart" size={22} color="#EF4444" style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Favorite Places</Text>
+              <View style={[styles.modalBadge, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
+                <Text style={[styles.modalBadgeText, { color: "#EF4444" }]}>
+                  {favoritePlacesList.length}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
+              onPress={() => setShowFavoritesModal(false)}
+            >
+              <Ionicons name="close" size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {favoritePlacesList.length === 0 ? (
+              <View style={styles.modalEmptyWrap}>
+                <Ionicons name="heart-dislike-outline" size={54} color={theme.subtext} />
+                <Text style={[styles.modalEmptyTitle, { color: theme.text }]}>No Favorite Places Yet</Text>
+                <Text style={[styles.modalEmptySub, { color: theme.subtext }]}>
+                  Browse destinations, beaches & mountains to save them to your wishlist.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.modalPrimaryBtn, { backgroundColor: Colors.PRIMARY }]}
+                  onPress={() => {
+                    setShowFavoritesModal(false);
+                    router.push("/explore");
+                  }}
+                >
+                  <Ionicons name="compass" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.modalPrimaryBtnText}>Explore Destinations</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              favoritePlacesList.map((place, idx) => (
+                <View
+                  key={place.id || idx}
+                  style={[styles.tripItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                >
+                  <Image source={{ uri: place.image }} style={styles.tripItemImg} />
+                  <View style={styles.tripItemBody}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <Text style={[styles.tripItemTitle, { color: theme.text }]} numberOfLines={1}>
+                        {place.name || place.title}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveFavorite(place)}
+                        style={styles.tripItemDelete}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="heart" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={[styles.tripItemMeta, { color: theme.subtext }]} numberOfLines={1}>
+                      {place.category || "Top Destination"} • ⭐ {place.rating || "4.8"}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[styles.openTripBtn, { backgroundColor: brandIconColor }]}
+                      onPress={() => {
+                        setShowFavoritesModal(false);
+                        router.push("/explore");
+                      }}
+                    >
+                      <Text style={styles.openTripBtnText}>View in Explore</Text>
+                      <Ionicons name="arrow-forward" size={13} color="#FFF" style={{ marginLeft: 4 }} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -769,5 +1058,123 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Outfit-Regular",
     marginTop: 3,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: "Outfit-Bold",
+  },
+  modalBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  modalBadgeText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalScroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalEmptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  modalEmptyTitle: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  modalEmptySub: {
+    fontSize: 13,
+    fontFamily: "Outfit-Regular",
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 20,
+  },
+  modalPrimaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  modalPrimaryBtnText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+  },
+  tripItemCard: {
+    flexDirection: "row",
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  tripItemImg: {
+    width: 105,
+    height: "100%",
+    minHeight: 110,
+    resizeMode: "cover",
+  },
+  tripItemBody: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "space-between",
+  },
+  tripItemTitle: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+    flex: 1,
+    marginRight: 6,
+  },
+  tripItemDelete: {
+    padding: 2,
+  },
+  tripItemMeta: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginVertical: 4,
+  },
+  openTripBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  openTripBtnText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
 });

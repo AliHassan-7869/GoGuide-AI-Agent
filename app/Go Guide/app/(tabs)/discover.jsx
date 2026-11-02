@@ -27,6 +27,7 @@ import {
   getDestinationImage,
   sanitizeImageUrl,
 } from "../../Components/constants/Destinations";
+import { toggleFavoritePlace, getFavoritePlaces } from "../../Components/utils/FavoriteService";
 
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
@@ -146,10 +147,13 @@ export default function Discover() {
   useEffect(() => {
     const loadSavedPlaces = async () => {
       try {
-        const stored = await AsyncStorage.getItem("@goguide_saved_places");
-        if (stored) {
-          setSavedPlaces(JSON.parse(stored));
-        }
+        const favs = await getFavoritePlaces();
+        const map = {};
+        favs.forEach((f) => {
+          const key = f.id || f.title || f.name;
+          if (key) map[key] = true;
+        });
+        setSavedPlaces(map);
       } catch (e) {
         console.log("Error loading saved places:", e);
       }
@@ -163,7 +167,16 @@ export default function Discover() {
     const isCurrentlySaved = !!savedPlaces[placeKey];
     const updated = { ...savedPlaces, [placeKey]: !isCurrentlySaved };
     setSavedPlaces(updated);
+
     try {
+      await toggleFavoritePlace({
+        id: dest.id || dest.title,
+        name: dest.title || dest.name,
+        title: dest.title || dest.name,
+        image: dest.image,
+        category: dest.category || dest.vibe || "Scenic",
+        rating: dest.rating || "4.8",
+      });
       await AsyncStorage.setItem("@goguide_saved_places", JSON.stringify(updated));
     } catch (e) {
       console.log("Error saving place:", e);

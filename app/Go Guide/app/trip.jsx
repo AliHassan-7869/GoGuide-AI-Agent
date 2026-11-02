@@ -20,6 +20,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../Configs/FirebaseConfig";
 import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
+import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
 
 // Curated default luxury itinerary if ID is preview or not found
 const DEMO_TRIP = {
@@ -137,9 +138,30 @@ export default function SharedTripView() {
     loadSharedTrip();
   }, [targetId]);
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [savedLocally, setSavedLocally] = useState(false);
+
   const loadSharedTrip = async () => {
     setLoading(true);
     try {
+      // 0. Check local persistent trips list (@goguide_user_trips) first for targetId
+      if (targetId && targetId !== "current-trip" && targetId !== "shared") {
+        try {
+          const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
+          if (storedTripsRaw) {
+            const userTrips = JSON.parse(storedTripsRaw);
+            const found = userTrips.find((t) => String(t.id) === String(targetId) || String(t?.tripData?.id) === String(targetId));
+            if (found) {
+              setTripPlan(found.aiTripPlan || found.tripData?.aiTripPlan || found);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (localErr) {
+          console.log("Local trip find notice:", localErr);
+        }
+      }
+
       // 1. Try fetching from Firestore SharedTrips
       if (targetId && targetId !== "current-trip" && targetId !== "shared") {
         try {
@@ -229,26 +251,49 @@ export default function SharedTripView() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    triggerHaptic();
+    if (!tripPlan) return;
+    try {
+      setDownloadingPdf(true);
+      await downloadItineraryPDF(tripPlan, tripPlan?.destination);
+    } catch (e) {
+      console.log("PDF download error:", e);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   const handleCloneToApp = async () => {
     triggerHaptic();
     try {
+      const tripId = targetId || `trip_${Date.now()}`;
       const cloned = {
-        id: `cloned_${Date.now()}`,
+        id: tripId,
         destination: tripPlan.destination,
         aiTripPlan: tripPlan,
         createdAt: new Date().toISOString(),
       };
+      // 1. Cache as active trip
       await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(cloned));
 
+      // 2. Add to @goguide_user_trips so it appears in Profile -> Saved Trips
+      const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
+      const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
+      const updatedList = [cloned, ...existingTrips.filter((t) => t.id !== tripId)];
+      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
+
+      setSavedLocally(true);
+      setTimeout(() => setSavedLocally(false), 3000);
+
+      const msg = "Trip Saved! You can access this anytime in your Profile under 'My Saved Trips'.";
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.alert("Trip Saved! Opening your interactive GoGuide companion now...");
+        window.alert(msg);
       } else {
-        Alert.alert("Trip Saved!", "Opening your interactive GoGuide companion now...");
+        Alert.alert("Trip Saved! ✅", msg);
       }
-      router.push("/(tabs)/mytrip");
     } catch (e) {
-      console.log("Clone error:", e);
-      router.push("/(tabs)/mytrip");
+      console.log("Save error:", e);
     }
   };
 
@@ -275,19 +320,36 @@ export default function SharedTripView() {
     <View style={styles.outerContainer}>
       {/* Top Navbar */}
       <View style={styles.navbar}>
-        <TouchableOpacity
-          style={styles.logoRow}
-          onPress={() => router.push("/(tabs)/mytrip")}
-          activeOpacity={0.8}
-        >
-          <View style={styles.logoIcon}>
-            <Ionicons name="navigate" size={16} color="#FFF" />
-          </View>
-          <Text style={styles.logoText}>GoGuide AI</Text>
-          <View style={styles.sharedBadge}>
-            <Text style={styles.sharedBadgeText}>SHARED TRIP</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            style={styles.backNavBtn}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.push("/(tabs)/mytrip");
+              }
+            }}
+            activeOpacity={0.8}
+            accessibilityLabel="Back to Trips"
+          >
+            <Ionicons name="arrow-back" size={20} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoRow}
+            onPress={() => router.push("/(tabs)/mytrip")}
+            activeOpacity={0.8}
+          >
+            <View style={styles.logoIcon}>
+              <Ionicons name="navigate" size={16} color="#FFF" />
+            </View>
+            <Text style={styles.logoText}>GoGuide AI</Text>
+            <View style={[styles.sharedBadge, { backgroundColor: "rgba(10, 126, 164, 0.25)" }]}>
+              <Text style={styles.sharedBadgeText}>YOUR TRIP</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={styles.navCreateBtn}
@@ -295,7 +357,7 @@ export default function SharedTripView() {
           activeOpacity={0.85}
         >
           <Ionicons name="sparkles" size={13} color="#FFF" style={{ marginRight: 4 }} />
-          <Text style={styles.navCreateBtnText}>Create Trip</Text>
+          <Text style={styles.navCreateBtnText}>New Trip</Text>
         </TouchableOpacity>
       </View>
 
@@ -331,12 +393,22 @@ export default function SharedTripView() {
         {/* Action Callout Bar */}
         <View style={styles.actionCallout}>
           <TouchableOpacity
-            style={styles.saveCloneBtn}
+            style={[styles.saveCloneBtn, savedLocally && { backgroundColor: "#10B981" }]}
             onPress={handleCloneToApp}
             activeOpacity={0.85}
           >
-            <Ionicons name="bookmark" size={16} color="#FFF" style={{ marginRight: 6 }} />
-            <Text style={styles.saveCloneBtnText}>Save Trip to My Account</Text>
+            <Ionicons name={savedLocally ? "checkmark-circle" : "bookmark"} size={16} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.saveCloneBtnText}>{savedLocally ? "Saved in Profile!" : "Save to My Trips"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.pdfBtn, downloadingPdf && { opacity: 0.7 }]}
+            onPress={handleDownloadPdf}
+            disabled={downloadingPdf}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="document-text-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.pdfBtnText}>{downloadingPdf ? "Generating..." : "Download PDF"}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -350,7 +422,7 @@ export default function SharedTripView() {
               color="#FFF"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.shareBtnText}>{copiedLink ? "Copied!" : "Share Link"}</Text>
+            <Text style={styles.shareBtnText}>{copiedLink ? "Copied!" : "Share"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -540,6 +612,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.08)",
   },
+  backNavBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -657,6 +738,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   saveCloneBtnText: {
+    color: "#FFF",
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
+  },
+  pdfBtn: {
+    flex: 1.5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0284C7",
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  pdfBtnText: {
     color: "#FFF",
     fontSize: 13,
     fontFamily: "Outfit-Bold",
