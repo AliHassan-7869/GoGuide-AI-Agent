@@ -427,9 +427,10 @@ export default function MyTrip() {
   // 1-Click Direct PDF Downloader (No print/pdf dialog - direct file download)
   const handleDirectDownloadPDF = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const dest = plan?.destination || tripData?.locationInfo?.name || "Trip";
+    const targetPlan = plan || tripData?.aiTripPlan || tripData;
+    const dest = targetPlan?.destination || tripData?.locationInfo?.name || "Trip";
     try {
-      await downloadItineraryPDF(plan, dest);
+      await downloadItineraryPDF(targetPlan, dest);
     } catch (e) {
       console.log("PDF download error:", e);
       Alert.alert("Download Error", "Unable to download PDF. Please try again.");
