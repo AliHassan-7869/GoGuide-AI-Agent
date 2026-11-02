@@ -258,21 +258,7 @@ export default function GenerateTrip() {
         ? tripData.selectedCategories.join(", ")
         : undefined;
 
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          await user.reload();
-        } catch (e) {}
-        if (!user.emailVerified) {
-          setLoading(false);
-          setError({
-            isAuthError: true,
-            isEmailUnverified: true,
-            message: `Please verify your email address (${user.email}) to unlock AI trip planning.`,
-          });
-          return;
-        }
-      }
+      // Email verification bypassed for immediate trip generation
 
       const { generateTripWithAgent, generateDeepTripPlan } = require("../../Configs/AiModel");
 

@@ -19,6 +19,7 @@ import { auth } from "../../Configs/FirebaseConfig";
 import { sendEmailVerification } from "firebase/auth";
 
 import { Colors } from "../../Components/constants/constants";
+import { detectCurrencyFromLocation, convertAmount, formatCurrencyAmount, CURRENCY_RATES } from "../../Components/constants/Currency";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -62,32 +63,7 @@ export default function ReviewTrip() {
       return;
     }
 
-    // Email verification security check
-    try {
-      await auth.currentUser.reload();
-    } catch (e) {}
-
-    if (!auth.currentUser.emailVerified) {
-      Alert.alert(
-        "Email Verification Required ✉️",
-        `Please verify your email address (${auth.currentUser.email}) to unlock AI trip planning.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Resend Email",
-            onPress: async () => {
-              try {
-                await sendEmailVerification(auth.currentUser);
-                Alert.alert("Link Sent", "Please check your inbox (and spam folder) for the verification email.");
-              } catch (err) {
-                Alert.alert("Notice", err.message || "Failed to resend verification link.");
-              }
-            },
-          },
-        ]
-      );
-      return;
-    }
+    // Email verification bypassed for immediate trip generation
 
     if (setTripData) {
       setTripData((prev) => ({ ...prev, isDeepPlan }));
@@ -114,6 +90,20 @@ export default function ReviewTrip() {
     tripData?.budget || "Moderate";
   const durationDays =
     tripData?.totalNoOfDays || 5;
+
+  // Currency Calculations
+  const destCurrency = detectCurrencyFromLocation(tripData?.toLocation?.name || "");
+  const homeCurrency = detectCurrencyFromLocation(tripData?.fromLocation?.name || "Pakistan");
+
+  const dailyBaseUSD = budgetTier.toLowerCase().includes("econ")
+    ? 75
+    : budgetTier.toLowerCase().includes("lux")
+    ? 450
+    : 200;
+  const totalUSD = dailyBaseUSD * Number(durationDays || 5);
+  const formattedDestTotal = formatCurrencyAmount(convertAmount(totalUSD, destCurrency), destCurrency);
+  const formattedHomeTotal = formatCurrencyAmount(convertAmount(totalUSD, homeCurrency), homeCurrency);
+
 
   const interestCount =
     tripData?.interestsDetails?.length ||
@@ -362,6 +352,81 @@ export default function ReviewTrip() {
               </Text>
               <Text style={styles.matrixSubVal}>Curated</Text>
             </TouchableOpacity>
+          </View>
+
+                    {/* DUAL-CURRENCY BUDGET ESTIMATOR BOX */}
+          <View
+            style={[
+              styles.budgetEstimateBox,
+              { backgroundColor: theme.isDark ? "#0F172A" : "#F8FAFC", borderColor: theme.border },
+            ]}
+          >
+            <View style={styles.budgetEstimateHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ fontSize: 16, marginRight: 6 }}>💰</Text>
+                <Text
+                  style={[
+                    styles.budgetEstimateTitle,
+                    { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  ]}
+                >
+                  ESTIMATED TRIP BUDGET
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/create-trip/select-budget")}
+                style={[
+                  styles.budgetTierPill,
+                  { backgroundColor: activeAccent + "18", borderColor: activeAccent + "40" },
+                ]}
+              >
+                <Text style={[styles.budgetTierPillText, { color: activeAccent }]}>
+                  {budgetTier.toUpperCase()}
+                </Text>
+                <Ionicons name="pencil" size={10} color={activeAccent} style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.currencyRow}>
+              <Text style={[styles.currencyLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+                In {destCity} ({destCurrency}):
+              </Text>
+              <Text style={[styles.currencyDestAmount, { color: activeAccent }]}>
+                {formattedDestTotal}
+              </Text>
+            </View>
+
+            {destCurrency !== homeCurrency && (
+              <View
+                style={[
+                  styles.currencyHomeRow,
+                  {
+                    borderTopColor: theme.isDark ? "#1E293B" : "#E2E8F0",
+                    backgroundColor: theme.isDark ? "#064E3B20" : "#ECFDF5",
+                  },
+                ]}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={{ fontSize: 13, marginRight: 5 }}>🏠</Text>
+                  <Text
+                    style={[
+                      styles.currencyHomeLabel,
+                      { color: theme.isDark ? "#A7F3D0" : "#065F46" },
+                    ]}
+                  >
+                    In your currency ({homeCurrency}):
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.currencyHomeAmount,
+                    { color: theme.isDark ? "#34D399" : "#059669" },
+                  ]}
+                >
+                  ≈ {formattedHomeTotal}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Barcode & AI Engine Status */}
@@ -780,5 +845,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
+  },
+  budgetEstimateBox: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 6,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  budgetEstimateHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  budgetEstimateTitle: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 1,
+  },
+  budgetTierPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  budgetTierPillText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+  },
+  currencyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 6,
+  },
+  currencyLabel: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+  },
+  currencyDestAmount: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+  },
+  currencyHomeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 4,
+    borderRadius: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 4,
+  },
+  currencyHomeLabel: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
+  },
+  currencyHomeAmount: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
   },
 });

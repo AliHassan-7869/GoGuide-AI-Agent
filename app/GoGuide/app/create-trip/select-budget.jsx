@@ -16,6 +16,11 @@ import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import {
+  CURRENCY_RATES,
+  detectCurrencyFromLocation,
+  getDailyBudgetTiers,
+} from "../../Components/constants/Currency";
 
 export default function SelectBudget() {
   const router = useRouter();
@@ -33,38 +38,17 @@ export default function SelectBudget() {
     } catch (e) {}
   };
 
-  const budgets = [
-    {
-      id: "economical",
-      label: "Economical / Budget",
-      value: "Economical",
-      meter: "$",
-      badgeColor: "#10B981",
-      range: "$50 - $100 / day",
-      description: "Smart boutique stays, local metro & authentic street food gems.",
-      icon: "🪙",
-    },
-    {
-      id: "moderate",
-      label: "Moderate / Standard",
-      value: "Moderate",
-      meter: "$$",
-      badgeColor: "#3B82F6",
-      range: "$150 - $280 / day",
-      description: "Handpicked 4★ hotels, curated cafe dining & express transit.",
-      icon: "💳",
-    },
-    {
-      id: "luxury",
-      label: "Luxury / VIP",
-      value: "Luxury",
-      meter: "$$$",
-      badgeColor: "#8B5CF6",
-      range: "$400+ / day",
-      description: "5★ historic resorts, chauffeured transfers & Michelin dining.",
-      icon: "💎",
-    },
-  ];
+  // Detect Destination Currency dynamically (e.g. Dubai -> AED, Paris -> EUR, Lahore -> PKR)
+  const destination =
+    tripData?.toLocation?.name ||
+    tripData?.locationInfo?.name ||
+    tripData?.destination ||
+    "";
+  const destCurrency = detectCurrencyFromLocation(destination);
+  const destCurrencyInfo = CURRENCY_RATES[destCurrency] || CURRENCY_RATES.USD;
+
+  // Generate dynamic spending ranges in the destination's local currency
+  const budgets = getDailyBudgetTiers(destCurrency);
 
   const handleSelectBudget = (val) => {
     triggerHaptic();
@@ -74,17 +58,23 @@ export default function SelectBudget() {
   const handleContinue = () => {
     triggerHaptic();
     if (!selectedBudget) return;
-
-    setTripData((prev) => ({ ...prev, budget: selectedBudget }));
+    setTripData((prev) => ({
+      ...prev,
+      budget: selectedBudget,
+      destinationCurrency: destCurrency,
+    }));
     router.push("/create-trip/review-trip");
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+      edges={["top", "left", "right"]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Top Header */}
-      <View style={styles.headerRow}>
+      {/* HEADER BAR */}
+      <View style={[styles.headerBar, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => {
             triggerHaptic();
@@ -109,6 +99,39 @@ export default function SelectBudget() {
         <Text style={[styles.subHeading, { color: theme.subtext }]}>
           Our AI tailors hotel ratings, dining experiences, and activity prices to your tier.
         </Text>
+
+        {/* DESTINATION CURRENCY BADGE */}
+        {destination ? (
+          <View
+            style={[
+              styles.currencyBadge,
+              {
+                backgroundColor: theme.isDark ? "#064E3B" : "#ECFDF5",
+                borderColor: theme.isDark ? "#059669" : "#A7F3D0",
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 16, marginRight: 6 }}>📍</Text>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  styles.currencyBadgeTitle,
+                  { color: theme.isDark ? "#A7F3D0" : "#065F46" },
+                ]}
+              >
+                Local Currency for {destination.split(",")[0]}: {destCurrencyInfo.name} ({destCurrency})
+              </Text>
+              <Text
+                style={[
+                  styles.currencyBadgeSub,
+                  { color: theme.isDark ? "#6EE7B7" : "#047857" },
+                ]}
+              >
+                Prices below are automatically converted to {destCurrency}.
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* BUDGET CARDS */}
         <View style={styles.budgetList}>
@@ -158,43 +181,74 @@ export default function SelectBudget() {
                     <Text style={[styles.budgetDesc, { color: theme.subtext }]}>
                       {b.description}
                     </Text>
-
-                    <Text style={[styles.rangeBadgeText, { color: isSelected ? "#F59E0B" : theme.subtext }]}>
-                      Est: {b.range}
-                    </Text>
                   </View>
                 </View>
 
-                {/* Selection Checkmark */}
-                {isSelected && (
-                  <View style={styles.selectedRow}>
-                    <Ionicons name="checkmark-circle" size={16} color={activeAccent} />
-                    <Text style={[styles.selectedLabel, { color: activeAccent }]}>
-                      Selected Tier
+                {/* RANGE PILL */}
+                <View style={styles.cardFooter}>
+                  <View
+                    style={[
+                      styles.rangePill,
+                      {
+                        backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9",
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="wallet-outline"
+                      size={14}
+                      color={isSelected ? activeAccent : theme.subtext}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.rangeText,
+                        { color: isSelected ? activeAccent : theme.text },
+                      ]}
+                    >
+                      {b.range}
                     </Text>
                   </View>
-                )}
+
+                  <View
+                    style={[
+                      styles.radioCircle,
+                      {
+                        borderColor: isSelected ? activeAccent : theme.border,
+                        backgroundColor: isSelected ? activeAccent : "transparent",
+                      },
+                    ]}
+                  >
+                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                  </View>
+                </View>
               </TouchableOpacity>
             );
           })}
         </View>
       </ScrollView>
 
-      {/* BOTTOM FOOTER */}
-      <View style={[styles.footer, { backgroundColor: theme.bg, borderTopColor: theme.border }]}>
+      {/* BOTTOM BUTTON */}
+      <View
+        style={[
+          styles.footerContainer,
+          { backgroundColor: theme.background, borderTopColor: theme.border },
+        ]}
+      >
         <TouchableOpacity
           onPress={handleContinue}
           disabled={!selectedBudget}
+          activeOpacity={0.85}
           style={[
             styles.continueBtn,
             {
-              backgroundColor: selectedBudget ? activeAccent : "#94A3B8",
+              backgroundColor: selectedBudget ? activeAccent : theme.border,
               opacity: selectedBudget ? 1 : 0.6,
             },
           ]}
-          activeOpacity={0.85}
         >
-          <Text style={styles.continueText}>Review Itinerary</Text>
+          <Text style={styles.continueBtnText}>Continue to Review</Text>
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
@@ -203,143 +257,164 @@ export default function SelectBudget() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
   },
-  headerRow: {
+  headerBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: "Outfit-Bold",
+    fontSize: 17,
+    fontFamily: "outfit-bold",
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
   },
   heroPreTitle: {
-    color: "#0A7EA4",
     fontSize: 11,
-    fontFamily: "Outfit-Bold",
+    fontFamily: "outfit-bold",
     letterSpacing: 1.5,
-    marginTop: 8,
+    color: "#64748B",
+    marginTop: 14,
     marginBottom: 4,
   },
   mainHeading: {
     fontSize: 26,
-    fontFamily: "Outfit-Bold",
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    fontFamily: "outfit-bold",
+    marginBottom: 8,
   },
   subHeading: {
+    fontSize: 14,
+    fontFamily: "outfit",
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  currencyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  currencyBadgeTitle: {
     fontSize: 13,
-    fontFamily: "Outfit-Regular",
-    marginBottom: 20,
-    lineHeight: 18,
+    fontFamily: "outfit-bold",
+  },
+  currencyBadgeSub: {
+    fontSize: 11,
+    fontFamily: "outfit",
+    marginTop: 2,
   },
   budgetList: {
     gap: 14,
   },
   budgetCard: {
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    padding: 16,
+    borderRadius: 18,
   },
   cardHeader: {
     flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.04)",
     alignItems: "center",
-    gap: 14,
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  emojiText: {
+    fontSize: 22,
   },
   topTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 2,
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emojiText: {
-    fontSize: 26,
+    marginBottom: 4,
   },
   budgetTitle: {
-    fontSize: 16,
-    fontFamily: "Outfit-Bold",
-  },
-  budgetDesc: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  rangeBadgeText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    marginTop: 6,
+    fontSize: 17,
+    fontFamily: "outfit-bold",
   },
   meterBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
   },
   meterText: {
     fontSize: 12,
-    fontFamily: "Outfit-Bold",
+    fontFamily: "outfit-bold",
+    letterSpacing: 0.5,
   },
-  selectedRow: {
+  budgetDesc: {
+    fontSize: 13,
+    fontFamily: "outfit",
+    lineHeight: 18,
+  },
+  cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    paddingTop: 10,
+    justifyContent: "space-between",
+    marginTop: 14,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(150, 150, 150, 0.2)",
-    gap: 6,
+    borderTopColor: "rgba(0,0,0,0.06)",
   },
-  selectedLabel: {
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
+  rangePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
   },
-  footer: {
+  rangeText: {
+    fontSize: 13,
+    fontFamily: "outfit-medium",
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerContainer: {
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   continueBtn: {
+    height: 52,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 15,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  continueText: {
-    color: "#FFF",
+  continueBtnText: {
     fontSize: 16,
-    fontFamily: "Outfit-Bold",
+    fontFamily: "outfit-bold",
+    color: "#FFF",
   },
 });

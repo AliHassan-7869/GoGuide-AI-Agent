@@ -1,6 +1,6 @@
 /**
  * Currency Utility for GoGuide AI
- * Real-time conversion rates against USD base
+ * Real-time conversion rates against USD base & Location detection
  */
 
 export const CURRENCY_RATES = {
@@ -8,11 +8,232 @@ export const CURRENCY_RATES = {
   EUR: { rate: 0.92, symbol: "€", code: "EUR", name: "Euro" },
   PKR: { rate: 278.0, symbol: "Rs ", code: "PKR", name: "Pakistani Rupee" },
   AED: { rate: 3.67, symbol: "AED ", code: "AED", name: "UAE Dirham" },
-  GBP: { rate: 0.79, symbol: "£", code: "GBP", name: "British Pound" },
   SAR: { rate: 3.75, symbol: "SAR ", code: "SAR", name: "Saudi Riyal" },
-  CAD: { rate: 1.36, symbol: "CA$ ", code: "CAD", name: "Canadian Dollar" },
+  GBP: { rate: 0.79, symbol: "£", code: "GBP", name: "British Pound" },
+  TRY: { rate: 36.5, symbol: "₺", code: "TRY", name: "Turkish Lira" },
+  JPY: { rate: 153.0, symbol: "¥", code: "JPY", name: "Japanese Yen" },
+  THB: { rate: 35.5, symbol: "฿", code: "THB", name: "Thai Baht" },
+  IDR: { rate: 16200.0, symbol: "Rp ", code: "IDR", name: "Indonesian Rupiah" },
   INR: { rate: 83.5, symbol: "₹", code: "INR", name: "Indian Rupee" },
+  CAD: { rate: 1.36, symbol: "CA$ ", code: "CAD", name: "Canadian Dollar" },
+  AUD: { rate: 1.55, symbol: "A$ ", code: "AUD", name: "Australian Dollar" },
+  CHF: { rate: 0.90, symbol: "CHF ", code: "CHF", name: "Swiss Franc" },
+  QAR: { rate: 3.64, symbol: "QAR ", code: "QAR", name: "Qatari Riyal" },
+  KWD: { rate: 0.31, symbol: "KWD ", code: "KWD", name: "Kuwaiti Dinar" },
+  OMR: { rate: 0.38, symbol: "OMR ", code: "OMR", name: "Omani Rial" },
+  BHD: { rate: 0.38, symbol: "BHD ", code: "BHD", name: "Bahraini Dinar" },
+  MYR: { rate: 4.45, symbol: "RM ", code: "MYR", name: "Malaysian Ringgit" },
+  SGD: { rate: 1.34, symbol: "S$ ", code: "SGD", name: "Singapore Dollar" },
+  CNY: { rate: 7.24, symbol: "¥", code: "CNY", name: "Chinese Yuan" },
 };
+
+/**
+ * Detects appropriate ISO 4217 Currency Code from city/country string
+ */
+export function detectCurrencyFromLocation(locStr = "") {
+  if (!locStr || typeof locStr !== "string") return "USD";
+  const s = locStr.toLowerCase();
+
+  // UAE / Dubai / Abu Dhabi
+  if (
+    s.includes("dubai") ||
+    s.includes("united arab emirates") ||
+    s.includes("emirates") ||
+    s.includes("abu dhabi") ||
+    s.includes("sharjah") ||
+    s.includes("ajman") ||
+    s.includes("ras al khaimah") ||
+    s.includes("fujairah") ||
+    s.includes("uae")
+  ) {
+    return "AED";
+  }
+
+  // Pakistan
+  if (
+    s.includes("pakistan") ||
+    s.includes("lahore") ||
+    s.includes("karachi") ||
+    s.includes("islamabad") ||
+    s.includes("rawalpindi") ||
+    s.includes("peshawar") ||
+    s.includes("multan") ||
+    s.includes("faisalabad") ||
+    s.includes("quetta") ||
+    s.includes("skardu") ||
+    s.includes("hunza") ||
+    s.includes("gilgit")
+  ) {
+    return "PKR";
+  }
+
+  // Saudi Arabia
+  if (
+    s.includes("saudi") ||
+    s.includes("makkah") ||
+    s.includes("mecca") ||
+    s.includes("madinah") ||
+    s.includes("medina") ||
+    s.includes("riyadh") ||
+    s.includes("jeddah") ||
+    s.includes("dammam")
+  ) {
+    return "SAR";
+  }
+
+  // United Kingdom
+  if (
+    s.includes("united kingdom") ||
+    s.includes("uk") ||
+    s.includes("london") ||
+    s.includes("england") ||
+    s.includes("scotland") ||
+    s.includes("manchester") ||
+    s.includes("birmingham") ||
+    s.includes("edinburgh")
+  ) {
+    return "GBP";
+  }
+
+  // Turkey
+  if (
+    s.includes("turkey") ||
+    s.includes("türkiye") ||
+    s.includes("istanbul") ||
+    s.includes("antalya") ||
+    s.includes("cappadocia") ||
+    s.includes("ankara") ||
+    s.includes("izmir")
+  ) {
+    return "TRY";
+  }
+
+  // Japan
+  if (
+    s.includes("japan") ||
+    s.includes("tokyo") ||
+    s.includes("kyoto") ||
+    s.includes("osaka") ||
+    s.includes("hiroshima")
+  ) {
+    return "JPY";
+  }
+
+  // Thailand
+  if (
+    s.includes("thailand") ||
+    s.includes("bangkok") ||
+    s.includes("phuket") ||
+    s.includes("pattaya") ||
+    s.includes("chiang mai") ||
+    s.includes("krabi")
+  ) {
+    return "THB";
+  }
+
+  // Indonesia
+  if (
+    s.includes("indonesia") ||
+    s.includes("bali") ||
+    s.includes("jakarta") ||
+    s.includes("ubud") ||
+    s.includes("lombok")
+  ) {
+    return "IDR";
+  }
+
+  // India
+  if (
+    s.includes("india") ||
+    s.includes("delhi") ||
+    s.includes("mumbai") ||
+    s.includes("bangalore") ||
+    s.includes("goa") ||
+    s.includes("jaipur") ||
+    s.includes("kashmir")
+  ) {
+    return "INR";
+  }
+
+  // Canada
+  if (
+    s.includes("canada") ||
+    s.includes("toronto") ||
+    s.includes("vancouver") ||
+    s.includes("montreal") ||
+    s.includes("banff")
+  ) {
+    return "CAD";
+  }
+
+  // Australia
+  if (
+    s.includes("australia") ||
+    s.includes("sydney") ||
+    s.includes("melbourne") ||
+    s.includes("brisbane")
+  ) {
+    return "AUD";
+  }
+
+  // Switzerland
+  if (
+    s.includes("switzerland") ||
+    s.includes("zurich") ||
+    s.includes("geneva") ||
+    s.includes("interlaken") ||
+    s.includes("zermatt")
+  ) {
+    return "CHF";
+  }
+
+  // Qatar
+  if (s.includes("qatar") || s.includes("doha")) return "QAR";
+  // Kuwait
+  if (s.includes("kuwait")) return "KWD";
+  // Oman
+  if (s.includes("oman") || s.includes("muscat")) return "OMR";
+  // Bahrain
+  if (s.includes("bahrain") || s.includes("manama")) return "BHD";
+  // Malaysia
+  if (s.includes("malaysia") || s.includes("kuala lumpur") || s.includes("langkawi")) return "MYR";
+  // Singapore
+  if (s.includes("singapore")) return "SGD";
+  // China
+  if (s.includes("china") || s.includes("beijing") || s.includes("shanghai")) return "CNY";
+
+  // Eurozone
+  if (
+    s.includes("france") ||
+    s.includes("paris") ||
+    s.includes("italy") ||
+    s.includes("rome") ||
+    s.includes("milan") ||
+    s.includes("venice") ||
+    s.includes("florence") ||
+    s.includes("germany") ||
+    s.includes("berlin") ||
+    s.includes("munich") ||
+    s.includes("spain") ||
+    s.includes("madrid") ||
+    s.includes("barcelona") ||
+    s.includes("greece") ||
+    s.includes("athens") ||
+    s.includes("santorini") ||
+    s.includes("netherlands") ||
+    s.includes("amsterdam") ||
+    s.includes("portugal") ||
+    s.includes("lisbon") ||
+    s.includes("austria") ||
+    s.includes("vienna") ||
+    s.includes("belgium") ||
+    s.includes("brussels")
+  ) {
+    return "EUR";
+  }
+
+  return "USD";
+}
 
 /**
  * Returns symbol for given currency code
@@ -33,6 +254,23 @@ export function convertAmount(amountInUSD, targetCurrency = "USD") {
 }
 
 /**
+ * Converts amount from one currency to another
+ */
+export function convertBetweenCurrencies(amount, fromCode = "USD", toCode = "USD") {
+  if (isNaN(amount) || amount === null || amount === undefined) return 0;
+  const fromNorm = (fromCode || "USD").toUpperCase();
+  const toNorm = (toCode || "USD").toUpperCase();
+  if (fromNorm === toNorm) return Math.round(Number(amount));
+
+  const fromRate = CURRENCY_RATES[fromNorm]?.rate || 1.0;
+  const toRate = CURRENCY_RATES[toNorm]?.rate || 1.0;
+
+  // Convert to USD base first, then to target
+  const inUSD = Number(amount) / fromRate;
+  return Math.round(inUSD * toRate);
+}
+
+/**
  * Formats a numeric amount in target currency with proper formatting and commas
  */
 export function formatCurrencyAmount(amountInTargetCurrency, targetCurrency = "USD") {
@@ -42,8 +280,58 @@ export function formatCurrencyAmount(amountInTargetCurrency, targetCurrency = "U
 }
 
 /**
- * Parses any price string (e.g. "$120 per night", "$45", "Free", "$20 - $35")
- * and converts any USD amounts to target currency string.
+ * Generates dynamic daily budget ranges in target currency for select-budget screen
+ */
+export function getDailyBudgetTiers(currencyCode = "USD") {
+  const norm = (currencyCode || "USD").toUpperCase();
+  const rate = CURRENCY_RATES[norm]?.rate || 1.0;
+  const symbol = CURRENCY_RATES[norm]?.symbol || norm + " ";
+
+  // Base USD ranges: Economical: 50-100, Moderate: 150-280, Luxury: 350+
+  const econLow = Math.round(50 * rate);
+  const econHigh = Math.round(100 * rate);
+
+  const modLow = Math.round(150 * rate);
+  const modHigh = Math.round(280 * rate);
+
+  const luxLow = Math.round(350 * rate);
+
+  return [
+    {
+      id: "economical",
+      label: "Economical / Budget",
+      value: "Economical",
+      meter: symbol.trim(),
+      badgeColor: "#10B981",
+      range: `${symbol}${econLow.toLocaleString()} - ${symbol}${econHigh.toLocaleString()} / day`,
+      description: "Smart boutique stays, local metro & authentic street food gems.",
+      icon: "🪙",
+    },
+    {
+      id: "moderate",
+      label: "Moderate / Standard",
+      value: "Moderate",
+      meter: `${symbol.trim()} ${symbol.trim()}`,
+      badgeColor: "#3B82F6",
+      range: `${symbol}${modLow.toLocaleString()} - ${symbol}${modHigh.toLocaleString()} / day`,
+      description: "Handpicked 4★ hotels, curated cafe dining & express transit.",
+      icon: "💳",
+    },
+    {
+      id: "luxury",
+      label: "Luxury / VIP",
+      value: "Luxury",
+      meter: `${symbol.trim()} ${symbol.trim()} ${symbol.trim()}`,
+      badgeColor: "#8B5CF6",
+      range: `${symbol}${luxLow.toLocaleString()}+ / day`,
+      description: "5★ resorts, private chauffeur & VIP skip-the-line access.",
+      icon: "💎",
+    },
+  ];
+}
+
+/**
+ * Parses any price string and converts any USD amounts to target currency string.
  */
 export function convertPriceString(priceStr, targetCurrency = "USD") {
   if (!priceStr || typeof priceStr !== "string") return priceStr || "";
