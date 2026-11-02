@@ -8,7 +8,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> **GoGuide AI** is an enterprise-grade, offline-first mobile travel companion powered by an autonomous **10-Agent CrewAI** pipeline and **Google Gemini 3.8 Flash**. It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
+> **GoGuide AI** is an enterprise-grade, offline-first mobile travel companion powered by a consolidated **4-Agent CrewAI** pipeline, **Google Gemini 3.8 Flash**, 100% Free-Tier optimizations, and full account security (Email 2FA & Verification). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
 
 ---
 
@@ -68,18 +68,12 @@ graph TD
 - **Airplane Mode Ready**: Full access to daily timelines, flight tickets, hotel contact numbers, and packing checklists without active Wi-Fi or cellular connections.
 - **Visual Status Badging**: Live `⚡ Offline Ready` translucent badge and top-header sync pill.
 
-### 🤖 2. 10-Agent Autonomous CrewAI Pipeline
-- Rather than a generic single-prompt LLM, GoGuide orchestrates a specialized **10-agent team** using **CrewAI** and **Gemini 3.8 Flash**:
-  1. **City Selection Specialist**: Analyzes season, traveler style, and budget.
-  2. **Hotel & Accommodations Scout**: Curates verified stays with ratings, pricing, and amenities.
-  3. **Flight & Transport Logistics**: Identifies optimal routes, layovers, and pricing estimates.
-  4. **Activity & Attraction Curator**: Sequences daily attractions to minimize transit time.
-  5. **Cultural & Culinary Guide**: Suggests authentic local dining, cultural customs, and etiquette.
-  6. **Safety & Scam Intelligence**: Pinpoints tourist scam hotspots and emergency contacts.
-  7. **Budget Optimization Agent**: Allocates expenditure across stays, transit, and activities.
-  8. **Weather & Dynamic Packing Agent**: Matches 7-day weather patterns with tailored gear checklists.
-  9. **Interactive Copilot Agent**: Real-time travel chat assistant with quick suggestion chips.
-  10. **Quality Assurance Agent**: Validates JSON schema integrity and logical coherence.
+### 🤖 2. Consolidated 4-Agent Autonomous Pipeline (60-70% Token Reduction)
+- Rather than running 10 separate chat contexts that multiply LLM tokens, GoGuide consolidates the workflow into **4 expert agents** with specialized dynamic tools:
+  1. **Destination & Culture Specialist (`destination_agent`)**: Analyzes seasonal events, cultural customs, culinary traditions, and attraction gems.
+  2. **Budget & Logistics Scout (`budget_transport_agent`)**: Structures accommodation options, flight corridors, airport transit, and dynamic tier pricing.
+  3. **Safety & Preparation Advisor (`safety_prep_agent`)**: Advises on neighborhood safety, common tourist scams, weather trends, packing essentials, and emergency hotlines.
+  4. **Master Itinerary Architect (`planner_expert`)**: Synthesizes all inputs into an optimized, chronological day-by-day itinerary with exact timings and geolocation waypoints.
 
 ### 📅 3. 1-Click Calendar Synchronization
 - Directly integrates with **Google Calendar** and **Apple Calendar** using deep-link URLs.

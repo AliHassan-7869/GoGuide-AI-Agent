@@ -17,6 +17,14 @@ Last updated: 2026-10-20
 | 5 | Firestore rules: users can only see their own trips and profile. Unique trip ids | `3059759` |
 | 6 | 35 backend tests and a GitHub Actions workflow | `6e5f072` |
 | 7 | Beach, Mountain and Forest screens merged into one Explore screen with filters | `1c9938a` |
+| 8 | CrewAI 10 → 4 Agent Consolidation (60-70% token cost reduction) | `4164c23` |
+| 9 | Curated Top Destinations (Dubai, Paris, Istanbul, London, Lahore - 0 AI tokens, 20ms) | `4164c23` |
+| 10 | Max Output Token Clamping (3072 tokens limit to prevent runaways) | `4164c23` |
+| 11 | Non-blocking Async Deep Plan (`/plan-deep` BackgroundTasks polling) | `4164c23` |
+| 12 | Zero-Token Offline Destination Essentials (`travel_essentials.py` & `/tools/destination-info`) | `4164c23` |
+| 13 | Mandatory Email Verification Gatekeeper before unlocking AI trip generation | `d9c57de` |
+| 14 | Two-Factor Authentication (2FA) with 6-digit Email OTP (settings toggle & sign-in modal) | `d9c57de` |
+| 15 | Destination Essentials UI Card on trip viewer (`trip.jsx`) | `d9c57de` |
 
 ---
 

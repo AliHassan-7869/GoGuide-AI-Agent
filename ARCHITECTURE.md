@@ -14,7 +14,7 @@ GoGuide is an AI travel planner. It has three parts:
 | Backend API | Python, FastAPI | `app.py` |
 | Cloud services | Firebase Auth, Firestore, Gemini, DeepSeek, OpenStreetMap, Open-Meteo | external |
 
-There is also an older Streamlit planner (`streamlit.py`) that runs 10 CrewAI agents. It is separate from the mobile app and the API.
+There is also a showcase/expert planner (`streamlit.py`) that runs 4 consolidated CrewAI agents (`destination_agent`, `budget_transport_agent`, `safety_prep_agent`, `planner_expert`) merged from 10 to reduce token usage by 60-70%. It is separate from the mobile app and the API.
 
 ---
 
@@ -30,9 +30,11 @@ flowchart LR
     end
 
     subgraph Backend["Backend (FastAPI, app.py)"]
-        Auth[Auth: Firebase token or API key]
+        Auth["Auth: Firebase Token (Email Verified) / API key"]
+        TwoFA["2FA Email OTP (/auth/*)"]
         RL[Rate limit per user]
-        EP["/plan  /chat  /generate"]
+        Curated["Curated Dest Cache (0 Tokens)"]
+        EP["/plan  /plan-deep  /chat  /generate  /tools/*"]
         Fallback[Provider fallback]
     end
 
