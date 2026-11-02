@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
-import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -154,7 +154,8 @@ export default function EditProfile() {
         twoFactorEnabled ? "true" : "false"
       );
 
-      await updateDoc(userRef, updatedData);
+      // Save to Firestore with merge: true (creates doc if new, updates if exists)
+      await setDoc(userRef, updatedData, { merge: true });
       setUserData((prev) => ({
         ...prev,
         ...updatedData,
@@ -173,7 +174,15 @@ export default function EditProfile() {
         }
       }
 
-      Alert.alert("Success", "Profile updated successfully!");
+      // Automatically return back to the Profile screen
+      if (Platform.OS === "web") {
+        router.replace("/(tabs)/profile");
+      } else {
+        Alert.alert("Success ✅", "Profile updated successfully!", [
+          { text: "OK", onPress: () => router.replace("/(tabs)/profile") },
+        ]);
+        setTimeout(() => router.replace("/(tabs)/profile"), 600);
+      }
     } catch (error) {
       console.error("Save error:", error);
       if (error.code === "auth/requires-recent-login") {
