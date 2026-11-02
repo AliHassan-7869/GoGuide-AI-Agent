@@ -37,13 +37,17 @@ export default function Signup() {
   const isDisabled = !fullName || !email || !password || !termsAccepted || loading;
 
   const parseSignUpError = (code, msg) => {
+    const lower = (msg || "").toLowerCase();
+    if (code === "auth/email-already-in-use" || lower.includes("already in use") || lower.includes("already-in-use") || lower.includes("already exists")) {
+      return {
+        title: "Email Already In Use ❌",
+        message: "This email address is already registered. You cannot create another account with this email. Please use a new email address or sign in.",
+        field: "email",
+        isAlreadyRegistered: true,
+      };
+    }
+
     switch (code) {
-      case "auth/email-already-in-use":
-        return {
-          title: "Email Already In Use ❌",
-          message: "An account already exists with this email address. Please sign in instead.",
-          field: "email",
-        };
       case "auth/invalid-email":
         return {
           title: "Invalid Email Address ❌",
@@ -97,6 +101,20 @@ export default function Signup() {
       return;
     }
 
+    // Instant local check for already registered emails on this device
+    try {
+      const cachedEmailsRaw = await AsyncStorage.getItem("@goguide_registered_emails");
+      if (cachedEmailsRaw) {
+        const cachedEmails = JSON.parse(cachedEmailsRaw);
+        if (Array.isArray(cachedEmails) && cachedEmails.includes(cleanEmail.toLowerCase())) {
+          setErrorTitle("Email Already In Use ❌");
+          setErrorMessage("This email is already registered on this device. You cannot create another account with this email. Please enter a new email address or sign in.");
+          setErrorField("email");
+          return;
+        }
+      }
+    } catch (e) {}
+
     try {
       setLoading(true);
 
@@ -109,6 +127,16 @@ export default function Signup() {
       await updateProfile(userCredential.user, {
         displayName: fullName.trim(),
       });
+
+      // Cache this email so duplicate registration attempts are instantly recognized
+      try {
+        const cachedEmailsRaw = await AsyncStorage.getItem("@goguide_registered_emails");
+        const list = cachedEmailsRaw ? JSON.parse(cachedEmailsRaw) : [];
+        if (!list.includes(cleanEmail.toLowerCase())) {
+          list.push(cleanEmail.toLowerCase());
+          await AsyncStorage.setItem("@goguide_registered_emails", JSON.stringify(list));
+        }
+      } catch (e) {}
 
       Alert.alert("Success 🎉", "Account created successfully");
       router.replace("auth/sign-in");
@@ -148,6 +176,15 @@ export default function Signup() {
             <View style={{ flex: 1 }}>
               <Text style={styles.errorTitle}>{errorTitle || "Registration Notice"}</Text>
               <Text style={styles.errorText}>{errorMessage}</Text>
+              {errorMessage?.toLowerCase().includes("already") && (
+                <TouchableOpacity
+                  style={styles.signInShortcutBtn}
+                  onPress={() => router.replace("auth/sign-in")}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.signInShortcutText}>Sign In With Existing Email ➔</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={18} color="#991B1B" />
@@ -169,7 +206,7 @@ export default function Signup() {
 
         {/* Email */}
         <View style={styles.inputWrap}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Email Address</Text>
           <TextInput
             style={[
               styles.input,
@@ -185,6 +222,13 @@ export default function Signup() {
               clearErrors();
             }}
           />
+          {(errorField === "email" || errorField === "both") && (
+            <Text style={styles.fieldErrorHint}>
+              {errorMessage?.toLowerCase().includes("already")
+                ? "This email is already in use. Please enter a new email."
+                : "Please check your email address."}
+            </Text>
+          )}
         </View>
 
         {/* Password */}
@@ -442,5 +486,25 @@ const styles = StyleSheet.create({
     borderColor: "#EF4444",
     backgroundColor: "#FFF5F5",
     borderWidth: 1.5,
+  },
+  fieldErrorHint: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 11,
+    color: "#DC2626",
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  signInShortcutBtn: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#DC2626",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  signInShortcutText: {
+    color: "#FFFFFF",
+    fontFamily: "Outfit-Bold",
+    fontSize: 11,
   },
 });
