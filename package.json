@@ -5,6 +5,8 @@
   "description": "GoGuide AI Agent Workspace",
   "scripts": {
     "start": "npm start --prefix app/GoGuide",
+    "start:tunnel": "npm --prefix app/GoGuide run start:tunnel",
+    "tunnel": "npm --prefix app/GoGuide run start:tunnel",
     "mobile": "npm start --prefix app/GoGuide",
     "expo": "npm start --prefix app/GoGuide",
     "web": "npm run web --prefix app/GoGuide",

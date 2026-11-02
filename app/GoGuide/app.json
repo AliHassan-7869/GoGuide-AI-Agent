@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "aitravelagent",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.arrehman.AiTravelagent",
@@ -60,7 +59,9 @@
         {
           "photosPermission": "GoGuide accesses your photos to let you set your profile picture."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
