@@ -1,5 +1,5 @@
 import { Colors } from "@/Components/constants/constants";
-import PolicyModal from "@/Components/PolicyModal";
+import PolicyModal from "../../../Components/PolicyModal";
 import { auth } from "@/Configs/FirebaseConfig";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRouter } from "expo-router";

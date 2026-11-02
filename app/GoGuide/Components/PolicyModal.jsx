@@ -20,14 +20,24 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
   const isDark = theme.isDark;
   const isTerms = type === "terms";
 
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <View style={styles.overlay}>
+        {/* Backdrop touch to close */}
+        <TouchableOpacity
+          style={StyleSheet.absoluteFillObject}
+          onPress={onClose}
+          activeOpacity={1}
+        />
+
         <View
           style={[
             styles.container,
@@ -41,7 +51,10 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
           <View
             style={[
               styles.header,
-              { borderBottomColor: isDark ? "#334155" : "#E2E8F0" },
+              {
+                borderBottomColor: isDark ? "#334155" : "#E2E8F0",
+                backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
+              },
             ]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -72,7 +85,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
                     { color: isDark ? "#94A3B8" : "#64748B" },
                   ]}
                 >
-                  Last updated: October 2026
+                  Official GoGuide AI Traveler Agreement
                 </Text>
               </View>
             </View>
@@ -81,9 +94,9 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
               onPress={onClose}
               style={[
                 styles.closeCircle,
-                { backgroundColor: isDark ? "#334155" : "#F1F5F9" },
+                { backgroundColor: isDark ? "#334155" : "#E2E8F0" },
               ]}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons
                 name="close"
@@ -93,11 +106,12 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable Content */}
+          {/* Scrollable Content with guaranteed height */}
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={true}
+            bounces={true}
           >
             {isTerms ? (
               <>
@@ -126,10 +140,10 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  4. User Accounts & Two-Factor Authentication
+                  4. User Accounts & Security
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  You are responsible for maintaining the confidentiality of your login credentials. When 2FA is enabled, you agree to receive verification codes at your registered email address to protect your account.
+                  You are responsible for maintaining the confidentiality of your login credentials. When two-factor authentication (2FA) is used, one-time verification codes protect your account from unauthorized access.
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
@@ -138,6 +152,13 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
                   You have the right to permanently delete your account and all associated travel records at any time from your Profile Settings. Upon deletion, your data is irreversibly purged from our servers.
                 </Text>
+
+                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+                  6. Contact & Disputes
+                </Text>
+                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+                  For any legal inquiries, questions about these terms, or support assistance, reach out to support@goguide.com or submit a ticket through our in-app Help Center.
+                </Text>
               </>
             ) : (
               <>
@@ -145,36 +166,51 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
                   1. Information We Collect
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  We collect information to provide, personalize, and secure your travel planning experience:{"\n\n"}
-                  • Account Information: Name, email address, profile picture, and authentication credentials.{"\n"}
-                  • Travel Data: Destination searches, travel dates, companion types, budgets, saved itineraries, and logged expenses.{"\n"}
-                  • Device & Technical Data: Crash logs and device preferences (e.g., dark mode, currency preferences).
+                  We collect information necessary to deliver personalized AI travel experiences:{"\n\n"}
+                  • Account Information: Name, email address, profile avatar, and account credentials.{"\n"}
+                  • Travel Preferences: Desired destinations, trip duration, traveler type, budget tier, and curated activity interests.{"\n"}
+                  • Technical Data: Device model, operating system, and crash analytics for app reliability.
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
                   2. How We Use Your Information
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  • Generating and tailoring day-by-day travel itineraries.{"\n"}
-                  • Syncing your travel plans securely across your devices.{"\n"}
-                  • Sending security verification codes (2FA) and account alerts.{"\n"}
-                  • Improving application performance and AI response accuracy.
+                  Your data is strictly utilized to:{"\n\n"}
+                  • Generate hyper-personalized multi-day day-by-day travel itineraries.{"\n"}
+                  • Synchronize your booked trips, wishlist favorites, and custom packing checklists across your devices.{"\n"}
+                  • Send critical security verification OTPs and trip departure notifications.
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  3. We Do Not Sell Your Data
+                  3. Zero Third-Party Data Selling
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  GoGuide does not sell, rent, or monetize your personal information to third-party advertisers. All data is processed strictly for the service of your account.
+                  We do NOT sell, rent, or trade your personal information or travel history to data brokers or advertising networks. Your data remains solely yours.
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  4. Data Security & GDPR Rights
+                  4. Data Storage & Security
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  • Encryption: All data transferred between the App and our servers uses industry-standard HTTPS/TLS encryption.{"\n"}
-                  • Access & Export: You can export a full copy of your travel data in JSON format directly from the Edit Profile screen.{"\n"}
-                  • Permanent Deletion: You can permanently erase all your data at any time via the "Delete Account" button.
+                  All user data is encrypted in transit using industry-standard TLS 1.3 and at rest using enterprise Firebase Firestore rules with strict user-level authentication scoping.
+                </Text>
+
+                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+                  5. Your Privacy Rights (GDPR & CCPA)
+                </Text>
+                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+                  You have full ownership of your data:{"\n\n"}
+                  • Right to Access: View all your saved trips, bookings, and profile data anytime.{"\n"}
+                  • Right to Export: Export your itineraries and profile records as JSON from Account Settings.{"\n"}
+                  • Right to Erasure: Instantly delete your profile, trips, and authentication records permanently with one click.
+                </Text>
+
+                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+                  6. Contact Privacy Officer
+                </Text>
+                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+                  For privacy requests, GDPR inquiries, or data queries, contact our Data Protection Officer at privacy@goguide.com.
                 </Text>
               </>
             )}
@@ -184,18 +220,18 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
           <View
             style={[
               styles.footer,
-              { borderTopColor: isDark ? "#334155" : "#E2E8F0" },
+              {
+                borderTopColor: isDark ? "#334155" : "#E2E8F0",
+                backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
+              },
             ]}
           >
             <TouchableOpacity
-              style={[
-                styles.doneBtn,
-                { backgroundColor: Colors.PRIMARY || "#0A7EA4" },
-              ]}
               onPress={onClose}
+              style={[styles.doneBtn, { backgroundColor: Colors.PRIMARY || "#0A7EA4" }]}
               activeOpacity={0.85}
             >
-              <Text style={styles.doneBtnText}>Close & Return</Text>
+              <Text style={styles.doneBtnText}>I Understand & Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -207,30 +243,36 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(15, 23, 42, 0.75)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    zIndex: 99999,
   },
   container: {
     width: "100%",
     maxWidth: 620,
-    maxHeight: SCREEN_HEIGHT * 0.85,
+    height: Platform.OS === "web" ? "82vh" : Math.min(680, SCREEN_HEIGHT * 0.82),
+    minHeight: 380,
     borderRadius: 24,
     borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 12,
+    shadowRadius: 28,
+    elevation: 20,
+    zIndex: 100000,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   iconBadge: {
@@ -242,17 +284,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontFamily: "Outfit-Bold",
+    fontFamily: "outfit-bold",
   },
   subtitle: {
     fontSize: 12,
-    fontFamily: "Outfit-Regular",
+    fontFamily: "outfit",
     marginTop: 2,
   },
   closeCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -260,19 +302,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    paddingBottom: 28,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontFamily: "Outfit-Bold",
+    fontSize: 15,
+    fontFamily: "outfit-bold",
     marginTop: 14,
     marginBottom: 6,
   },
   paragraph: {
     fontSize: 13,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 20,
-    marginBottom: 10,
+    fontFamily: "outfit",
+    lineHeight: 21,
+    marginBottom: 12,
   },
   footer: {
     paddingHorizontal: 20,
@@ -281,15 +325,14 @@ const styles = StyleSheet.create({
   },
   doneBtn: {
     width: "100%",
-    paddingVertical: 13,
+    paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   doneBtnText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "Outfit-Bold",
+    fontSize: 15,
+    fontFamily: "outfit-bold",
   },
 });
-

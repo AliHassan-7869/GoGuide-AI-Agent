@@ -445,7 +445,16 @@ export default function Profile() {
         styles.menuRow,
         !isLast && { borderBottomWidth: 1, borderBottomColor: theme.isDark ? "#282828" : "#F0F0F0" },
       ]}
-      onPress={() => handleNavigate(item)}
+      onPress={() => {
+        triggerHaptic();
+        if (typeof item.onPress === 'function') {
+          item.onPress();
+        } else if (item.route) {
+          router.push(item.route);
+        } else {
+          handleNavigate(item);
+        }
+      }}
       activeOpacity={0.7}
     >
       <View

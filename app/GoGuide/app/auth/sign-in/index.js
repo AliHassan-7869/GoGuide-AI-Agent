@@ -2,7 +2,7 @@
 import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
 import { send2FaOtp, verify2FaOtp } from "@/Configs/AiModel";
-import PolicyModal from "@/Components/PolicyModal";
+import PolicyModal from "../../../Components/PolicyModal";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
