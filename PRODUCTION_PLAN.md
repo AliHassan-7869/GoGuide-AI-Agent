@@ -211,7 +211,7 @@ Plus one time: **$25** for Play Store.
 | `RATE_LIMIT_PER_HOUR` | No | `30` |
 | `ALLOWED_ORIGINS` | No | `*` or comma separated list |
 
-### App (`app/Go Guide/.env`)
+### App (`app/GoGuide/.env`)
 
 | Name | Required | Example |
 |---|---|---|

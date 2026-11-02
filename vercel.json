@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "npm --prefix \"app/Go Guide\" install --legacy-peer-deps",
-  "buildCommand": "npm --prefix \"app/Go Guide\" run build",
-  "outputDirectory": "app/Go Guide/dist",
+  "installCommand": "npm --prefix app/GoGuide install --legacy-peer-deps",
+  "buildCommand": "npm --prefix app/GoGuide run build",
+  "outputDirectory": "app/GoGuide/dist",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

@@ -67,7 +67,7 @@ API_KEY=any-long-random-string
 ### First time
 
 ```bash
-cd "app/Go Guide"
+cd "app/GoGuide"
 npm install
 ```
 
@@ -76,7 +76,7 @@ The app finds the backend by itself. It uses the same computer address that Expo
 ### Run
 
 ```bash
-cd "app/Go Guide"
+cd "app/GoGuide"
 npm start
 ```
 
@@ -166,13 +166,13 @@ Find the computer IP with `ip -4 -br addr` (Linux) or `ipconfig` (Windows, look 
 | Nothing works on WiFi | `npm run start:tunnel` opens the app over the internet. AI features still need the backend reachable, so set `EXPO_PUBLIC_API_URL` to a deployed backend |
 | AI says "Please sign in" | Sign in inside the app first |
 | AI says "AI service error" | Check the backend terminal. Usually Gemini quota (`429`) or DeepSeek balance (`402`) |
-| `[Backend] Using` shows the wrong address | Set `EXPO_PUBLIC_API_URL=http://<computer-ip>:8000` in `app/Go Guide/.env` and restart with `npx expo start -c` |
+| `[Backend] Using` shows the wrong address | Set `EXPO_PUBLIC_API_URL=http://<computer-ip>:8000` in `app/GoGuide/.env` and restart with `npx expo start -c` |
 
 ---
 
 ## 6. Production
 
-For a release build, set the deployed backend in `app/Go Guide/.env` (or EAS env):
+For a release build, set the deployed backend in `app/GoGuide/.env` (or EAS env):
 
 ```
 EXPO_PUBLIC_API_URL=https://your-backend.onrender.com

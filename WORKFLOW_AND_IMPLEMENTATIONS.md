@@ -279,7 +279,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ### 2. Start the Mobile App (Expo)
 ```bash
 # Navigate to the mobile app folder:
-cd "app/Go Guide"
+cd "app/GoGuide"
 npx expo start
 ```
 - Press `w` to open in Web Browser.

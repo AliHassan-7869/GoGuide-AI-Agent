@@ -10,7 +10,7 @@ GoGuide is an AI travel planner. It has three parts:
 
 | Part | Tech | Folder |
 |---|---|---|
-| Mobile app | React Native, Expo, Expo Router | `app/Go Guide/` |
+| Mobile app | React Native, Expo, Expo Router | `app/GoGuide/` |
 | Backend API | Python, FastAPI | `app.py` |
 | Cloud services | Firebase Auth, Firestore, Gemini, DeepSeek, OpenStreetMap, Open-Meteo | external |
 
@@ -73,7 +73,7 @@ Key rule: the app holds **no AI keys**. Only the backend talks to Gemini and Dee
 ### 3.1 Folder layout
 
 ```
-app/Go Guide/
+app/GoGuide/
 ├── app/                      Screens (Expo Router, file = route)
 │   ├── index.jsx             Entry: logged in -> My Trips, else Login
 │   ├── _layout.jsx           Root stack
@@ -260,7 +260,7 @@ flowchart TD
 | `UserTrips` | auto id | `userEmail`, `tripData`, `createdAt` | Only the user whose email matches `userEmail` |
 | `Bookings` | auto id | `userEmail`, `title`, `type`, `date`, `status`, `qrCode` | Only that user |
 
-Everything else is denied. Rules live in `app/Go Guide/firestore.rules`.
+Everything else is denied. Rules live in `app/GoGuide/firestore.rules`.
 
 ---
 
@@ -346,7 +346,7 @@ Full steps for Linux and Windows, including firewall setup: see [LOCAL_SETUP.md]
 **App** (phone and computer on the same WiFi)
 
 ```bash
-cd "app/Go Guide"
+cd "app/GoGuide"
 npm start
 ```
 

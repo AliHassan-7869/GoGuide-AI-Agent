@@ -4,10 +4,10 @@
   "private": true,
   "description": "GoGuide AI Agent Workspace",
   "scripts": {
-    "start": "npm start --prefix \"app/Go Guide\"",
-    "mobile": "npm start --prefix \"app/Go Guide\"",
-    "expo": "npm start --prefix \"app/Go Guide\"",
-    "web": "npm run web --prefix \"app/Go Guide\"",
-    "build": "npm --prefix \"app/Go Guide\" run build"
+    "start": "npm start --prefix app/GoGuide",
+    "mobile": "npm start --prefix app/GoGuide",
+    "expo": "npm start --prefix app/GoGuide",
+    "web": "npm run web --prefix app/GoGuide",
+    "build": "npm --prefix app/GoGuide run build"
   }
 }
