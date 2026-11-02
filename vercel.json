@@ -6,13 +6,42 @@
   "outputDirectory": "app/Go Guide/dist",
   "cleanUrls": true,
   "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*).html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/_expo/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/trip/:id",
       "destination": "/trip"
     },
     {
-      "source": "/((?!_expo|assets).*)",
+      "source": "/((?!_expo|assets|jspdf\\.umd\\.min\\.js).*)",
       "destination": "/index.html"
     }
   ]
