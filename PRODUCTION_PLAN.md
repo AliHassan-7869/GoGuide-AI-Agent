@@ -202,7 +202,7 @@ Plus one time: **$25** for Play Store.
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | from AI Studio |
 | `API_KEY` | Yes | long random string |
-| `FIREBASE_PROJECT_ID` | No | `ai-travel-agent-e36a2` (default) |
+| `FIREBASE_PROJECT_ID` | No | `goguideai` (default) |
 | `DEEPSEEK_API_KEY` | No | fallback provider |
 | `GEMINI_MODELS` | No | `gemini-3.8-flash,gemini-3.6-flash` |
 | `RATE_LIMIT_PER_HOUR` | No | `30` |

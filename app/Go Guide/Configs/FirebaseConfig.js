@@ -1,3 +1,4 @@
+
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp, getApps, getApp } from "firebase/app";
@@ -5,13 +6,13 @@ import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/aut
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClJ_kV285iw9kkGn39_MiXsaYFfa2gAm4",
-  authDomain: "ai-travel-agent-e36a2.firebaseapp.com",
-  projectId: "ai-travel-agent-e36a2",
-  storageBucket: "ai-travel-agent-e36a2.firebasestorage.app",
-  messagingSenderId: "341457186714",
-  appId: "1:341457186714:web:755b5c1d88bc4558c2d423",
-  measurementId: "G-98LKEQWVZ7",
+  apiKey: "AIzaSyDQ9FLMwPGTu8GJ43fmcsdUyvcDx4EPhlE",
+  authDomain: "goguideai.firebaseapp.com",
+  projectId: "goguideai",
+  storageBucket: "goguideai.firebasestorage.app",
+  messagingSenderId: "857848448146",
+  appId: "1:857848448146:web:7f06c7efa2c1f9c064924b",
+  measurementId: "G-GHQESKTBYX",
 };
 
 // Initialize Firebase safely (avoid re-initialization)

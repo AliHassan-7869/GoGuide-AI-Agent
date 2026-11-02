@@ -50,7 +50,7 @@ app.add_middleware(
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_KEY = os.getenv("API_KEY")
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "ai-travel-agent-e36a2")
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "goguideai")
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 
 # 2FA Email Configuration (100% Free Tier)

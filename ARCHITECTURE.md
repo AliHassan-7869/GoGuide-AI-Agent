@@ -245,7 +245,7 @@ flowchart TD
 | `GEMINI_API_KEY` | none | Gemini access |
 | `DEEPSEEK_API_KEY` | none | Fallback provider |
 | `API_KEY` | none | Server to server key |
-| `FIREBASE_PROJECT_ID` | `ai-travel-agent-e36a2` | Token audience |
+| `FIREBASE_PROJECT_ID` | `goguideai` | Token audience |
 | `GEMINI_MODELS` | `gemini-3.8-flash,gemini-2.5-flash` | Model order |
 | `RATE_LIMIT_PER_HOUR` | `30` | Per user limit |
 | `ALLOWED_ORIGINS` | `*` | CORS |

@@ -27,7 +27,7 @@ service cloud.firestore {
       allow create: if (isOwnerByEmail(request.resource.data.userEmail) || isOwnerByUid(request.resource.data.userId));
 
       allow update: if (isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
-        && (request.resource.data.userEmail == resource.data.userEmail);
+        && (request.resource.data.userEmail == resource.data.userEmail);  
     }
 
     // 2. User Profiles: Private to the authenticated user

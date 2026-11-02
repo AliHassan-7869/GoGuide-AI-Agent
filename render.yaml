@@ -14,6 +14,6 @@ services:
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: FIREBASE_PROJECT_ID
-        value: ai-travel-agent-e36a2
+        value: goguideai
       - key: ALLOWED_ORIGINS
         value: "*"
