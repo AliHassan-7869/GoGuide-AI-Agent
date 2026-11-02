@@ -258,15 +258,51 @@ export default function GenerateTrip() {
         ? tripData.selectedCategories.join(", ")
         : undefined;
 
-      const { generateTripWithAgent } = require("../../Configs/AiModel");
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await user.reload();
+        } catch (e) {}
+        if (!user.emailVerified) {
+          setLoading(false);
+          setError({
+            isAuthError: true,
+            isEmailUnverified: true,
+            message: `Please verify your email address (${user.email}) to unlock AI trip planning.`,
+          });
+          return;
+        }
+      }
 
-      const result = await generateTripWithAgent({
-        destination: tripData?.toLocation?.name || "",
-        days: totalDays,
-        budget: tripData?.budget || "Moderate",
-        interests: interestNames || undefined,
-        categories: categoriesStr,
-      });
+      const { generateTripWithAgent, generateDeepTripPlan } = require("../../Configs/AiModel");
+
+      let result;
+      if (tripData?.isDeepPlan) {
+        result = await generateDeepTripPlan(
+          {
+            destination: tripData?.toLocation?.name || "",
+            days: totalDays,
+            budget: tripData?.budget || "Moderate",
+            interests: interestNames || undefined,
+            categories: categoriesStr,
+          },
+          (progress) => {
+            const stepIdx = Math.min(
+              GENERATION_STEPS.length - 1,
+              Math.floor((progress / 100) * GENERATION_STEPS.length)
+            );
+            setCurrentStepIndex(stepIdx);
+          }
+        );
+      } else {
+        result = await generateTripWithAgent({
+          destination: tripData?.toLocation?.name || "",
+          days: totalDays,
+          budget: tripData?.budget || "Moderate",
+          interests: interestNames || undefined,
+          categories: categoriesStr,
+        });
+      }
 
       const responseText = await result.response.text();
       let cleanResponse = responseText.trim();
@@ -404,7 +440,26 @@ export default function GenerateTrip() {
             </Text>
 
             <View style={styles.errorButtonsRow}>
-              {error.isAuthError ? (
+              {error.isEmailUnverified ? (
+                <TouchableOpacity
+                  style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}
+                  onPress={async () => {
+                    try {
+                      const { sendEmailVerification } = require("firebase/auth");
+                      if (auth.currentUser) {
+                        await sendEmailVerification(auth.currentUser);
+                        alert("Verification email sent! Please check your inbox.");
+                      }
+                    } catch (e) {
+                      alert(e.message || "Failed to send link");
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="mail-outline" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.retryText}>Resend Link</Text>
+                </TouchableOpacity>
+              ) : error.isAuthError ? (
                 <TouchableOpacity
                   style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}
                   onPress={() => router.push("/auth/sign-in")}

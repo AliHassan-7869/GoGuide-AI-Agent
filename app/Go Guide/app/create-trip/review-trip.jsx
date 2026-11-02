@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../Configs/FirebaseConfig";
+import { sendEmailVerification } from "firebase/auth";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -25,7 +26,8 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ReviewTrip() {
-  const { tripData } = useContext(CreateTripContext);
+  const { tripData, setTripData } = useContext(CreateTripContext);
+  const [isDeepPlan, setIsDeepPlan] = useState(false);
   const router = useRouter();
   const theme = useTheme();
 
@@ -42,7 +44,7 @@ export default function ReviewTrip() {
     } catch (e) {}
   };
 
-  const handleBuildTrip = () => {
+  const handleBuildTrip = async () => {
     triggerHaptic();
 
     if (!auth?.currentUser) {
@@ -58,6 +60,37 @@ export default function ReviewTrip() {
         ]
       );
       return;
+    }
+
+    // Email verification security check
+    try {
+      await auth.currentUser.reload();
+    } catch (e) {}
+
+    if (!auth.currentUser.emailVerified) {
+      Alert.alert(
+        "Email Verification Required ✉️",
+        `Please verify your email address (${auth.currentUser.email}) to unlock AI trip planning.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Resend Email",
+            onPress: async () => {
+              try {
+                await sendEmailVerification(auth.currentUser);
+                Alert.alert("Link Sent", "Please check your inbox (and spam folder) for the verification email.");
+              } catch (err) {
+                Alert.alert("Notice", err.message || "Failed to resend verification link.");
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    if (setTripData) {
+      setTripData((prev) => ({ ...prev, isDeepPlan }));
     }
 
     setIsGenerating(true);
@@ -350,6 +383,69 @@ export default function ReviewTrip() {
           </View>
         </View>
 
+                {/* Deep Plan / Multi-Agent Toggle Card */}
+        <TouchableOpacity
+          style={[
+            styles.modeCard,
+            {
+              backgroundColor: isDeepPlan
+                ? theme.isDark ? "#1E293B" : "#F0FDF4"
+                : theme.isDark ? "#0F172A" : "#F8FAFC",
+              borderColor: isDeepPlan ? "#10B981" : (theme.border || "#E2E8F0"),
+            },
+          ]}
+          onPress={() => {
+            triggerHaptic();
+            setIsDeepPlan(!isDeepPlan);
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.modeIconWrap, { backgroundColor: isDeepPlan ? "#DCFCE7" : "#E0F2FE" }]}>
+            <Ionicons
+              name={isDeepPlan ? "sparkles" : "flash"}
+              size={20}
+              color={isDeepPlan ? "#10B981" : "#0284C7"}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text
+                style={[
+                  styles.modeTitle,
+                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                ]}
+              >
+                {isDeepPlan ? "Deep Multi-Agent AI" : "Standard Fast AI"}
+              </Text>
+              <View
+                style={[
+                  styles.modeBadge,
+                  { backgroundColor: isDeepPlan ? "#10B981" : "#0284C7" },
+                ]}
+              >
+                <Text style={styles.modeBadgeText}>
+                  {isDeepPlan ? "PRO PLAN" : "FAST"}
+                </Text>
+              </View>
+            </View>
+            <Text
+              style={[
+                styles.modeDesc,
+                { color: theme.isDark ? "#94A3B8" : "#64748B" },
+              ]}
+            >
+              {isDeepPlan
+                ? "Thorough multi-pass itinerary with rich logistics, safety & hidden spots."
+                : "Instant generation with full schedule, hotels & route highlights."}
+            </Text>
+          </View>
+          <Ionicons
+            name={isDeepPlan ? "checkbox" : "square-outline"}
+            size={22}
+            color={isDeepPlan ? "#10B981" : "#94A3B8"}
+          />
+        </TouchableOpacity>
+
         {/* Summary Notes */}
         <View style={styles.calmPacingBox}>
           <Text style={styles.calmPacingTitle}>⚡ Seamless Itinerary Synthesis</Text>
@@ -597,6 +693,41 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     color: "#94A3B8",
     letterSpacing: 1,
+  },
+    modeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 18,
+  },
+  modeIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeTitle: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+  },
+  modeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  modeBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontFamily: "Outfit-Bold",
+  },
+  modeDesc: {
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+    lineHeight: 15,
   },
   calmPacingBox: {
     backgroundColor: "rgba(255, 255, 255, 0.03)",

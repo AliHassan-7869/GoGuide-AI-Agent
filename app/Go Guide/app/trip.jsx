@@ -21,6 +21,7 @@ import { db } from "../Configs/FirebaseConfig";
 import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
+import { fetchDestinationEssentials } from "../Configs/AiModel";
 
 // Curated default luxury itinerary if ID is preview or not found
 const DEMO_TRIP = {
@@ -124,6 +125,18 @@ export default function SharedTripView() {
   const [tripPlan, setTripPlan] = useState(null);
   const [selectedDay, setSelectedDay] = useState("all");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [essentials, setEssentials] = useState(null);
+
+  useEffect(() => {
+    const dest = tripPlan?.destination;
+    if (dest) {
+      fetchDestinationEssentials(dest)
+        .then((data) => {
+          if (data) setEssentials(data);
+        })
+        .catch(() => {});
+    }
+  }, [tripPlan?.destination]);
 
   // Determine active Trip ID from query params or window location
   let targetId = params.id;
@@ -425,6 +438,93 @@ export default function SharedTripView() {
             <Text style={styles.shareBtnText}>{copiedLink ? "Copied!" : "Share"}</Text>
           </TouchableOpacity>
         </View>
+
+                {/* Destination Essentials (Visa, Emergency, Money & Events) */}
+        {essentials && (
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>🧭 Destination Essentials</Text>
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#0D9488" />
+                <Text style={styles.verifiedBadgeText}>Live Travel Intel</Text>
+              </View>
+            </View>
+
+            <View style={styles.essentialsGrid}>
+              {/* Visa & Entry */}
+              {essentials.visa && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(14, 165, 233, 0.15)" }]}>
+                    <Ionicons name="card-outline" size={16} color="#0EA5E9" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>VISA & ENTRY</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {essentials.visa.visa_required || "Passport required"}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={2}>
+                      {essentials.visa.stay_limit ? `Stay limit: ${essentials.visa.stay_limit}` : essentials.visa.notes || "Check your passport validity."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Currency & Tipping */}
+              {essentials.currency && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+                    <Ionicons name="cash-outline" size={16} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>MONEY & TIPPING</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {essentials.currency.currency_code ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}` : "Cash & Cards"}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={2}>
+                      {essentials.currency.tipping || "Standard 10% tipping appreciated."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Emergency Hotline */}
+              {essentials.emergency && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
+                    <Ionicons name="call-outline" size={16} color="#EF4444" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>EMERGENCY NUMBERS</Text>
+                    <Text style={styles.essentialMainVal}>
+                      Police: {essentials.emergency.police || "911/112"} · Amb: {essentials.emergency.ambulance || "911/112"}
+                    </Text>
+                    <Text style={styles.essentialSubVal}>
+                      General hotline: {essentials.emergency.general || "112"}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Seasonal & Events */}
+              {essentials.seasonal_events && essentials.seasonal_events.length > 0 && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+                    <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>SEASON & HIGHLIGHTS</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {essentials.seasonal_events[0].event} ({essentials.seasonal_events[0].month})
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={2}>
+                      {essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Recommended Stays Section with Booking.com Link */}
         {hotels.length > 0 && (
@@ -1041,6 +1141,60 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     marginTop: 16,
+  },
+    verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(13, 148, 136, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 4,
+  },
+  verifiedBadgeText: {
+    color: "#2DD4BF",
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+  },
+  essentialsGrid: {
+    marginTop: 12,
+    gap: 10,
+  },
+  essentialCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 14,
+    padding: 12,
+    gap: 12,
+  },
+  essentialIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  essentialLabel: {
+    color: "#94A3B8",
+    fontSize: 10,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.5,
+  },
+  essentialMainVal: {
+    color: "#F8FAFC",
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
+    marginTop: 2,
+  },
+  essentialSubVal: {
+    color: "#94A3B8",
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+    lineHeight: 15,
   },
   viralBtnText: {
     color: "#FFF",

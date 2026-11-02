@@ -280,3 +280,36 @@ export const fetchDestinationEssentials = async (destination) => {
   }
 };
 
+// 2FA Security: Request 6-digit Email OTP
+export const send2FaOtp = async (email) => {
+  if (!API_URL) throw new Error("Backend URL is not configured");
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const res = await fetch(`${API_URL}/auth/send-2fa-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: cleanEmail }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.status !== "success") {
+    throw new Error(data.detail || "Unable to send verification code. Please try again.");
+  }
+  return data;
+};
+
+// 2FA Security: Verify 6-digit Email OTP
+export const verify2FaOtp = async (email, code) => {
+  if (!API_URL) throw new Error("Backend URL is not configured");
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanCode = String(code || "").trim();
+  const res = await fetch(`${API_URL}/auth/verify-2fa-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: cleanEmail, code: cleanCode }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.status !== "success") {
+    throw new Error(data.detail || "Invalid or expired verification code.");
+  }
+  return data;
+};
+

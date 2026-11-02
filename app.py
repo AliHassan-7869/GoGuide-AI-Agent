@@ -3,6 +3,9 @@ import logging
 import os
 import re
 import secrets
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import threading
 import time
 from collections import defaultdict, deque
@@ -50,6 +53,54 @@ API_KEY = os.getenv("API_KEY")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "ai-travel-agent-e36a2")
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 
+# 2FA Email Configuration (100% Free Tier)
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER or "security@goguide.ai")
+REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
+
+_OTP_STORE: dict[str, dict] = {}
+_OTP_LOCK = threading.Lock()
+
+
+def send_email_otp(to_email: str, otp_code: str) -> bool:
+    """Send 6-digit 2FA security code via SMTP, or log to server stdout if SMTP credentials not configured."""
+    if not SMTP_USER or not SMTP_PASS:
+        logger.warning("=========================================================")
+        logger.warning("🔐 [2FA SECURITY CODE for %s]: %s (Valid for 5 mins)", to_email, otp_code)
+        logger.warning("=========================================================")
+        return True
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"{otp_code} is your GoGuide verification code"
+    msg["From"] = f"GoGuide Security <{SMTP_FROM}>"
+    msg["To"] = to_email
+
+    html_body = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 28px; border: 1px solid #E2E8F0; border-radius: 16px; background-color: #FFFFFF;">
+      <h2 style="color: #0F172A; margin-top: 0; font-size: 22px;">GoGuide Two-Factor Authentication</h2>
+      <p style="color: #475569; font-size: 15px; line-height: 1.5;">Use the following 6-digit security code to verify your sign-in attempt:</p>
+      <div style="background-color: #F0FDFA; border: 2px dashed #0D9488; border-radius: 10px; padding: 18px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0D9488; font-family: monospace;">{otp_code}</span>
+      </div>
+      <p style="color: #64748B; font-size: 13px; line-height: 1.4;">⏳ This code expires in 5 minutes. If you did not attempt to sign in to GoGuide, please secure your account immediately.</p>
+    </div>
+    """
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=8) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+        logger.info("[2FA] Email successfully delivered to %s", to_email)
+        return True
+    except Exception as e:
+        logger.error("[2FA] Failed to deliver email to %s: %s", to_email, e)
+        return False
+
 # Tried in order. If one is down or overloaded, the next one is used.
 GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-3.8-flash,gemini-2.5-flash").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -80,6 +131,10 @@ def verify_firebase_user(token: str) -> str:
 
     if not claims or claims.get("iss") != f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}" or not claims.get("sub"):
         raise HTTPException(status_code=401, detail="Invalid or expired login, please sign in again")
+
+    if REQUIRE_EMAIL_VERIFICATION and not claims.get("email_verified", False):
+        raise HTTPException(status_code=403, detail="Email verification required. Please verify your email to access AI features.")
+
     return claims["sub"]
 
 
@@ -246,6 +301,15 @@ def generate_with_fallback(gemini_call, deepseek_call) -> str:
 
 
 # -------------------- REQUEST MODELS --------------------
+class SendOtpRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=150)
+
+
+class VerifyOtpRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=150)
+    code: str = Field(min_length=6, max_length=6)
+
+
 class TravelRequest(BaseModel):
     destination: str = Field(min_length=2, max_length=100)
     days: int = Field(ge=1, le=30)
@@ -284,6 +348,54 @@ async def root():
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok"}
+
+# -------------------- TWO-FACTOR AUTH (2FA) --------------------
+@app.post("/auth/send-2fa-otp")
+def send_2fa_otp_endpoint(request: SendOtpRequest):
+    email = request.email.strip().lower()
+    if not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    now = time.time()
+    with _OTP_LOCK:
+        existing = _OTP_STORE.get(email)
+        if existing and now - existing.get("created_at", 0) < 30:
+            raise HTTPException(status_code=429, detail="Please wait 30 seconds before requesting a new code")
+
+        code = str(secrets.randbelow(900000) + 100000)
+        _OTP_STORE[email] = {
+            "code": code,
+            "created_at": now,
+            "expires_at": now + 300,  # 5 minutes
+            "attempts": 0,
+        }
+
+    send_email_otp(email, code)
+    return {"status": "success", "message": "Verification code sent to your email"}
+
+
+@app.post("/auth/verify-2fa-otp")
+def verify_2fa_otp_endpoint(request: VerifyOtpRequest):
+    email = request.email.strip().lower()
+    code = request.code.strip()
+    now = time.time()
+
+    with _OTP_LOCK:
+        entry = _OTP_STORE.get(email)
+        if not entry or now > entry["expires_at"]:
+            raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
+
+        if entry["attempts"] >= 3:
+            _OTP_STORE.pop(email, None)
+            raise HTTPException(status_code=400, detail="Too many invalid attempts. Please request a new code.")
+
+        if entry["code"] != code:
+            entry["attempts"] += 1
+            raise HTTPException(status_code=400, detail="Incorrect verification code. Please try again.")
+
+        _OTP_STORE.pop(email, None)
+
+    return {"status": "success", "verified": True, "message": "Two-factor verification successful"}
 
 # -------------------- ITINERARY CACHE --------------------
 # In-memory TTL cache for generated travel plans (24-hour TTL)

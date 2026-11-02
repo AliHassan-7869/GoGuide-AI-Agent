@@ -2,7 +2,7 @@ import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRouter } from "expo-router";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -138,7 +138,18 @@ export default function Signup() {
         }
       } catch (e) {}
 
-      Alert.alert("Success 🎉", "Account created successfully");
+      // Send official Firebase Email Verification link
+      try {
+        await sendEmailVerification(userCredential.user);
+      } catch (emailErr) {
+        console.log("Email verification notice:", emailErr.message);
+      }
+
+      Alert.alert(
+        "Account Created 🎉",
+        "A verification email has been sent to " + cleanEmail + ". Please verify your email to unlock all AI travel planning features.",
+        [{ text: "Sign In", onPress: () => router.replace("auth/sign-in") }]
+      );
       router.replace("auth/sign-in");
     } catch (error) {
       console.log("Sign up error:", error.code, error.message);

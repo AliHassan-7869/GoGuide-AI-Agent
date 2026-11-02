@@ -1,20 +1,23 @@
 import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
+import { send2FaOtp, verify2FaOtp } from "@/Configs/AiModel";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
   Linking,
 } from "react-native";
 
@@ -29,6 +32,13 @@ export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorField, setErrorField] = useState(null); // "email" | "password" | "both" | null
+
+  // 2FA state
+  const [show2FaModal, setShow2FaModal] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [pendingUser, setPendingUser] = useState(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -104,6 +114,52 @@ export default function SignIn() {
     }
   };
 
+  const proceedToApp = async (res) => {
+    await AsyncStorage.setItem("loginUserData", JSON.stringify(res));
+    setShow2FaModal(false);
+    router.replace("/mytrip");
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.trim().length !== 6) {
+      setOtpError("Please enter the complete 6-digit code");
+      return;
+    }
+    setOtpLoading(true);
+    setOtpError("");
+    try {
+      await verify2FaOtp(email.trim(), otpCode.trim());
+      await proceedToApp(pendingUser);
+    } catch (err) {
+      setOtpError(err.message || "Invalid or expired verification code");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpLoading(true);
+    setOtpError("");
+    try {
+      await send2FaOtp(email.trim());
+      Alert.alert("Code Sent ✉️", "A new 6-digit verification code has been sent to " + email.trim());
+    } catch (err) {
+      setOtpError(err.message || "Failed to resend code");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const cancel2Fa = async () => {
+    setShow2FaModal(false);
+    setPendingUser(null);
+    setOtpCode("");
+    setOtpError("");
+    try {
+      await signOut(auth);
+    } catch (e) {}
+  };
+
   const handleSignIn = async () => {
     setErrorMessage("");
     setErrorTitle("");
@@ -121,9 +177,45 @@ export default function SignIn() {
       setLoading(true);
       const res = await signInWithEmailAndPassword(auth, cleanEmail, password);
       console.log("User signed in:", res);
-      await AsyncStorage.setItem("loginUserData", JSON.stringify(res));
 
-      router.replace("/mytrip");
+      // 1. Check if 2FA is enabled
+      const is2Fa = await AsyncStorage.getItem(`@goguide_2fa_enabled_${cleanEmail.toLowerCase()}`);
+      if (is2Fa === "true") {
+        setPendingUser(res);
+        setShow2FaModal(true);
+        setOtpError("");
+        setOtpCode("");
+        try {
+          await send2FaOtp(cleanEmail);
+        } catch (otpErr) {
+          setOtpError(otpErr.message || "Error sending code");
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Email verification warning if not verified
+      if (res.user && !res.user.emailVerified) {
+        Alert.alert(
+          "Email Not Verified ✉️",
+          "Your email address is not verified yet. Would you like us to resend the verification link?",
+          [
+            { text: "Continue Anyway", onPress: () => proceedToApp(res) },
+            {
+              text: "Resend Link",
+              onPress: async () => {
+                try {
+                  await sendEmailVerification(res.user);
+                  Alert.alert("Verification Sent", "Check your inbox for the verification link.");
+                } catch (e) {}
+                proceedToApp(res);
+              },
+            },
+          ]
+        );
+      } else {
+        await proceedToApp(res);
+      }
     } catch (error) {
       console.log("Sign in error:", error.code, error.message);
       const parsed = parseAuthError(error.code, error.message);
@@ -275,6 +367,69 @@ export default function SignIn() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* 2FA Verification Modal */}
+      <Modal
+        visible={show2FaModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancel2Fa}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.otpModalCard}>
+            <View style={styles.otpIconWrap}>
+              <Ionicons name="shield-checkmark" size={32} color="#0D9488" />
+            </View>
+            <Text style={styles.otpModalTitle}>Security Verification</Text>
+            <Text style={styles.otpModalSubtitle}>
+              Enter the 6-digit code sent to{"\n"}
+              <Text style={{ fontWeight: "700", color: "#0F172A" }}>{email.trim()}</Text>
+            </Text>
+
+            {otpError ? (
+              <View style={styles.otpErrorBox}>
+                <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                <Text style={styles.otpErrorText}>{otpError}</Text>
+              </View>
+            ) : null}
+
+            <TextInput
+              style={styles.otpInput}
+              value={otpCode}
+              onChangeText={(val) => setOtpCode(val.replace(/[^0-9]/g, "").slice(0, 6))}
+              placeholder="------"
+              placeholderTextColor="#94A3B8"
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus={true}
+              textAlign="center"
+            />
+
+            <TouchableOpacity
+              style={[styles.otpVerifyBtn, otpCode.length !== 6 && { opacity: 0.6 }]}
+              onPress={handleVerifyOtp}
+              disabled={otpLoading || otpCode.length !== 6}
+              activeOpacity={0.8}
+            >
+              {otpLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.otpVerifyBtnText}>Verify & Sign In</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.otpFooter}>
+              <TouchableOpacity onPress={handleResendOtp} disabled={otpLoading}>
+                <Text style={styles.otpResendText}>Resend Code</Text>
+              </TouchableOpacity>
+              <Text style={{ color: "#CBD5E1" }}>|</Text>
+              <TouchableOpacity onPress={cancel2Fa} disabled={otpLoading}>
+                <Text style={styles.otpCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -411,5 +566,106 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
     textDecorationLine: "underline",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  otpModalCard: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  otpIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#CCFBF1",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  otpModalTitle: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 20,
+    color: "#0F172A",
+    marginBottom: 6,
+  },
+  otpModalSubtitle: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 13,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  otpErrorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    gap: 6,
+  },
+  otpErrorText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 12,
+    color: "#DC2626",
+    flex: 1,
+  },
+  otpInput: {
+    width: "100%",
+    letterSpacing: 12,
+    fontSize: 26,
+    fontFamily: "Outfit-Bold",
+    color: "#0F172A",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 18,
+  },
+  otpVerifyBtn: {
+    width: "100%",
+    backgroundColor: "#0D9488",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  otpVerifyBtnText: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 15,
+    color: "#FFFFFF",
+  },
+  otpFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  otpResendText: {
+    fontFamily: "Outfit-Medium",
+    fontSize: 13,
+    color: "#0D9488",
+  },
+  otpCancelText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 13,
+    color: "#94A3B8",
   },
 });
