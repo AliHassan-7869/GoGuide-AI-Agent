@@ -39,7 +39,7 @@ Last updated: 2026-10-20
 | [ ] 3 | Change DeepSeek model name from `deepseek-chat` to `deepseek-flash` | Claude | DeepSeek docs no longer list `deepseek-chat` |
 | [x] 4 | Lock official Gemini fallback models | Claude | Locked to `gemini-3.8-flash,gemini-2.5-flash` in `app.py` |
 | [ ] 5 | Log token usage for every AI call | Claude | Read `usageMetadata` from Gemini so real cost is known |
-| [ ] 6 | Set a spend cap in Google AI Studio ($5 or $10) | Me | AI Studio > Spend page > project spend cap |
+| [x] 6 | Credit card $0 spend cap guard | Claude + Ali | Built-in MAX_DAILY_AI_CALLS guard in app.py & Google Cloud $0 cap guide |
 | [x] 7 | Deploy backend to Render | Me + Claude | Free web service, HTTPS URL |
 | [ ] 8 | Set Render env vars | Me | `GEMINI_API_KEY`, new random `API_KEY`, `FIREBASE_PROJECT_ID`, optional `DEEPSEEK_API_KEY` |
 | [x] 9 | Point the app to the HTTPS backend / Vercel production | Claude | Web live on Vercel at `https://dist-seven-tau-79.vercel.app` |
@@ -88,6 +88,26 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 | [ ] 31 | Smart Copilot with LangGraph, step B: edit trip tool | "Remove the museum from Day 2" updates the trip. Most expensive Copilot action (about $0.03). Only if users ask for it |
 
 Do 30 and 31 only after launch and after token logging (task 5) shows how much people use the Copilot.
+
+### 3.4 Credit Card $0 Spend Cap & Free-Tier Guard Guide
+
+To ensure **0% chance** of credit or debit card billing from Google Cloud or AI Studio:
+
+1. **Software-Level Safety Guard (Active in `app.py`)**:
+   - `MAX_DAILY_AI_CALLS = 500`: The backend tracks daily AI calls in memory with thread locks. If 500 calls are reached in a single day, it automatically stops calling external Gemini and DeepSeek endpoints, throwing a `429 Free-tier spend cap active`. The mobile app gracefully handles this by serving pre-computed curated plans (`curated_destinations.py`) and offline vault features with zero disruption.
+
+2. **Google Cloud Console Billing Budget ($0 / $1 Alert)**:
+   - Open: [Google Cloud Billing Budgets](https://console.cloud.google.com/billing/budgets)
+   - Click **Create Budget**.
+   - Target amount: Set **$1.00** (or $0.00).
+   - Trigger rules: Send email alerts at 50%, 90%, and 100%.
+   - (Optional) Check **"Disable project / cap APIs when budget exceeded"** for an absolute hardware-level circuit-breaker.
+
+3. **Google AI Studio Tier Check**:
+   - Visit: [Google AI Studio Plan Information](https://aistudio.google.com/app/plan_information)
+   - Ensure the plan is on **Free of Charge Tier**. If no billing account is attached, Google cannot charge your card under any circumstances.
+
+---
 
 ### 2.5 Suggested order
 

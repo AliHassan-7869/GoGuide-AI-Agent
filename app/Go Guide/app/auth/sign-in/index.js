@@ -1,3 +1,4 @@
+
 import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
 import { send2FaOtp, verify2FaOtp } from "@/Configs/AiModel";
@@ -157,7 +158,7 @@ export default function SignIn() {
     setOtpError("");
     try {
       await signOut(auth);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleSignIn = async () => {
@@ -207,7 +208,7 @@ export default function SignIn() {
                 try {
                   await sendEmailVerification(res.user);
                   Alert.alert("Verification Sent", "Check your inbox for the verification link.");
-                } catch (e) {}
+                } catch (e) { }
                 proceedToApp(res);
               },
             },
@@ -245,8 +246,8 @@ export default function SignIn() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

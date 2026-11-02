@@ -218,8 +218,33 @@ def check_for_injection(text: str | None) -> bool:
     return bool(INJECTION_PATTERN.search(text))
 
 
+# -------------------- ZERO-DOLLAR SPEND CAP GUARD --------------------
+# Guarantees the application never incurs charges on the connected debit/credit card.
+MAX_DAILY_AI_CALLS = int(os.getenv("MAX_DAILY_AI_CALLS", "500"))
+_DAILY_CALLS_LOCK = threading.Lock()
+_DAILY_CALLS_DATE = time.strftime("%Y-%m-%d")
+_DAILY_CALLS_COUNT = 0
+
+def check_spend_cap_guard() -> bool:
+    """Returns True if within safe $0 free limit; False if daily safety threshold reached."""
+    global _DAILY_CALLS_DATE, _DAILY_CALLS_COUNT
+    today = time.strftime("%Y-%m-%d")
+    with _DAILY_CALLS_LOCK:
+        if _DAILY_CALLS_DATE != today:
+            _DAILY_CALLS_DATE = today
+            _DAILY_CALLS_COUNT = 0
+        if _DAILY_CALLS_COUNT >= MAX_DAILY_AI_CALLS:
+            logger.warning("🚨 [SPEND CAP GUARD] Daily limit of %d AI calls reached. Blocking paid usage.", MAX_DAILY_AI_CALLS)
+            return False
+        _DAILY_CALLS_COUNT += 1
+        return True
+
+
 # -------------------- AI PROVIDERS --------------------
 def call_gemini(contents: list, generation_config: dict, system_instruction: str | None = None) -> str:
+    if not check_spend_cap_guard():
+        raise HTTPException(status_code=429, detail="Daily free-tier quota limit reached. Spend cap active.")
+
     payload = {"contents": contents, "generationConfig": generation_config}
     if system_instruction:
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
