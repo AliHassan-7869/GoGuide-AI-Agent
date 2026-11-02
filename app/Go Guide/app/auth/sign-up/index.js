@@ -26,6 +26,9 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorField, setErrorField] = useState(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -33,24 +36,92 @@ export default function Signup() {
 
   const isDisabled = !fullName || !email || !password || !termsAccepted || loading;
 
+  const parseSignUpError = (code, msg) => {
+    switch (code) {
+      case "auth/email-already-in-use":
+        return {
+          title: "Email Already In Use ❌",
+          message: "An account already exists with this email address. Please sign in instead.",
+          field: "email",
+        };
+      case "auth/invalid-email":
+        return {
+          title: "Invalid Email Address ❌",
+          message: "The email address format is invalid. Please enter a valid email.",
+          field: "email",
+        };
+      case "auth/weak-password":
+        return {
+          title: "Password Too Weak ❌",
+          message: "The password should be at least 6 characters long.",
+          field: "password",
+        };
+      case "auth/network-request-failed":
+        return {
+          title: "Network Error 📡",
+          message: "Unable to reach authentication server. Please check your internet connection.",
+          field: "both",
+        };
+      default:
+        return {
+          title: "Account Creation Failed ❌",
+          message: msg || "Unable to create account. Please check your information and try again.",
+          field: "both",
+        };
+    }
+  };
+
+  const clearErrors = () => {
+    if (errorMessage) {
+      setErrorMessage("");
+      setErrorTitle("");
+      setErrorField(null);
+    }
+  };
+
   const handleCreateAccount = async () => {
+    clearErrors();
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setErrorTitle("Invalid Email Format ❌");
+      setErrorMessage("Please enter a valid email address (e.g. name@example.com).");
+      setErrorField("email");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorTitle("Password Too Short ❌");
+      setErrorMessage("Password must be at least 6 characters long.");
+      setErrorField("password");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
+        cleanEmail,
         password,
       );
 
       await updateProfile(userCredential.user, {
-        displayName: fullName,
+        displayName: fullName.trim(),
       });
 
       Alert.alert("Success 🎉", "Account created successfully");
       router.replace("auth/sign-in");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      console.log("Sign up error:", error.code, error.message);
+      const parsed = parseSignUpError(error.code, error.message);
+      setErrorTitle(parsed.title);
+      setErrorMessage(parsed.message);
+      setErrorField(parsed.field);
+
+      if (Platform.OS !== "web") {
+        Alert.alert(parsed.title, parsed.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -70,6 +141,20 @@ export default function Signup() {
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Start your journey with Guide Go</Text>
 
+        {/* Prominent Error Banner */}
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={22} color="#DC2626" style={{ marginRight: 10, marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.errorTitle}>{errorTitle || "Registration Notice"}</Text>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+            <TouchableOpacity onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={18} color="#991B1B" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Full Name */}
         <View style={styles.inputWrap}>
           <Text style={styles.label}>First Name</Text>
@@ -86,13 +171,19 @@ export default function Signup() {
         <View style={styles.inputWrap}>
           <Text style={styles.label}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              (errorField === "email" || errorField === "both") && styles.inputError,
+            ]}
             placeholder="example@email.com"
             placeholderTextColor={Colors.GRAY}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => {
+              setEmail(v);
+              clearErrors();
+            }}
           />
         </View>
 
@@ -102,12 +193,18 @@ export default function Signup() {
 
           <View style={styles.passwordWrap}>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                (errorField === "password" || errorField === "both") && styles.inputError,
+              ]}
               placeholder="Create a password"
               placeholderTextColor={Colors.GRAY}
               secureTextEntry={!showPassword}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                clearErrors();
+              }}
             />
 
             <TouchableOpacity
@@ -318,5 +415,32 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
     textDecorationLine: "underline",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FCA5A5",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 13,
+    color: "#DC2626",
+    marginBottom: 2,
+  },
+  errorText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 12,
+    color: "#991B1B",
+    lineHeight: 17,
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FFF5F5",
+    borderWidth: 1.5,
   },
 });

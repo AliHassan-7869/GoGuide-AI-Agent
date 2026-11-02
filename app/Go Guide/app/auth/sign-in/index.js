@@ -1,21 +1,21 @@
 import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
-import { Feather } from "@expo/vector-icons"; // Eye icon
+import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    ScrollView,
-    Linking,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  Linking,
 } from "react-native";
 
 export default function SignIn() {
@@ -25,7 +25,10 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // <-- password toggle
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorField, setErrorField] = useState(null); // "email" | "password" | "both" | null
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -33,19 +36,114 @@ export default function SignIn() {
 
   const isDisabled = !email || !password || loading;
 
+  const parseAuthError = (code, msg) => {
+    switch (code) {
+      case "auth/wrong-password":
+        return {
+          title: "Wrong Password ❌",
+          message: "The password you entered is incorrect. Please check your password and try again.",
+          field: "password",
+        };
+      case "auth/user-not-found":
+        return {
+          title: "Wrong Email Address ❌",
+          message: "No account exists with this email address. Please check your email or create a new account.",
+          field: "email",
+        };
+      case "auth/invalid-credential":
+        return {
+          title: "Wrong Email or Password ❌",
+          message: "The email address or password you entered is incorrect. Please verify your credentials and try again.",
+          field: "both",
+        };
+      case "auth/invalid-email":
+        return {
+          title: "Invalid Email Address ❌",
+          message: "The email address format is not valid. Please enter a valid email (e.g. name@example.com).",
+          field: "email",
+        };
+      case "auth/user-disabled":
+        return {
+          title: "Account Disabled ❌",
+          message: "This account has been disabled. Please contact GoGuide support.",
+          field: "both",
+        };
+      case "auth/too-many-requests":
+        return {
+          title: "Too Many Attempts ⏳",
+          message: "Access temporarily disabled due to many failed login attempts. Please wait a moment or reset your password.",
+          field: "both",
+        };
+      case "auth/network-request-failed":
+        return {
+          title: "Network Error 📡",
+          message: "Unable to connect to the authentication server. Please check your internet connection.",
+          field: "both",
+        };
+      default:
+        const lower = (msg || "").toLowerCase();
+        if (lower.includes("password")) {
+          return {
+            title: "Wrong Password ❌",
+            message: "The password you entered is incorrect. Please verify and try again.",
+            field: "password",
+          };
+        }
+        if (lower.includes("email") || lower.includes("user")) {
+          return {
+            title: "Wrong Email Address ❌",
+            message: "No registered account found with this email. Please check your email.",
+            field: "email",
+          };
+        }
+        return {
+          title: "Sign In Failed ❌",
+          message: "Wrong email address or password. Please verify your credentials and try again.",
+          field: "both",
+        };
+    }
+  };
+
   const handleSignIn = async () => {
+    setErrorMessage("");
+    setErrorTitle("");
+    setErrorField(null);
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setErrorTitle("Invalid Email Format ❌");
+      setErrorMessage("Please enter a valid email address (e.g. name@example.com).");
+      setErrorField("email");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await signInWithEmailAndPassword(auth, email, password);
+      const res = await signInWithEmailAndPassword(auth, cleanEmail, password);
       console.log("User signed in:", res);
-      AsyncStorage.setItem("loginUserData", JSON.stringify(res));
-      Alert.alert("Success ✅", "Signed in successfully");
+      await AsyncStorage.setItem("loginUserData", JSON.stringify(res));
 
       router.replace("/mytrip");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      console.log("Sign in error:", error.code, error.message);
+      const parsed = parseAuthError(error.code, error.message);
+      setErrorTitle(parsed.title);
+      setErrorMessage(parsed.message);
+      setErrorField(parsed.field);
+
+      if (Platform.OS !== "web") {
+        Alert.alert(parsed.title, parsed.message);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearErrors = () => {
+    if (errorMessage) {
+      setErrorMessage("");
+      setErrorTitle("");
+      setErrorField(null);
     }
   };
 
@@ -64,18 +162,41 @@ export default function SignIn() {
             <Text style={styles.title}>Welcome Back 👋</Text>
             <Text style={styles.subtitle}>Sign in to continue your journey</Text>
 
+            {/* Prominent Error Banner */}
+            {errorMessage ? (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={22} color="#DC2626" style={{ marginRight: 10, marginTop: 1 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.errorTitle}>{errorTitle || "Wrong Credentials"}</Text>
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+                <TouchableOpacity onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={18} color="#991B1B" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {/* Email */}
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Email Address</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  (errorField === "email" || errorField === "both") && styles.inputError,
+                ]}
                 placeholder="Enter your email"
                 placeholderTextColor={Colors.GRAY}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  clearErrors();
+                }}
               />
+              {(errorField === "email" || errorField === "both") && (
+                <Text style={styles.fieldErrorHint}>Please check your email address</Text>
+              )}
             </View>
 
             {/* Password */}
@@ -83,12 +204,18 @@ export default function SignIn() {
               <Text style={styles.label}>Password</Text>
               <View style={{ position: "relative" }}>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    (errorField === "password" || errorField === "both") && styles.inputError,
+                  ]}
                   placeholder="Enter your password"
                   placeholderTextColor={Colors.GRAY}
                   secureTextEntry={!showPassword}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    clearErrors();
+                  }}
                 />
                 <TouchableOpacity
                   style={{ position: "absolute", right: 16, top: 14 }}
@@ -101,6 +228,9 @@ export default function SignIn() {
                   />
                 </TouchableOpacity>
               </View>
+              {(errorField === "password" || errorField === "both") && (
+                <Text style={styles.fieldErrorHint}>Please check your password</Text>
+              )}
             </View>
 
             {/* Sign In Button */}
@@ -181,10 +311,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.GRAY,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 24,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FCA5A5",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 13,
+    color: "#DC2626",
+    marginBottom: 2,
+  },
+  errorText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 12,
+    color: "#991B1B",
+    lineHeight: 17,
   },
   inputWrap: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   label: {
     fontFamily: "Outfit-Regular",
@@ -202,8 +354,20 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Regular",
     fontSize: 15,
   },
+  inputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FFF5F5",
+    borderWidth: 1.5,
+  },
+  fieldErrorHint: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 11,
+    color: "#DC2626",
+    marginTop: 4,
+    marginLeft: 4,
+  },
   primaryBtn: {
-    marginTop: 30,
+    marginTop: 26,
     backgroundColor: Colors.PRIMARY,
     paddingVertical: 16,
     borderRadius: 50,
@@ -225,7 +389,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   secondaryBtn: {
-    marginTop: 25,
+    marginTop: 22,
   },
   secondaryText: {
     textAlign: "center",
