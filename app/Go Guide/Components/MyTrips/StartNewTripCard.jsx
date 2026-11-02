@@ -241,33 +241,6 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
   return (
     <View style={styles.container}>
-      {/* 0. SHORTCUT TO PROFILE SAVED TRIPS */}
-      {userTrips && userTrips.length > 0 && (
-        <TouchableOpacity
-          style={[styles.savedTripsBanner, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => {
-            triggerHaptic();
-            router.push("/(tabs)/profile");
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={[styles.savedTripsBannerIcon, { backgroundColor: activeAccent + "18" }]}>
-              <Ionicons name="bookmark" size={17} color={activeAccent} />
-            </View>
-            <View>
-              <Text style={[styles.savedTripsBannerTitle, { color: theme.text }]}>
-                {userTrips.length} Saved {userTrips.length === 1 ? "Trip" : "Trips"} in Profile
-              </Text>
-              <Text style={[styles.savedTripsBannerSub, { color: theme.subtext }]}>
-                Tap to view your complete saved itineraries in Profile
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
-        </TouchableOpacity>
-      )}
-
       {/* 1. HERO BANNER CARD */}
       <View style={styles.heroCardWrapper}>
         <LinearGradient

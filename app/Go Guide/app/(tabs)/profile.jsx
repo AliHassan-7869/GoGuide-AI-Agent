@@ -347,17 +347,6 @@ export default function Profile() {
   // Menu Groups
   const travelHubItems = [
     {
-      id: "saved-trips",
-      title: "My Saved Trips",
-      subtitle: "Personal AI vacation itineraries & plans",
-      icon: "map-outline",
-      badge: savedTripsList.length > 0 ? `${savedTripsList.length}` : null,
-      onPress: () => {
-        triggerHaptic();
-        setShowSavedTripsModal(true);
-      },
-    },
-    {
       id: "favorites",
       title: "Favorite Places & Wishlist",
       subtitle: "Liked attractions, beaches & spots",
@@ -545,18 +534,29 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Travel Stats Bar */}
+        {/* Travel Stats Bar (Trips, Bookings, Places, Saved) */}
         <View style={[styles.statsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <TouchableOpacity
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              setShowSavedTripsModal(true);
+              handleNavigate("/mytrip");
             }}
             activeOpacity={0.7}
           >
             <Text style={[styles.statValue, { color: theme.text }]}>{stats.trips}</Text>
             <Text style={[styles.statLabel, { color: theme.subtext }]}>Trips</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
+
+          <TouchableOpacity
+            style={styles.statCol}
+            onPress={() => handleNavigate("/my-bookings")}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.statValue, { color: theme.text }]}>{stats.bookings}</Text>
+            <Text style={[styles.statLabel, { color: theme.subtext }]}>Bookings</Text>
           </TouchableOpacity>
 
           <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
@@ -577,11 +577,14 @@ export default function Profile() {
 
           <TouchableOpacity
             style={styles.statCol}
-            onPress={() => handleNavigate("/my-bookings")}
+            onPress={() => {
+              triggerHaptic();
+              setShowSavedTripsModal(true);
+            }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.statValue, { color: theme.text }]}>{stats.bookings}</Text>
-            <Text style={[styles.statLabel, { color: theme.subtext }]}>Bookings</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{savedTripsList.length}</Text>
+            <Text style={[styles.statLabel, { color: theme.subtext }]}>Saved</Text>
           </TouchableOpacity>
         </View>
 
