@@ -195,28 +195,8 @@ export default function SignIn() {
         return;
       }
 
-      // 2. Email verification warning if not verified
-      if (res.user && !res.user.emailVerified) {
-        Alert.alert(
-          "Email Not Verified ✉️",
-          "Your email address is not verified yet. Would you like us to resend the verification link?",
-          [
-            { text: "Continue Anyway", onPress: () => proceedToApp(res) },
-            {
-              text: "Resend Link",
-              onPress: async () => {
-                try {
-                  await sendEmailVerification(res.user);
-                  Alert.alert("Verification Sent", "Check your inbox for the verification link.");
-                } catch (e) { }
-                proceedToApp(res);
-              },
-            },
-          ]
-        );
-      } else {
-        await proceedToApp(res);
-      }
+      // Successfully authenticated -> Proceed directly to app
+      await proceedToApp(res);
     } catch (error) {
       console.log("Sign in error:", error.code, error.message);
       const parsed = parseAuthError(error.code, error.message);
