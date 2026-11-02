@@ -23,6 +23,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
+import PolicyModal from "../../Components/PolicyModal";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { getDestinationImage } from "../../Components/constants/Destinations";
@@ -43,6 +44,7 @@ export default function Profile() {
   const [favoritePlacesList, setFavoritePlacesList] = useState([]);
   const [showSavedTripsModal, setShowSavedTripsModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
+  const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
 
   const triggerHaptic = () => {
     try {
@@ -425,14 +427,14 @@ export default function Profile() {
       title: "Privacy Policy",
       subtitle: "Data protection, GDPR & traveler rights",
       icon: "shield-checkmark-outline",
-      onPress: () => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy"),
+      onPress: () => setPolicyModal({ visible: true, type: "privacy" }),
     },
     {
       id: "terms",
       title: "Terms of Service",
       subtitle: "AI disclaimer, bookings & terms of use",
       icon: "document-text-outline",
-      onPress: () => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms"),
+      onPress: () => setPolicyModal({ visible: true, type: "terms" }),
     },
   ];
 
@@ -857,6 +859,12 @@ export default function Profile() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+          {/* Same-page Policy / Terms Modal */}
+      <PolicyModal
+        visible={policyModal.visible}
+        type={policyModal.type}
+        onClose={() => setPolicyModal({ visible: false, type: "terms" })}
+      />
     </SafeAreaView>
   );
 }

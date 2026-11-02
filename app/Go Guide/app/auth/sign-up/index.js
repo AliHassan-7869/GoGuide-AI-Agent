@@ -1,4 +1,5 @@
 import { Colors } from "@/Components/constants/constants";
+import PolicyModal from "@/Components/PolicyModal";
 import { auth } from "@/Configs/FirebaseConfig";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRouter } from "expo-router";
@@ -26,6 +27,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorField, setErrorField] = useState(null);
@@ -289,14 +291,14 @@ export default function Signup() {
             I agree to GoGuide's{" "}
             <Text
               style={styles.termsLink}
-              onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms")}
+              onPress={() => setPolicyModal({ visible: true, type: "terms" })}
             >
               Terms & Conditions
             </Text>{" "}
             and{" "}
             <Text
               style={styles.termsLink}
-              onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy")}
+              onPress={() => setPolicyModal({ visible: true, type: "privacy" })}
             >
               Privacy Policy
             </Text>
@@ -324,7 +326,13 @@ export default function Signup() {
             Already have an account? Sign In
           </Text>
         </TouchableOpacity>
-      </View>
+            {/* Same-page Policy / Terms Modal */}
+      <PolicyModal
+        visible={policyModal.visible}
+        type={policyModal.type}
+        onClose={() => setPolicyModal({ visible: false, type: "terms" })}
+      />
+    </View>
     </KeyboardAvoidingView>
   );
 }

@@ -2,6 +2,7 @@
 import { Colors } from "@/Components/constants/constants";
 import { auth } from "@/Configs/FirebaseConfig";
 import { send2FaOtp, verify2FaOtp } from "@/Configs/AiModel";
+import PolicyModal from "@/Components/PolicyModal";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
@@ -40,6 +41,7 @@ export default function SignIn() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [pendingUser, setPendingUser] = useState(null);
+  const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -323,14 +325,14 @@ export default function SignIn() {
               By signing in, you agree to GoGuide's{" "}
               <Text
                 style={styles.legalLink}
-                onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/terms")}
+                onPress={() => setPolicyModal({ visible: true, type: "terms" })}
               >
                 Terms of Service
               </Text>{" "}
               &{" "}
               <Text
                 style={styles.legalLink}
-                onPress={() => Linking.openURL("https://dist-seven-tau-79.vercel.app/privacy")}
+                onPress={() => setPolicyModal({ visible: true, type: "privacy" })}
               >
                 Privacy Policy
               </Text>
@@ -411,6 +413,12 @@ export default function SignIn() {
           </View>
         </View>
       </Modal>
+          {/* Same-page Policy / Terms Modal */}
+      <PolicyModal
+        visible={policyModal.visible}
+        type={policyModal.type}
+        onClose={() => setPolicyModal({ visible: false, type: "terms" })}
+      />
     </View>
   );
 }
