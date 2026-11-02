@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function signedInUid() {
+      return signedIn() && request.auth.uid != null;
+    }
+
+    function isOwnerByEmail(emailField) {
+      return signedIn() && request.auth.token.email != null && emailField == request.auth.token.email;
+    }
+
+    function isOwnerByUid(uidField) {
+      return signedInUid() && uidField == request.auth.uid;
+    }
+
+    // 1. User Trips: Private to the trip creator (by email or UID)
+    match /UserTrips/{docId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
+
+      allow create: if (isOwnerByEmail(request.resource.data.userEmail) || isOwnerByUid(request.resource.data.userId));
+
+      allow update: if (isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
+        && (request.resource.data.userEmail == resource.data.userEmail);
+    }
+
+    // 2. User Profiles: Private to the authenticated user
+    match /users/{userId} {
+      allow read, write: if signedInUid() && request.auth.uid == userId;
+    }
+
+    // 3. User Bookings: Private to the booking owner
+    match /UserBookings/{bookingId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail);
+    }
+
+    match /Bookings/{bookingId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail);
+    }
+
+    // 4. Support Tickets: Anyone can create; users can ONLY read their own tickets
+    match /SupportTickets/{ticketId} {
+      allow create: if true;
+      allow read: if signedIn() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
+      );
+      // No client-side modification or deletion of support tickets
+      allow update, delete: if false;
+    }
+
+    // 5. Shared Trips: Publicly readable; create/modify restricted to authenticated owners
+    match /SharedTrips/{tripId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
+      );
+    }
+
+    // 6. Telemetry & Crash Reports: App can log errors; NEVER readable or modifiable from client
+    match /AppErrors/{errorId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // Everything else is denied by default.
+  }
+}
+

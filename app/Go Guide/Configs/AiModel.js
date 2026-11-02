@@ -74,7 +74,7 @@ export const generationConfig = {
 const REQUEST_TIMEOUT_MS = 120000;
 
 // Calls the backend with the signed-in user's Firebase ID token.
-async function callBackend(path, body) {
+async function callBackend(path, body = null, method = "POST") {
   if (!API_URL) {
     throw new Error("Backend URL is not configured");
   }
@@ -90,15 +90,19 @@ async function callBackend(path, body) {
 
   let response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      method: "POST",
+    const options = {
+      method,
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${idToken}`,
+        Authorization: `Bearer ${idToken}`,
       },
-      body: JSON.stringify(body),
       signal: controller.signal,
-    });
+    };
+    if (body && method !== "GET") {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+
+    response = await fetch(`${API_URL}${path}`, options);
   } catch (networkError) {
     console.error(`[Backend] Network error on ${path}:`, networkError.message);
     throw new Error("Could not reach GoGuide server, please check your connection");
@@ -230,3 +234,49 @@ export const fetchDestinationSafety = async (destination) => {
   }
   return null;
 };
+
+// Premium Deep Plan (Async background polling with zero timeout risk)
+export const generateDeepTripPlan = async (params, onProgress) => {
+  console.log("[DeepAgent] Enqueueing deep trip for:", params.destination);
+  const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
+  const payload = {
+    destination: String(params.destination || "").slice(0, 100),
+    days,
+    budget: String(params.budget || "Moderate").slice(0, 50),
+  };
+  if (params.interests) payload.interests = String(params.interests).slice(0, 500);
+  if (params.categories) payload.categories = String(params.categories).slice(0, 300);
+
+  // 1. Kick off background task
+  const initData = await callBackend("/plan-deep", payload, "POST");
+  const jobId = initData.job_id;
+
+  // 2. Poll until complete (maximum 30 polls = ~90 seconds)
+  const maxAttempts = 30;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    if (onProgress) {
+      onProgress(Math.min(95, Math.round(((attempt + 1) / maxAttempts) * 100)));
+    }
+    const statusData = await callBackend(`/plan-deep/${jobId}`, null, "GET");
+    if (statusData.status === "ready" && statusData.plan) {
+      const plan = statusData.plan;
+      return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));
+    }
+  }
+
+  throw new Error("Deep plan is taking longer than expected. Please try again.");
+};
+
+// 100% Free Zero-Token Destination Essentials (Visa, Events, Emergency, Currency)
+export const fetchDestinationEssentials = async (destination) => {
+  if (!destination) return null;
+  try {
+    const encoded = encodeURIComponent(String(destination).trim().slice(0, 100));
+    return await callBackend(`/tools/destination-info?destination=${encoded}`, null, "GET");
+  } catch (e) {
+    console.warn("[Essentials Tool] Notice:", e.message);
+    return null;
+  }
+};
+

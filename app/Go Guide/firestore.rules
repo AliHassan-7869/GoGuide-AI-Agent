@@ -3,49 +3,76 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper functions
     function signedIn() {
       return request.auth != null;
     }
 
-    function signedInEmail() {
-      return signedIn() && request.auth.token.email != null;
+    function signedInUid() {
+      return signedIn() && request.auth.uid != null;
     }
 
-    // Trips are owned by the email stored in `userEmail`.
+    function isOwnerByEmail(emailField) {
+      return signedIn() && request.auth.token.email != null && emailField == request.auth.token.email;
+    }
+
+    function isOwnerByUid(uidField) {
+      return signedInUid() && uidField == request.auth.uid;
+    }
+
+    // 1. User Trips: Private to the trip creator (by email or UID)
     match /UserTrips/{docId} {
-      allow read, delete: if signedInEmail()
-        && resource.data.userEmail == request.auth.token.email;
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
 
-      allow create: if signedInEmail()
-        && request.resource.data.userEmail == request.auth.token.email;
+      allow create: if (isOwnerByEmail(request.resource.data.userEmail) || isOwnerByUid(request.resource.data.userId));
 
-      // Owner can update, but cannot hand the trip to someone else
-      allow update: if signedInEmail()
-        && resource.data.userEmail == request.auth.token.email
-        && request.resource.data.userEmail == request.auth.token.email;
+      allow update: if (isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
+        && (request.resource.data.userEmail == resource.data.userEmail);
     }
 
-    // Each user can only read and write their own profile.
+    // 2. User Profiles: Private to the authenticated user
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read, write: if signedInUid() && request.auth.uid == userId;
     }
 
-    // Support tickets can be submitted by users
+    // 3. User Bookings: Private to the booking owner
+    match /UserBookings/{bookingId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail);
+    }
+
+    match /Bookings/{bookingId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail);
+    }
+
+    // 4. Support Tickets: Anyone can create; users can ONLY read their own tickets
     match /SupportTickets/{ticketId} {
       allow create: if true;
-      allow read: if signedIn();
+      allow read: if signedIn() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
+      );
+      // No client-side modification or deletion of support tickets
+      allow update, delete: if false;
     }
 
-    // Public shared trips viewable by anyone with the link
+    // 5. Shared Trips: Publicly readable; create/modify restricted to authenticated owners
     match /SharedTrips/{tripId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
+      );
     }
 
-    // Telemetry & Error Logging (Crash reports from ErrorBoundary)
+    // 6. Telemetry & Crash Reports: App can log errors; NEVER readable or modifiable from client
     match /AppErrors/{errorId} {
       allow create: if true;
-      allow read: if signedIn();
+      allow read, update, delete: if false;
     }
 
     // Everything else is denied by default.
