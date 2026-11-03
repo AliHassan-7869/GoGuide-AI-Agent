@@ -68,7 +68,7 @@ export default function SelectBudget() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.background }]}
+      style={[styles.safeArea, { backgroundColor: theme.bg }]}
       edges={["top", "left", "right"]}
     >
       <Stack.Screen options={{ headerShown: false }} />
@@ -233,7 +233,7 @@ export default function SelectBudget() {
       <View
         style={[
           styles.footerContainer,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
+          { backgroundColor: theme.bg, borderTopColor: theme.border },
         ]}
       >
         <TouchableOpacity
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   heroPreTitle: {
     fontSize: 11,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     color: "#64748B",
     marginTop: 14,
@@ -295,12 +295,12 @@ const styles = StyleSheet.create({
   },
   mainHeading: {
     fontSize: 26,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
     marginBottom: 8,
   },
   subHeading: {
     fontSize: 14,
-    fontFamily: "outfit",
+    fontFamily: "Outfit-Regular",
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -315,11 +315,11 @@ const styles = StyleSheet.create({
   },
   currencyBadgeTitle: {
     fontSize: 13,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
   },
   currencyBadgeSub: {
     fontSize: 11,
-    fontFamily: "outfit",
+    fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
   budgetList: {
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   budgetTitle: {
     fontSize: 17,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
   },
   meterBadge: {
     paddingHorizontal: 8,
@@ -363,12 +363,12 @@ const styles = StyleSheet.create({
   },
   meterText: {
     fontSize: 12,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
   },
   budgetDesc: {
     fontSize: 13,
-    fontFamily: "outfit",
+    fontFamily: "Outfit-Regular",
     lineHeight: 18,
   },
   cardFooter: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   rangeText: {
     fontSize: 13,
-    fontFamily: "outfit-medium",
+    fontFamily: "Outfit-Medium",
   },
   radioCircle: {
     width: 22,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   continueBtnText: {
     fontSize: 16,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
     color: "#FFF",
   },
 });

@@ -284,11 +284,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
   },
   subtitle: {
     fontSize: 12,
-    fontFamily: "outfit",
+    fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
   closeCircle: {
@@ -308,13 +308,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
     marginTop: 14,
     marginBottom: 6,
   },
   paragraph: {
     fontSize: 13,
-    fontFamily: "outfit",
+    fontFamily: "Outfit-Regular",
     lineHeight: 21,
     marginBottom: 12,
   },
@@ -333,6 +333,6 @@ const styles = StyleSheet.create({
   doneBtnText: {
     color: "#FFFFFF",
     fontSize: 15,
-    fontFamily: "outfit-bold",
+    fontFamily: "Outfit-Bold",
   },
 });

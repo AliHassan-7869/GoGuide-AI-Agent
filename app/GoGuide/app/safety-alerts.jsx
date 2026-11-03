@@ -235,7 +235,7 @@ export default function SafetyAlerts() {
         <Text style={[styles.sectionHeader, { color: theme.text }]}>Current Advisories</Text>
 
         {/* Alert Cards */}
-        {safetyMockData.map((alert) => (
+        {(alerts && alerts.length > 0 ? alerts : safetyMockData).map((alert) => (
           <View key={alert.id} style={[styles.alertCard, { backgroundColor: theme.card }]}>
             <View style={[styles.iconWrapper, { backgroundColor: alert.bgColor }]}>
               <Ionicons name={alert.icon} size={28} color={alert.color} />

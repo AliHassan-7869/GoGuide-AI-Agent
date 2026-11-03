@@ -147,12 +147,15 @@ export default function Signup() {
         console.log("Email verification notice:", emailErr.message);
       }
 
-      Alert.alert(
-        "Account Created 🎉",
-        "A verification email has been sent to " + cleanEmail + ". Please verify your email to unlock all AI travel planning features.",
-        [{ text: "Sign In", onPress: () => router.replace("auth/sign-in") }]
-      );
-      router.replace("auth/sign-in");
+      if (Platform.OS === "web") {
+        router.replace("auth/sign-in");
+      } else {
+        Alert.alert(
+          "Account Created 🎉",
+          "A verification email has been sent to " + cleanEmail + ". Please verify your email to unlock all AI travel planning features.",
+          [{ text: "Sign In", onPress: () => router.replace("auth/sign-in") }]
+        );
+      }
     } catch (error) {
       console.log("Sign up error:", error.code, error.message);
       const parsed = parseSignUpError(error.code, error.message);

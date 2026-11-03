@@ -1,9 +1,12 @@
-import { ScrollViewStyleReset } from "expo-router/html";
+import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
 
 // Root HTML template for Expo Router Web Static Export
 export default function Root({ children }) {
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } =
+    typeof useServerDocumentContext === "function" ? useServerDocumentContext() : {};
+
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -81,8 +84,12 @@ export default function Root({ children }) {
             word-break: normal;
           }
         ` }} />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

@@ -35,7 +35,7 @@ const GENERATION_STEPS = [
 ];
 
 export default function GenerateTrip() {
-  const { tripData, setTripData, preferences } = useContext(CreateTripContext);
+  const { tripData, setTripData, preferences, userData } = useContext(CreateTripContext);
   const theme = useTheme();
   const isDark = preferences?.darkMode;
 

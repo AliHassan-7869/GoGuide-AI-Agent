@@ -185,14 +185,19 @@ export default function Profile() {
 
       // Query bookings count
       let bookingsCount = 0;
+      try {
+        const localBookingsRaw = await AsyncStorage.getItem("@goguide_user_bookings");
+        const localBookings = localBookingsRaw ? JSON.parse(localBookingsRaw) : [];
+        bookingsCount = Array.isArray(localBookings) ? localBookings.length : 0;
+      } catch (e) {}
       if (email) {
         try {
           const bookingsQuery = query(
-            collection(db, "Bookings"),
+            collection(db, "UserBookings"),
             where("userEmail", "==", email)
           );
           const bookingsSnap = await getDocs(bookingsQuery);
-          bookingsCount = bookingsSnap.size;
+          bookingsCount = Math.max(bookingsCount, bookingsSnap.size);
         } catch (e) {}
       }
 

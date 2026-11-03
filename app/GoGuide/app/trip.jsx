@@ -460,10 +460,16 @@ export default function SharedTripView() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.essentialLabel}>VISA & ENTRY</Text>
                     <Text style={styles.essentialMainVal}>
-                      {essentials.visa.visa_required || "Passport required"}
+                      {typeof essentials.visa === "string"
+                        ? "Entry & Visa Guidelines"
+                        : essentials.visa.visa_required || "Passport required"}
                     </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={2}>
-                      {essentials.visa.stay_limit ? `Stay limit: ${essentials.visa.stay_limit}` : essentials.visa.notes || "Check your passport validity."}
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.visa === "string"
+                        ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "")
+                        : essentials.visa.stay_limit
+                        ? `Stay limit: ${essentials.visa.stay_limit}`
+                        : essentials.visa.notes || "Check your passport validity."}
                     </Text>
                   </View>
                 </View>
@@ -478,10 +484,16 @@ export default function SharedTripView() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.essentialLabel}>MONEY & TIPPING</Text>
                     <Text style={styles.essentialMainVal}>
-                      {essentials.currency.currency_code ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}` : "Cash & Cards"}
+                      {typeof essentials.currency === "string"
+                        ? "Currency & Payments"
+                        : essentials.currency.currency_code
+                        ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
+                        : "Cash & Cards"}
                     </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={2}>
-                      {essentials.currency.tipping || "Standard 10% tipping appreciated."}
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.currency === "string"
+                        ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "")
+                        : essentials.currency.tipping || "Standard 10% tipping appreciated."}
                     </Text>
                   </View>
                 </View>
@@ -496,17 +508,21 @@ export default function SharedTripView() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.essentialLabel}>EMERGENCY NUMBERS</Text>
                     <Text style={styles.essentialMainVal}>
-                      Police: {essentials.emergency.police || "911/112"} · Amb: {essentials.emergency.ambulance || "911/112"}
+                      {typeof essentials.emergency === "string"
+                        ? "Local Emergency & Health"
+                        : `Police: ${essentials.emergency.police || "911/112"} · Amb: ${essentials.emergency.ambulance || "911/112"}`}
                     </Text>
-                    <Text style={styles.essentialSubVal}>
-                      General hotline: {essentials.emergency.general || "112"}
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.emergency === "string"
+                        ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "")
+                        : `General hotline: ${essentials.emergency.general || "112"}`}
                     </Text>
                   </View>
                 </View>
               )}
 
               {/* Seasonal & Events */}
-              {essentials.seasonal_events && essentials.seasonal_events.length > 0 && (
+              {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
                 <View style={styles.essentialCard}>
                   <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
                     <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
@@ -514,10 +530,14 @@ export default function SharedTripView() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.essentialLabel}>SEASON & HIGHLIGHTS</Text>
                     <Text style={styles.essentialMainVal}>
-                      {essentials.seasonal_events[0].event} ({essentials.seasonal_events[0].month})
+                      {typeof essentials.events === "string"
+                        ? "Seasonal Highlights"
+                        : `${essentials.seasonal_events[0].event} (${essentials.seasonal_events[0].month})`}
                     </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={2}>
-                      {essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.events === "string"
+                        ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "")
+                        : essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
                     </Text>
                   </View>
                 </View>
@@ -637,7 +657,7 @@ export default function SharedTripView() {
                   </View>
 
                   <Text style={styles.actTitle}>{act.placeName}</Text>
-                  <Text style={styles.actDetails}>{act.placeDetails}</Text>
+                  <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
 
                   <View style={styles.actBottomRow}>
                     {act.travelTime && (
