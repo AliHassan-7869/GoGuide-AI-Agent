@@ -98,9 +98,12 @@ def isolate(monkeypatch):
     monkeypatch.setattr(app_module, "GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.setattr(app_module, "DEEPSEEK_API_KEY", "test-deepseek-key")
     monkeypatch.setattr(app_module, "RATE_LIMIT_PER_HOUR", 30)
+    monkeypatch.setattr(app_module, "get_curated_plan", lambda *a, **kw: None)
     app_module._request_log.clear()
+    app_module._PLAN_CACHE.clear()
     yield
     app_module._request_log.clear()
+    app_module._PLAN_CACHE.clear()
 
 
 @pytest.fixture

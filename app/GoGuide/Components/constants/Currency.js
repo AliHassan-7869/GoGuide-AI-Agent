@@ -59,10 +59,23 @@ export function detectCurrencyFromLocation(locStr = "") {
     s.includes("peshawar") ||
     s.includes("multan") ||
     s.includes("faisalabad") ||
+    s.includes("sialkot") ||
+    s.includes("gujranwala") ||
+    s.includes("bahawalpur") ||
+    s.includes("sargodha") ||
+    s.includes("abbottabad") ||
+    s.includes("murree") ||
+    s.includes("swat") ||
+    s.includes("naran") ||
+    s.includes("kaghan") ||
     s.includes("quetta") ||
     s.includes("skardu") ||
     s.includes("hunza") ||
-    s.includes("gilgit")
+    s.includes("gilgit") ||
+    s.includes("punjab") ||
+    s.includes("sindh") ||
+    s.includes("kpk") ||
+    s.includes("balochistan")
   ) {
     return "PKR";
   }
@@ -236,6 +249,46 @@ export function detectCurrencyFromLocation(locStr = "") {
 }
 
 /**
+ * Detects the user's home/origin currency from their departure location string,
+ * falling back to device timezone (e.g. Asia/Karachi -> PKR) if "Current Location" or empty.
+ */
+export function detectUserHomeCurrency(fromLocStr = "") {
+  const s = (fromLocStr || "").trim().toLowerCase();
+  if (s && !s.includes("current location") && !s.includes("my location") && !s.includes("origin")) {
+    const detected = detectCurrencyFromLocation(fromLocStr);
+    if (detected !== "USD" || s.includes("united states") || s.includes("usa") || s.includes("new york") || s.includes("los angeles")) {
+      return detected;
+    }
+  }
+
+  // Fallback to device timezone detection
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    const tzLower = tz.toLowerCase();
+    if (tzLower.includes("karachi") || tzLower.includes("islamabad") || tzLower.includes("pakistan")) return "PKR";
+    if (tzLower.includes("dubai") || tzLower.includes("muscat")) return "AED";
+    if (tzLower.includes("riyadh")) return "SAR";
+    if (tzLower.includes("london")) return "GBP";
+    if (tzLower.includes("istanbul")) return "TRY";
+    if (tzLower.includes("tokyo")) return "JPY";
+    if (tzLower.includes("bangkok")) return "THB";
+    if (tzLower.includes("jakarta")) return "IDR";
+    if (tzLower.includes("kolkata") || tzLower.includes("calcutta")) return "INR";
+    if (tzLower.includes("toronto") || tzLower.includes("vancouver")) return "CAD";
+    if (tzLower.includes("sydney") || tzLower.includes("melbourne")) return "AUD";
+    if (tzLower.includes("zurich")) return "CHF";
+    if (tzLower.includes("qatar")) return "QAR";
+    if (tzLower.includes("kuwait")) return "KWD";
+    if (tzLower.includes("kuala_lumpur")) return "MYR";
+    if (tzLower.includes("singapore")) return "SGD";
+    if (tzLower.includes("shanghai")) return "CNY";
+    if (tzLower.startsWith("europe/")) return "EUR";
+  } catch (e) {}
+
+  return "PKR";
+}
+
+/**
  * Returns symbol for given currency code
  */
 export function getCurrencySymbol(code = "USD") {
@@ -280,21 +333,31 @@ export function formatCurrencyAmount(amountInTargetCurrency, targetCurrency = "U
 }
 
 /**
- * Generates dynamic daily budget ranges in target currency for select-budget screen
+ * Generates dynamic daily budget ranges in target destination currency AND user's home currency
+ * for the select-budget screen (Economical, Moderate, Luxury)
  */
-export function getDailyBudgetTiers(currencyCode = "USD") {
-  const norm = (currencyCode || "USD").toUpperCase();
+export function getDailyBudgetTiers(destCurrencyCode = "USD", homeCurrencyCode = "PKR") {
+  const norm = (destCurrencyCode || "USD").toUpperCase();
   const rate = CURRENCY_RATES[norm]?.rate || 1.0;
   const symbol = CURRENCY_RATES[norm]?.symbol || norm + " ";
+
+  const homeNorm = (homeCurrencyCode || "PKR").toUpperCase();
+  const homeRate = CURRENCY_RATES[homeNorm]?.rate || 1.0;
+  const homeSymbol = CURRENCY_RATES[homeNorm]?.symbol || homeNorm + " ";
 
   // Base USD ranges: Economical: 50-100, Moderate: 150-280, Luxury: 350+
   const econLow = Math.round(50 * rate);
   const econHigh = Math.round(100 * rate);
+  const econHomeLow = Math.round(50 * homeRate);
+  const econHomeHigh = Math.round(100 * homeRate);
 
   const modLow = Math.round(150 * rate);
   const modHigh = Math.round(280 * rate);
+  const modHomeLow = Math.round(150 * homeRate);
+  const modHomeHigh = Math.round(280 * homeRate);
 
   const luxLow = Math.round(350 * rate);
+  const luxHomeLow = Math.round(350 * homeRate);
 
   return [
     {
@@ -304,6 +367,7 @@ export function getDailyBudgetTiers(currencyCode = "USD") {
       meter: symbol.trim(),
       badgeColor: "#10B981",
       range: `${symbol}${econLow.toLocaleString()} - ${symbol}${econHigh.toLocaleString()} / day`,
+      homeRange: `${homeSymbol}${econHomeLow.toLocaleString()} - ${homeSymbol}${econHomeHigh.toLocaleString()} / day`,
       description: "Smart boutique stays, local metro & authentic street food gems.",
       icon: "🪙",
     },
@@ -314,6 +378,7 @@ export function getDailyBudgetTiers(currencyCode = "USD") {
       meter: `${symbol.trim()} ${symbol.trim()}`,
       badgeColor: "#3B82F6",
       range: `${symbol}${modLow.toLocaleString()} - ${symbol}${modHigh.toLocaleString()} / day`,
+      homeRange: `${homeSymbol}${modHomeLow.toLocaleString()} - ${homeSymbol}${modHomeHigh.toLocaleString()} / day`,
       description: "Handpicked 4★ hotels, curated cafe dining & express transit.",
       icon: "💳",
     },
@@ -324,6 +389,7 @@ export function getDailyBudgetTiers(currencyCode = "USD") {
       meter: `${symbol.trim()} ${symbol.trim()} ${symbol.trim()}`,
       badgeColor: "#8B5CF6",
       range: `${symbol}${luxLow.toLocaleString()}+ / day`,
+      homeRange: `${homeSymbol}${luxHomeLow.toLocaleString()}+ / day`,
       description: "5★ resorts, private chauffeur & VIP skip-the-line access.",
       icon: "💎",
     },

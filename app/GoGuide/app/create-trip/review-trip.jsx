@@ -19,7 +19,7 @@ import { auth } from "../../Configs/FirebaseConfig";
 import { sendEmailVerification } from "firebase/auth";
 
 import { Colors } from "../../Components/constants/constants";
-import { detectCurrencyFromLocation, convertAmount, formatCurrencyAmount, CURRENCY_RATES } from "../../Components/constants/Currency";
+import { detectCurrencyFromLocation, detectUserHomeCurrency, convertAmount, formatCurrencyAmount, CURRENCY_RATES } from "../../Components/constants/Currency";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -92,8 +92,16 @@ export default function ReviewTrip() {
     tripData?.totalNoOfDays || 5;
 
   // Currency Calculations
-  const destCurrency = detectCurrencyFromLocation(tripData?.toLocation?.name || "");
-  const homeCurrency = detectCurrencyFromLocation(tripData?.fromLocation?.name || "Pakistan");
+  const destLocationStr =
+    tripData?.toLocation?.name ||
+    tripData?.locationInfo?.name ||
+    tripData?.destination ||
+    "";
+  const destCurrency =
+    tripData?.destinationCurrency || detectCurrencyFromLocation(destLocationStr);
+  const homeCurrency =
+    tripData?.homeCurrency ||
+    detectUserHomeCurrency(tripData?.fromLocation?.name || "");
 
   const dailyBaseUSD = budgetTier.toLowerCase().includes("econ")
     ? 75

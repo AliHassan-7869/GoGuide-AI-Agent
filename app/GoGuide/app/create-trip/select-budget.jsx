@@ -19,6 +19,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import {
   CURRENCY_RATES,
   detectCurrencyFromLocation,
+  detectUserHomeCurrency,
   getDailyBudgetTiers,
 } from "../../Components/constants/Currency";
 
@@ -38,17 +39,28 @@ export default function SelectBudget() {
     } catch (e) {}
   };
 
-  // Detect Destination Currency dynamically (e.g. Dubai -> AED, Paris -> EUR, Lahore -> PKR)
+  // Detect User Origin Currency & Destination Currency dynamically
+  const origin = tripData?.fromLocation?.name || "";
+  const originCity = origin ? origin.split(",")[0].replace(/\s*\(Current Location\)/i, "") : "Your Location";
+  const homeCurrency = detectUserHomeCurrency(origin);
+  const homeCurrencyInfo = CURRENCY_RATES[homeCurrency] || CURRENCY_RATES.PKR;
+
   const destination =
     tripData?.toLocation?.name ||
     tripData?.locationInfo?.name ||
     tripData?.destination ||
     "";
+  const destCity = destination ? destination.split(",")[0] : "Destination";
   const destCurrency = detectCurrencyFromLocation(destination);
   const destCurrencyInfo = CURRENCY_RATES[destCurrency] || CURRENCY_RATES.USD;
 
-  // Generate dynamic spending ranges in the destination's local currency
-  const budgets = getDailyBudgetTiers(destCurrency);
+  const exchangeRate =
+    destCurrencyInfo.rate > 0
+      ? (homeCurrencyInfo.rate / destCurrencyInfo.rate).toFixed(2)
+      : "1.00";
+
+  // Generate dynamic spending ranges in both the destination's local currency AND user's home currency
+  const budgets = getDailyBudgetTiers(destCurrency, homeCurrency);
 
   const handleSelectBudget = (val) => {
     triggerHaptic();
@@ -62,6 +74,7 @@ export default function SelectBudget() {
       ...prev,
       budget: selectedBudget,
       destinationCurrency: destCurrency,
+      homeCurrency: homeCurrency,
     }));
     router.push("/create-trip/review-trip");
   };
@@ -100,38 +113,38 @@ export default function SelectBudget() {
           Our AI tailors hotel ratings, dining experiences, and activity prices to your tier.
         </Text>
 
-        {/* DESTINATION CURRENCY BADGE */}
-        {destination ? (
-          <View
-            style={[
-              styles.currencyBadge,
-              {
-                backgroundColor: theme.isDark ? "#064E3B" : "#ECFDF5",
-                borderColor: theme.isDark ? "#059669" : "#A7F3D0",
-              },
-            ]}
-          >
-            <Text style={{ fontSize: 16, marginRight: 6 }}>📍</Text>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.currencyBadgeTitle,
-                  { color: theme.isDark ? "#A7F3D0" : "#065F46" },
-                ]}
-              >
-                Local Currency for {destination.split(",")[0]}: {destCurrencyInfo.name} ({destCurrency})
-              </Text>
-              <Text
-                style={[
-                  styles.currencyBadgeSub,
-                  { color: theme.isDark ? "#6EE7B7" : "#047857" },
-                ]}
-              >
-                Prices below are automatically converted to {destCurrency}.
-              </Text>
-            </View>
+        {/* DUAL-CURRENCY ROUTE BADGE (USER LOCATION -> DESTINATION) */}
+        <View
+          style={[
+            styles.currencyBadge,
+            {
+              backgroundColor: theme.isDark ? "#064E3B" : "#ECFDF5",
+              borderColor: theme.isDark ? "#059669" : "#A7F3D0",
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 18, marginRight: 8 }}>💱</Text>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.currencyBadgeTitle,
+                { color: theme.isDark ? "#A7F3D0" : "#065F46" },
+              ]}
+            >
+              {originCity} ({homeCurrency}) ➔ {destCity} ({destCurrency})
+            </Text>
+            <Text
+              style={[
+                styles.currencyBadgeSub,
+                { color: theme.isDark ? "#6EE7B7" : "#047857" },
+              ]}
+            >
+              {destCurrency !== homeCurrency
+                ? `Showing ${destCity} currency (${destCurrencyInfo.name}) + your currency (${homeCurrencyInfo.name}) • 1 ${destCurrency} ≈ ${homeCurrencyInfo.symbol}${exchangeRate}`
+                : `Local currency for both origin & destination: ${destCurrencyInfo.name} (${destCurrency})`}
+            </Text>
           </View>
-        ) : null}
+        </View>
 
         {/* BUDGET CARDS */}
         <View style={styles.budgetList}>
@@ -184,31 +197,65 @@ export default function SelectBudget() {
                   </View>
                 </View>
 
-                {/* RANGE PILL */}
+                {/* DUAL CURRENCY RANGE PILLS (DESTINATION + HOME CURRENCY) */}
                 <View style={styles.cardFooter}>
-                  <View
-                    style={[
-                      styles.rangePill,
-                      {
-                        backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9",
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="wallet-outline"
-                      size={14}
-                      color={isSelected ? activeAccent : theme.subtext}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
+                  <View style={{ flex: 1, marginRight: 10, gap: 6 }}>
+                    {/* Destination Currency Pill */}
+                    <View
                       style={[
-                        styles.rangeText,
-                        { color: isSelected ? activeAccent : theme.text },
+                        styles.rangePill,
+                        {
+                          backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9",
+                          borderColor: isSelected ? activeAccent + "60" : theme.border,
+                        },
                       ]}
                     >
-                      {b.range}
-                    </Text>
+                      <Ionicons
+                        name="location-outline"
+                        size={14}
+                        color={isSelected ? activeAccent : theme.subtext}
+                        style={{ marginRight: 5 }}
+                      />
+                      <Text
+                        style={[
+                          styles.rangeText,
+                          { color: isSelected ? activeAccent : theme.text },
+                        ]}
+                      >
+                        {destCity} ({destCurrency}): {b.range}
+                      </Text>
+                    </View>
+
+                    {/* User's Location / Home Currency Pill */}
+                    {destCurrency !== homeCurrency && (
+                      <View
+                        style={[
+                          styles.rangePill,
+                          {
+                            backgroundColor: theme.isDark ? "#064E3B30" : "#ECFDF5",
+                            borderColor: theme.isDark ? "#05966960" : "#A7F3D0",
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="home-outline"
+                          size={13}
+                          color={theme.isDark ? "#34D399" : "#059669"}
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text
+                          style={[
+                            styles.rangeText,
+                            {
+                              color: theme.isDark ? "#34D399" : "#065F46",
+                              fontSize: 12,
+                            },
+                          ]}
+                        >
+                          Your Currency ({homeCurrency}): ≈ {b.homeRange}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   <View

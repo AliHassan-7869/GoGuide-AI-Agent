@@ -181,30 +181,88 @@ export default function SearchPlace() {
     }));
   };
 
-  const handleUseCurrentLocation = () => {
+  const handleUseCurrentLocation = async () => {
     triggerHaptic();
-    const myLoc = "My Current Location";
-    setFromQuery(myLoc);
+    setFromQuery("Detecting location...");
+    try {
+      const Location = require("expo-location");
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const { latitude, longitude } = pos.coords;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
+          { headers: { "User-Agent": "GoGuideApp/2.0" } }
+        );
+        const data = await res.json();
+        const city =
+          data?.address?.city ||
+          data?.address?.town ||
+          data?.address?.state ||
+          "Lahore";
+        const country = data?.address?.country || "Pakistan";
+        const locName = `${city}, ${country}`;
+        setFromQuery(locName);
+        setTripData((prev) => ({
+          ...prev,
+          fromLocation: {
+            name: locName,
+            coordinates: { lat: latitude, lng: longitude },
+          },
+        }));
+        return;
+      }
+    } catch (e) {
+      // Fallback to timezone-based city detection
+    }
+
+    let fallbackLoc = "Lahore, Pakistan";
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.toLowerCase().includes("karachi")) {
+        fallbackLoc = "Pakistan (Current Location)";
+      } else if (tz.includes("/")) {
+        fallbackLoc = tz.split("/")[1].replace(/_/g, " ");
+      }
+    } catch (e) {}
+
+    setFromQuery(fallbackLoc);
     setTripData((prev) => ({
       ...prev,
-      fromLocation: { name: myLoc },
+      fromLocation: { name: fallbackLoc },
     }));
   };
 
   const goNext = () => {
     triggerHaptic();
-    if (!toQuery.trim()) {
+    const cleanTo = toQuery.trim();
+    if (!cleanTo) {
       alert("Please select your destination to continue.");
       return;
     }
 
-    // Auto-fill from location if left empty
-    if (!fromQuery.trim()) {
-      setTripData((prev) => ({
-        ...prev,
-        fromLocation: { name: "Current Location" },
-      }));
-    }
+    const cleanFrom = fromQuery.trim() || "Pakistan (Current Location)";
+    const destinationImage =
+      tripData?.toLocationImage || getDestinationImage(cleanTo);
+
+    setTripData((prev) => ({
+      ...prev,
+      fromLocation:
+        prev?.fromLocation?.name === cleanFrom
+          ? prev.fromLocation
+          : { name: cleanFrom, coordinates: prev?.fromLocation?.coordinates },
+      toLocation:
+        prev?.toLocation?.name === cleanTo
+          ? prev.toLocation
+          : { name: cleanTo, coordinates: prev?.toLocation?.coordinates },
+      locationInfo: {
+        ...(prev?.locationInfo || {}),
+        name: cleanTo,
+      },
+      toLocationImage: destinationImage,
+    }));
 
     router.push("/create-trip/select-traveler");
   };
