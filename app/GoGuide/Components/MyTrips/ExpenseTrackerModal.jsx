@@ -14,7 +14,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../constants/constants";
-import { getCurrencySymbol, convertAmount } from "../constants/Currency";
+import {
+  CURRENCY_RATES,
+  getCurrencySymbol,
+  convertAmount,
+  convertBetweenCurrencies,
+  detectCurrencyFromLocation,
+} from "../constants/Currency";
 
 const EXPENSE_CATEGORIES = [
   { id: "Food", label: "Dining", icon: "restaurant-outline", color: "#F59E0B" },
@@ -38,6 +44,8 @@ export default function ExpenseTrackerModal({
   expenses = [],
   budgetTier = "Moderate",
   currency = "USD",
+  destination = "",
+  origin = "",
   onSaveExpenses,
   onClose,
   theme,
@@ -47,6 +55,17 @@ export default function ExpenseTrackerModal({
   const [selectedCategory, setSelectedCategory] = useState("Food");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
+
+  const destCurrency = detectCurrencyFromLocation(destination) || "GBP";
+  const originCurrency = detectCurrencyFromLocation(origin) || "PKR";
+
+  // Build unique list of smart currencies for this trip (USD + Destination + Origin + PKR/EUR/GBP)
+  const currencyOptions = Array.from(
+    new Set([currency || "USD", destCurrency, originCurrency, "USD", "PKR", "GBP", "EUR"])
+  ).slice(0, 5);
+
+  const [activeViewCurrency, setActiveViewCurrency] = useState(currency || "USD");
+  const [inputCurrency, setInputCurrency] = useState(currency || "USD");
 
   const triggerHaptic = () => {
     try {
@@ -64,9 +83,11 @@ export default function ExpenseTrackerModal({
     }
   };
 
-  const symbol = getCurrencySymbol(currency);
+  const baseCurrency = currency || "USD";
+  const symbol = getCurrencySymbol(activeViewCurrency);
+  const inputSymbol = getCurrencySymbol(inputCurrency);
 
-  // Estimate target budget from tier if not custom, converted to user currency
+  // Estimate target budget from tier if not custom, converted to base currency & active view currency
   const baseBudgetUSD =
     budgetTier.toLowerCase().includes("luxury")
       ? 3000
@@ -74,17 +95,21 @@ export default function ExpenseTrackerModal({
       ? 600
       : 1500;
 
-  const targetBudgetNumber = convertAmount(baseBudgetUSD, currency);
+  const targetBudgetBase = convertAmount(baseBudgetUSD, baseCurrency);
+  const totalSpentBase = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const remainingBudgetBase = Math.max(0, targetBudgetBase - totalSpentBase);
+  const percentSpent = Math.min(100, Math.round((totalSpentBase / Math.max(1, targetBudgetBase)) * 100));
 
-  const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const remainingBudget = Math.max(0, targetBudgetNumber - totalSpent);
-  const percentSpent = Math.min(100, Math.round((totalSpent / targetBudgetNumber) * 100));
+  const targetBudgetNumber = convertBetweenCurrencies(targetBudgetBase, baseCurrency, activeViewCurrency);
+  const totalSpent = convertBetweenCurrencies(totalSpentBase, baseCurrency, activeViewCurrency);
+  const remainingBudget = convertBetweenCurrencies(remainingBudgetBase, baseCurrency, activeViewCurrency);
 
   const applyPreset = (preset) => {
     triggerHaptic();
-    const converted = convertAmount(preset.amount, currency);
+    const converted = convertAmount(preset.amount, activeViewCurrency);
     setExpenseTitle(preset.title);
     setExpenseAmount(String(converted));
+    setInputCurrency(activeViewCurrency);
     setSelectedCategory(preset.category);
     setEditingExpenseId(null);
     setShowAddForm(true);
@@ -94,7 +119,9 @@ export default function ExpenseTrackerModal({
     triggerHaptic();
     setEditingExpenseId(item.id);
     setExpenseTitle(item.title);
-    setExpenseAmount(String(item.amount));
+    const inViewCur = convertBetweenCurrencies(item.amount, baseCurrency, activeViewCurrency);
+    setExpenseAmount(String(inViewCur));
+    setInputCurrency(activeViewCurrency);
     setSelectedCategory(item.category || "Food");
     setShowAddForm(true);
   };
@@ -115,15 +142,21 @@ export default function ExpenseTrackerModal({
 
   const handleSaveOrUpdate = (asNewEntry = false) => {
     triggerHaptic();
-    const amountNum = parseFloat(expenseAmount.trim());
+    const rawNum = parseFloat(expenseAmount.trim());
     if (!expenseTitle.trim()) {
       showAlert("Input Required", "Please enter an expense name.");
       return;
     }
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (isNaN(rawNum) || rawNum <= 0) {
       showAlert("Invalid Amount", "Please enter a valid expense amount.");
       return;
     }
+
+    // Convert from chosen inputCurrency back to baseCurrency for storage consistency
+    const amountNum =
+      inputCurrency === baseCurrency
+        ? rawNum
+        : convertBetweenCurrencies(rawNum, inputCurrency, baseCurrency);
 
     if (editingExpenseId && !asNewEntry) {
       // Update existing expense in-place
@@ -133,6 +166,7 @@ export default function ExpenseTrackerModal({
             ...e,
             title: expenseTitle.trim(),
             amount: amountNum,
+            originalInput: `${inputSymbol}${rawNum.toLocaleString()} (${inputCurrency})`,
             category: selectedCategory,
             updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           };
@@ -147,6 +181,7 @@ export default function ExpenseTrackerModal({
         id: Date.now().toString(),
         title: expenseTitle.trim(),
         amount: amountNum,
+        originalInput: `${inputSymbol}${rawNum.toLocaleString()} (${inputCurrency})`,
         category: selectedCategory,
         createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
@@ -212,17 +247,71 @@ export default function ExpenseTrackerModal({
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* 💱 Live Multi-Currency Switcher Bar */}
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.subtext }}>
+                💱 LIVE CURRENCY CONVERTER
+              </Text>
+              <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: Colors.PRIMARY }}>
+                $1 = {getCurrencySymbol(destCurrency)}{CURRENCY_RATES[destCurrency]?.rate || 1} ({destCurrency}) • {getCurrencySymbol(originCurrency)}{CURRENCY_RATES[originCurrency]?.rate || 278} ({originCurrency})
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {currencyOptions.map((code) => {
+                const isActive = activeViewCurrency === code;
+                const sym = getCurrencySymbol(code);
+                return (
+                  <TouchableOpacity
+                    key={code}
+                    onPress={() => {
+                      triggerHaptic();
+                      setActiveViewCurrency(code);
+                      setInputCurrency(code);
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      marginRight: 8,
+                      borderWidth: 1,
+                      backgroundColor: isActive ? Colors.PRIMARY : theme.card,
+                      borderColor: isActive ? Colors.PRIMARY : theme.border,
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "Outfit-Bold",
+                        color: isActive ? "#FFF" : theme.text,
+                      }}
+                    >
+                      {code} ({sym.trim()})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* Budget Overview Card */}
           <View style={[styles.budgetCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.budgetRow}>
               <View>
-                <Text style={[styles.metricLabel, { color: theme.subtext }]}>Total Spent</Text>
+                <Text style={[styles.metricLabel, { color: theme.subtext }]}>Total Spent ({activeViewCurrency})</Text>
                 <Text style={[styles.metricValue, { color: theme.text }]}>{symbol}{totalSpent.toLocaleString()}</Text>
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                  ≈ ${convertBetweenCurrencies(totalSpentBase, baseCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(originCurrency)}{convertBetweenCurrencies(totalSpentBase, baseCurrency, originCurrency).toLocaleString()}
+                </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={[styles.metricLabel, { color: theme.subtext }]}>Remaining</Text>
+                <Text style={[styles.metricLabel, { color: theme.subtext }]}>Remaining ({activeViewCurrency})</Text>
                 <Text style={[styles.metricValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
                   {symbol}{remainingBudget.toLocaleString()}
+                </Text>
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                  ≈ ${convertBetweenCurrencies(remainingBudgetBase, baseCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(destCurrency)}{convertBetweenCurrencies(remainingBudgetBase, baseCurrency, destCurrency).toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -248,10 +337,10 @@ export default function ExpenseTrackerModal({
 
           {/* 1-Tap Quick Expense Presets */}
           <View style={{ marginBottom: 16 }}>
-            <Text style={[styles.presetsTitle, { color: theme.subtext }]}>⚡ 1-Tap Quick Presets:</Text>
+            <Text style={[styles.presetsTitle, { color: theme.subtext }]}>⚡ 1-Tap Quick Presets ({activeViewCurrency}):</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
               {QUICK_PRESETS.map((p, idx) => {
-                const converted = convertAmount(p.amount, currency);
+                const converted = convertAmount(p.amount, activeViewCurrency);
                 return (
                   <TouchableOpacity
                     key={idx}
@@ -261,7 +350,7 @@ export default function ExpenseTrackerModal({
                   >
                     <Ionicons name={p.icon} size={14} color={Colors.PRIMARY} style={{ marginRight: 5 }} />
                     <Text style={[styles.presetChipText, { color: theme.text }]}>
-                      {p.title} ({symbol}{converted})
+                      {p.title} ({symbol}{converted.toLocaleString()})
                     </Text>
                   </TouchableOpacity>
                 );
@@ -275,6 +364,7 @@ export default function ExpenseTrackerModal({
               style={styles.openFormBtn}
               onPress={() => {
                 triggerHaptic();
+                setInputCurrency(activeViewCurrency);
                 setShowAddForm(true);
               }}
               activeOpacity={0.8}
@@ -308,8 +398,37 @@ export default function ExpenseTrackerModal({
                 ]}
               />
 
+              {/* Input Currency Selector */}
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginRight: 4 }}>
+                  Enter in:
+                </Text>
+                {currencyOptions.map((code) => {
+                  const isSel = inputCurrency === code;
+                  return (
+                    <TouchableOpacity
+                      key={code}
+                      onPress={() => {
+                        triggerHaptic();
+                        setInputCurrency(code);
+                      }}
+                      style={{
+                        paddingHorizontal: 9,
+                        paddingVertical: 4,
+                        borderRadius: 10,
+                        backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
+                        {code}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               <TextInput
-                placeholder={`Amount (${currency} ${symbol})`}
+                placeholder={`Amount (${inputCurrency} ${inputSymbol.trim()})`}
                 placeholderTextColor={theme.subtext}
                 value={expenseAmount}
                 onChangeText={setExpenseAmount}
@@ -323,6 +442,23 @@ export default function ExpenseTrackerModal({
                   },
                 ]}
               />
+
+              {/* Live Real-Time Conversion Preview while typing */}
+              {parseFloat(expenseAmount) > 0 && (
+                <View
+                  style={{
+                    backgroundColor: Colors.PRIMARY + "12",
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                    borderRadius: 10,
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
+                    💱 Auto-Converted: ${convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(destCurrency)}{convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, destCurrency).toLocaleString()} {destCurrency} • {getCurrencySymbol(originCurrency)}{convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, originCurrency).toLocaleString()} {originCurrency}
+                  </Text>
+                </View>
+              )}
 
               <Text style={[styles.categoryPickerLabel, { color: theme.subtext }]}>Category</Text>
               <View style={styles.categoryWrap}>
@@ -415,6 +551,9 @@ export default function ExpenseTrackerModal({
               const catMeta =
                 EXPENSE_CATEGORIES.find((c) => c.id === item.category) ||
                 EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
+              const dispAmt = convertBetweenCurrencies(item.amount, baseCurrency, activeViewCurrency);
+              const usdAmt = convertBetweenCurrencies(item.amount, baseCurrency, "USD");
+              const pkrAmt = convertBetweenCurrencies(item.amount, baseCurrency, originCurrency);
 
               return (
                 <View
@@ -430,12 +569,12 @@ export default function ExpenseTrackerModal({
                       {item.title}
                     </Text>
                     <Text style={[styles.expenseItemMeta, { color: theme.subtext }]}>
-                      {catMeta.label} • {item.createdAt || "Today"}
+                      {catMeta.label} • {item.createdAt || "Today"} • ≈ ${usdAmt.toLocaleString()} / {getCurrencySymbol(originCurrency)}{pkrAmt.toLocaleString()}
                     </Text>
                   </View>
 
                   <Text style={[styles.expenseItemAmount, { color: theme.text }]}>
-                    {symbol}{Number(item.amount).toLocaleString()}
+                    {symbol}{dispAmt.toLocaleString()}
                   </Text>
 
                   <View style={styles.itemActionGroup}>

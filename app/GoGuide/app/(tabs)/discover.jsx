@@ -141,6 +141,8 @@ export default function Discover() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStep, setAiStep] = useState(1);
   const [aiError, setAiError] = useState(null);
+  const [selectedDatePreset, setSelectedDatePreset] = useState("today");
+  const [customDateInput, setCustomDateInput] = useState("");
 
   // Category Feed & Saved Wishlist State
   const [activeFeedCategory, setActiveFeedCategory] = useState("all");
@@ -329,8 +331,40 @@ export default function Discover() {
       .join(" ");
   };
 
+  // Compute selected departure Date object from preset or custom input
+  const getSelectedDepartureDate = (overridePreset = null) => {
+    const preset = overridePreset || selectedDatePreset;
+    const now = new Date();
+    if (preset === "tomorrow") {
+      return new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+    }
+    if (preset === "weekend") {
+      const dayOfWeek = now.getDay(); // 0=Sun..6=Sat
+      const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
+      return new Date(now.getTime() + daysUntilSat * 24 * 60 * 60 * 1000);
+    }
+    if (preset === "next_week") {
+      return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+    if (preset === "next_month") {
+      return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+    if (preset === "custom" && customDateInput.trim()) {
+      const parsed = new Date(customDateInput.trim());
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return now;
+  };
+
   // Instant 1-Click AI Generation
-  const executeAiTrip = async (destination, days = 3, budget = "Moderate", fallbackImage = null, origin = null) => {
+  const executeAiTrip = async (
+    destination,
+    days = 3,
+    budget = "Moderate",
+    fallbackImage = null,
+    origin = null,
+    customStartDate = null
+  ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setAiLoading(true);
     setAiError(null);
@@ -343,8 +377,11 @@ export default function Discover() {
     try {
       const cleanDest = normalizePlaceName(destination) || destination;
       const cleanOrigin = origin ? normalizePlaceName(origin) : (preferences?.originCountry || "Home Airport");
-      const startObj = new Date();
-      const endObj = new Date(Date.now() + Math.max(1, days - 1) * 24 * 60 * 60 * 1000);
+      const startObj =
+        customStartDate instanceof Date && !isNaN(customStartDate.getTime())
+          ? customStartDate
+          : getSelectedDepartureDate();
+      const endObj = new Date(startObj.getTime() + Math.max(1, days - 1) * 24 * 60 * 60 * 1000);
       const fmtDate = (d) =>
         d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       const departureDateStr = fmtDate(startObj);
@@ -435,9 +472,17 @@ export default function Discover() {
     if (lower.includes("luxury") || lower.includes("expensive")) budget = "Luxury";
     else if (lower.includes("cheap") || lower.includes("budget") || lower.includes("economical")) budget = "Economical";
 
+    // Detect natural language departure date hints if typed in prompt
+    let promptDatePreset = null;
+    if (lower.includes("tomorrow")) promptDatePreset = "tomorrow";
+    else if (lower.includes("weekend")) promptDatePreset = "weekend";
+    else if (lower.includes("next week")) promptDatePreset = "next_week";
+    else if (lower.includes("next month")) promptDatePreset = "next_month";
+
     // Strip common noise phrases first
     let cleaned = aiPrompt
       .replace(/\b\d+\s*days?\b/gi, "")
+      .replace(/\b(tomorrow|this weekend|weekend|next week|next month|today)\b/gi, "")
       .replace(/\bof\s+plan\b/gi, "")
       .replace(/\bplan\s+a\s+trip\b/gi, "")
       .replace(/\bplan\b/gi, "")
@@ -465,7 +510,8 @@ export default function Discover() {
 
     if (!dest) dest = aiPrompt.trim();
 
-    executeAiTrip(dest, days, budget, null, origin);
+    const chosenStartDate = getSelectedDepartureDate(promptDatePreset);
+    executeAiTrip(dest, days, budget, null, origin, chosenStartDate);
   };
 
   const searchPlace = (text) => {
@@ -566,7 +612,7 @@ export default function Discover() {
           <View style={[styles.aiInputBox, { backgroundColor: isDark ? "#241D3B" : "#FFFFFF" }]}>
             <TextInput
               style={[styles.aiTextInput, { color: themeStyles.textColor }]}
-              placeholder="e.g. 4 days in Tokyo for sushi & anime..."
+              placeholder="e.g. 4 days from pak to england..."
               placeholderTextColor={themeStyles.subTextColor}
               value={aiPrompt}
               onChangeText={setAiPrompt}
@@ -582,6 +628,102 @@ export default function Discover() {
               <Text style={styles.aiSendBtnText}>Plan</Text>
             </TouchableOpacity>
           </View>
+
+          {/* 🛫 Quick Departure Date Picker for Outbound & Return Flights */}
+          {(() => {
+            const previewDaysMatch = aiPrompt.toLowerCase().match(/(\d+)\s*day/);
+            const previewDays = previewDaysMatch ? parseInt(previewDaysMatch[1], 10) : 3;
+            const depObj = getSelectedDepartureDate();
+            const retObj = new Date(depObj.getTime() + Math.max(1, previewDays - 1) * 24 * 60 * 60 * 1000);
+            const fmtShort = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            const datePresets = [
+              { id: "today", label: "🛫 Today" },
+              { id: "tomorrow", label: "📅 Tomorrow" },
+              { id: "weekend", label: "🌴 This Weekend" },
+              { id: "next_week", label: "✈️ Next Week" },
+              { id: "next_month", label: "🗓️ Next Month" },
+              { id: "custom", label: "✏️ Custom Date" },
+            ];
+
+            return (
+              <View style={{ marginTop: 10 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: themeStyles.subTextColor }}>
+                    DEPARTURE DATE:
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#8B5CF6" }}>
+                    🛫 {fmtShort(depObj)} ➔ 🛬 {fmtShort(retObj)}
+                  </Text>
+                </View>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {datePresets.map((dp) => {
+                    const isSel = selectedDatePreset === dp.id;
+                    return (
+                      <TouchableOpacity
+                        key={dp.id}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedDatePreset(dp.id);
+                        }}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 14,
+                          marginRight: 7,
+                          borderWidth: 1,
+                          backgroundColor: isSel ? "#8B5CF6" : isDark ? "#251F3A" : "#FFFFFF",
+                          borderColor: isSel ? "#8B5CF6" : isDark ? "#3B3054" : "#DDD6FE",
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontFamily: "Outfit-Bold",
+                            color: isSel ? "#FFFFFF" : themeStyles.textColor,
+                          }}
+                        >
+                          {dp.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {selectedDatePreset === "custom" && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 8,
+                      backgroundColor: isDark ? "#241D3B" : "#FFFFFF",
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderWidth: 1,
+                      borderColor: "#8B5CF6",
+                    }}
+                  >
+                    <Ionicons name="calendar-outline" size={15} color="#8B5CF6" style={{ marginRight: 6 }} />
+                    <TextInput
+                      placeholder="Enter Departure Date (YYYY-MM-DD, e.g. 2026-11-15)"
+                      placeholderTextColor={themeStyles.subTextColor}
+                      value={customDateInput}
+                      onChangeText={setCustomDateInput}
+                      style={{
+                        flex: 1,
+                        fontSize: 12,
+                        fontFamily: "Outfit-Medium",
+                        color: themeStyles.textColor,
+                        paddingVertical: 2,
+                      }}
+                    />
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
           {/* Quick-Vibe Prompt Cards */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vibeScroll}>

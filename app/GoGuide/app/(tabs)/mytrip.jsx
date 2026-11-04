@@ -37,7 +37,13 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
 import { saveTripToBookings } from "../../Components/utils/BookingService";
-import { convertPriceString, getCurrencySymbol, convertAmount } from "../../Components/constants/Currency";
+import {
+  convertPriceString,
+  getCurrencySymbol,
+  convertAmount,
+  detectCurrencyFromLocation,
+  convertBetweenCurrencies,
+} from "../../Components/constants/Currency";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
@@ -1545,6 +1551,10 @@ export default function MyTrip() {
         {(() => {
           const userCurrency = preferences?.currency || "USD";
           const curSymbol = getCurrencySymbol(userCurrency);
+          const destCurrency = detectCurrencyFromLocation(plan?.destination || tripData?.toLocation?.name || "") || "GBP";
+          const originCurrency = detectCurrencyFromLocation(plan?.origin || tripData?.fromLocation?.name || preferences?.originCountry || "") || "PKR";
+          const destSymbol = getCurrencySymbol(destCurrency);
+          const originSymbol = getCurrencySymbol(originCurrency);
           const rawTier = plan?.budget || tripData?.budget || "Moderate";
           const baseBudgetUSD = rawTier.toLowerCase().includes("luxury")
             ? 3000
@@ -1557,17 +1567,22 @@ export default function MyTrip() {
           const remainingBudget = Math.max(0, targetBudget - totalSpent);
           const percentSpent = Math.min(100, Math.round((totalSpent / targetBudget) * 100));
 
+          const spentDest = convertBetweenCurrencies(totalSpent, userCurrency, destCurrency);
+          const spentOrigin = convertBetweenCurrencies(totalSpent, userCurrency, originCurrency);
+          const remDest = convertBetweenCurrencies(remainingBudget, userCurrency, destCurrency);
+          const remOrigin = convertBetweenCurrencies(remainingBudget, userCurrency, originCurrency);
+
           return (
             <View style={[styles.expenseSnapshotCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 18 }]}>
               <View style={styles.expenseSnapshotHeader}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                   <View style={[styles.expenseIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.14)" }]}>
                     <Ionicons name="wallet" size={18} color="#F59E0B" />
                   </View>
-                  <View style={{ marginLeft: 10 }}>
+                  <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={[styles.expenseSnapshotTitle, { color: theme.text }]}>Trip Budget & Live Expenses</Text>
                     <Text style={[styles.expenseSnapshotSub, { color: theme.subtext }]}>
-                      Cap: {curSymbol}{targetBudget.toLocaleString()} ({rawTier})
+                      Cap: {curSymbol}{targetBudget.toLocaleString()} • ≈ {destSymbol}{convertAmount(baseBudgetUSD, destCurrency).toLocaleString()} / {originSymbol}{convertAmount(baseBudgetUSD, originCurrency).toLocaleString()}
                     </Text>
                   </View>
                 </View>
@@ -1592,11 +1607,17 @@ export default function MyTrip() {
                   <Text style={[styles.expenseValue, { color: theme.text }]}>
                     {curSymbol}{totalSpent.toLocaleString()}
                   </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                    ≈ {destSymbol}{spentDest.toLocaleString()} ({destCurrency}) • {originSymbol}{spentOrigin.toLocaleString()} ({originCurrency})
+                  </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={[styles.expenseLabel, { color: theme.subtext }]}>Remaining</Text>
                   <Text style={[styles.expenseValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
                     {curSymbol}{remainingBudget.toLocaleString()}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                    ≈ {destSymbol}{remDest.toLocaleString()} • {originSymbol}{remOrigin.toLocaleString()}
                   </Text>
                 </View>
               </View>
@@ -1727,6 +1748,8 @@ export default function MyTrip() {
         expenses={tripData?.expenses || []}
         budgetTier={plan?.budget || tripData?.budget || "Moderate"}
         currency={preferences?.currency || "USD"}
+        destination={plan?.destination || tripData?.toLocation?.name || ""}
+        origin={plan?.origin || tripData?.fromLocation?.name || preferences?.originCountry || ""}
         onSaveExpenses={handleSaveExpenses}
         onClose={() => setShowExpenseModal(false)}
         theme={theme}
