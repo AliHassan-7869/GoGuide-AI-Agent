@@ -270,6 +270,86 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
   return (
     <View style={styles.container}>
+      {/* 0. SAVED TRIPS SECTION */}
+      {userTrips && userTrips.length > 0 && (
+        <View style={{ marginBottom: 20 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="bookmark" size={18} color={activeAccent} style={{ marginRight: 6 }} />
+              <Text style={[styles.sectionTitle, { color: theme.text, fontSize: 18 }]}>Your Saved Trips</Text>
+              <View style={{ backgroundColor: activeAccent + "18", marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                <Text style={{ color: activeAccent, fontSize: 12, fontFamily: "Outfit-Bold" }}>{userTrips.length}</Text>
+              </View>
+            </View>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+            {userTrips.map((t, idx) => {
+              const destTitle = t.aiTripPlan?.destination || t.destination || t.locationInfo?.name || "My Trip";
+              const rawImg = t.toLocationImage || t.locationInfo?.photoRef || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1200&auto=format&fit=crop";
+              const duration = t.aiTripPlan?.duration || `${t.totalDays || t.totalNoOfDays || 3} Days`;
+              const budget = t.aiTripPlan?.budget || t.budget || "Moderate";
+
+              return (
+                <TouchableOpacity
+                  key={t.id || idx}
+                  activeOpacity={0.88}
+                  onPress={() => onSelectTrip && onSelectTrip(t)}
+                  style={{
+                    width: 250,
+                    marginRight: 14,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    backgroundColor: theme.card,
+                    overflow: "hidden",
+                    elevation: 3,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 6,
+                  }}
+                >
+                  <View style={{ height: 135, position: "relative" }}>
+                    <Image source={{ uri: rawImg }} style={{ width: "100%", height: "100%" }} />
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.75)"]}
+                      style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+                    />
+                    <View style={{ position: "absolute", top: 10, left: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ color: "#FFF", fontSize: 10, fontFamily: "Outfit-Bold" }}>{budget}</Text>
+                    </View>
+                    {onDeleteTrip && (
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          onDeleteTrip(t);
+                        }}
+                        style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(239,68,68,0.85)", alignItems: "center", justifyContent: "center" }}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="#FFF" />
+                      </TouchableOpacity>
+                    )}
+                    <View style={{ position: "absolute", bottom: 10, left: 12, right: 12 }}>
+                      <Text style={{ color: "#FFF", fontSize: 16, fontFamily: "Outfit-Bold" }} numberOfLines={1}>
+                        {destTitle}
+                      </Text>
+                      <Text style={{ color: "#CBD5E1", fontSize: 11, fontFamily: "Outfit-Regular", marginTop: 2 }}>
+                        {duration} • Day-by-Day Plan
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ padding: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <Text style={{ color: activeAccent, fontSize: 12, fontFamily: "Outfit-Bold" }}>Open Itinerary</Text>
+                    <Ionicons name="arrow-forward" size={15} color={activeAccent} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {/* 1. HERO BANNER CARD */}
       <View style={styles.heroCardWrapper}>
         <LinearGradient

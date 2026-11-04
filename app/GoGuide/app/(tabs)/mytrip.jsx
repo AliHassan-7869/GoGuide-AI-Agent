@@ -110,6 +110,7 @@ export default function MyTrip() {
   const [showNotificationBanner, setShowNotificationBanner] = useState(true);
   const [userTripsList, setUserTripsList] = useState([]);
   const [activeTripId, setActiveTripId] = useState(null);
+  const [showHubView, setShowHubView] = useState(false);
 
   // Smooth Shimmer pulse animation for skeleton loading
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
@@ -328,6 +329,8 @@ export default function MyTrip() {
 
   const handleSelectTrip = (selectedTrip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowHubView(false);
+    setTripData(selectedTrip);
     AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
     router.push({
       pathname: "/trip",
@@ -864,14 +867,17 @@ export default function MyTrip() {
     );
   }
 
-  if (!plan) {
+  if (!plan || showHubView) {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           <StartNewTripCard 
             userTrips={userTripsList} 
-            onSelectTrip={handleSelectTrip} 
+            onSelectTrip={(selectedTrip) => {
+              setShowHubView(false);
+              handleSelectTrip(selectedTrip);
+            }} 
             onDeleteTrip={handleDeleteTrip}
           />
         </ScrollView>
@@ -892,9 +898,14 @@ export default function MyTrip() {
       <View style={styles.header}>
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 6 }}>
           <TouchableOpacity
-            onPress={() => {
+            onPress={async () => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setTripData({});
+              setShowHubView(true);
+              setTripData(null);
+              try {
+                await AsyncStorage.removeItem('@goguide_cached_trip');
+                await AsyncStorage.removeItem('@goguide_active_draft');
+              } catch (e) {}
             }}
             style={[styles.backToHubBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
             activeOpacity={0.7}

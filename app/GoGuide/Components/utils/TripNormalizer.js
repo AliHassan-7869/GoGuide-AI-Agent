@@ -84,6 +84,8 @@ export function robustParseJson(raw) {
  */
 export function normalizeTrip(raw) {
   if (!raw) return null;
+  if (typeof raw === "object" && Object.keys(raw).length === 0) return null;
+
   let data = raw;
   if (typeof data === "string") {
     data = robustParseJson(data);
@@ -121,17 +123,34 @@ export function normalizeTrip(raw) {
     data = robustParseJson(data) || data;
   }
 
-  if (!data || typeof data !== "object") return null;
+  if (!data || typeof data !== "object" || Object.keys(data).length === 0) return null;
 
-  // 1. Destination
-  const destination =
+  // Check if there is actual meaningful content
+  const foundDestination =
     data.destination ||
     data.locationInfo?.name ||
     data.toLocation?.name ||
     data.toLocation ||
     raw.destination ||
     raw.toLocation?.name ||
-    "Trip Destination";
+    null;
+
+  const rawItin = data.itinerary || data.days || data.schedule || raw.itinerary || [];
+  const rawHotels = data.hotels || data.hotelList || raw.hotels || [];
+
+  const hasContent = Boolean(
+    foundDestination ||
+    (Array.isArray(rawItin) && rawItin.length > 0) ||
+    (typeof rawItin === "object" && Object.keys(rawItin).length > 0) ||
+    (Array.isArray(rawHotels) && rawHotels.length > 0)
+  );
+
+  if (!hasContent) {
+    return null;
+  }
+
+  // 1. Destination
+  const destination = foundDestination || "Trip Destination";
 
   // 2. Duration
   const duration =
@@ -157,7 +176,6 @@ export function normalizeTrip(raw) {
     "Explorer";
 
   // 5. Itinerary -> Guaranteed to be an Array of { day, theme, activities: Array }
-  let rawItin = data.itinerary || data.days || data.schedule || raw.itinerary || [];
   let itinerary = [];
 
   if (Array.isArray(rawItin)) {
@@ -221,7 +239,6 @@ export function normalizeTrip(raw) {
   }
 
   // 6. Hotels -> Guaranteed to be an Array
-  let rawHotels = data.hotels || data.hotelList || raw.hotels || [];
   let hotels = [];
   if (Array.isArray(rawHotels)) {
     hotels = rawHotels.map((h) => {
