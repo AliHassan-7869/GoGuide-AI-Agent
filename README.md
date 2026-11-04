@@ -1,14 +1,14 @@
 # 🌍 GoGuide AI — Autonomous Multi-Agent Travel Orchestration & Mobile Companion
 
-[![Expo SDK](https://img.shields.io/badge/Expo-SDK%2057-black?style=for-the-badge&logo=expo)](https://expo.dev/)
-[![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo SDK](https://img.shields.io/badge/Expo-SDK%2058-black?style=for-the-badge&logo=expo)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.84-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent%20System-orange?style=for-the-badge)](https://crewai.com)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.8%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> **GoGuide AI** is an enterprise-grade, offline-first mobile travel companion powered by a consolidated **4-Agent CrewAI** pipeline, **Google Gemini 3.8 Flash**, 100% Free-Tier optimizations, and full account security (Email 2FA & Verification). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
+> **GoGuide AI** is an enterprise-grade, offline-first mobile & web travel companion powered by a consolidated **4-Agent CrewAI** pipeline, **Google Gemini 2.5 Flash & Groq Llama 3.3**, 100% Free-Tier optimizations, Origin-to-Destination Dual Currency conversion, and full account security (Email 2FA). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
 
 ---
 
@@ -114,13 +114,17 @@ graph TD
 - **AI Trip Generator (Discover)**: 1-click comprehensive multi-day itinerary generation engine powered by `/plan` with 24-hour TTL caching for 200ms instantaneous repeat queries.
 - **AI Copilot (Tab 3)**: 24/7 conversational travel concierge powered by `/chat` for live travel inquiries, cultural etiquette, packing questions, and neighborhood advice.
 
+### 💱 12. Origin-to-Destination Dual Currency Engine
+- **Smart Origin & Destination Detection**: Automatically detects the traveler's home currency from their departure city or device timezone (e.g. `PKR`) and the destination's local currency (`AED`, `EUR`, `TRY`, `SAR`, `GBP`, `JPY`, `IDR`, `THB`, `CHF`, etc. across 21 currencies).
+- **Side-by-Side Tier Comparison**: Displays daily spending brackets in both the destination currency and the traveler's home currency across **Economical**, **Moderate**, and **Luxury** budget cards as well as the final Boarding Pass review screen.
+
 ---
 
 ## 🛠️ Technology Stack
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Mobile App** | React Native (Expo SDK 57) | Cross-platform iOS & Android client |
+| **Mobile & Web App** | React Native (Expo SDK 58, React 19.2) | Cross-platform iOS, Android & Vercel Web client |
 | **Routing** | Expo Router (`file-based`) | Deep-linking and declarative tab navigation |
 | **Local Storage** | AsyncStorage | Offline-first flight mode trip caching |
 | **Backend API** | FastAPI (Python 3.12) | High-performance asynchronous microservice |

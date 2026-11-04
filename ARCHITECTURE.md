@@ -85,12 +85,12 @@ app/GoGuide/
 │   ├── trip/                 Universal web shareable dynamic itinerary viewer
 │   ├── auth/                 Sign in, sign up
 │   ├── create-trip/          Step by step trip wizard
-│   │   ├── search-place.jsx  Destination search
+│   │   ├── search-place.jsx  Origin (GPS / city) & Destination search
 │   │   ├── select-traveler.jsx Companion selection
 │   │   ├── select-dates.jsx  Dates and duration
-│   │   ├── select-budget.jsx Budget tier
+│   │   ├── select-budget.jsx Dual-currency budget tiers (Destination + User Origin currency)
 │   │   ├── interest-page.jsx Destination-smart category chips & interests
-│   │   ├── review-trip.jsx   Pre-generation review
+│   │   ├── review-trip.jsx   Pre-generation Boarding Pass with dual-currency estimator
 │   │   └── generate-trip.jsx AI plan generator with radar animation
 │   ├── my-bookings.jsx       Digital passes, vouchers, QR codes, status tabs
 │   ├── packing-checklist.jsx Smart AI luggage & packing checklist with category filters

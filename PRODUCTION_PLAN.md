@@ -2,7 +2,7 @@
 
 Checklist and cost sheet for taking GoGuide to production.
 
-Last updated: 2026-10-20
+Last updated: 2026-11-04
 
 ---
 
@@ -22,12 +22,15 @@ Last updated: 2026-10-20
 | 10 | Max Output Token Clamping (3072 tokens limit to prevent runaways) | `4164c23` |
 | 11 | Non-blocking Async Deep Plan (`/plan-deep` BackgroundTasks polling) | `4164c23` |
 | 12 | Zero-Token Offline Destination Essentials (`travel_essentials.py` & `/tools/destination-info`) | `4164c23` |
-| 13 | Mandatory Email Verification Gatekeeper before unlocking AI trip generation | `d9c57de` |
+| 13 | Frictionless Sign-In & Trip Generation (with background email verification on sign-up) | `2a79c8d` |
 | 14 | Two-Factor Authentication (2FA) with 6-digit Email OTP (settings toggle & sign-in modal) | `d9c57de` |
-| 15 | Destination Essentials UI Card on trip viewer (`trip.jsx`) | `d9c57de` |
+| 15 | Destination Essentials UI Card on trip viewer (`trip.jsx`) | `03114ce` |
 | 16 | Migrate Firebase to `goguideai` & configure composite indexes (`firestore.indexes.json`) | `08dfe40` |
-| 17 | In-app same-page Terms & Privacy Modal (`PolicyModal.jsx`) for Profile & Auth | `3ccb16e` |
+| 17 | In-app same-page Terms & Privacy Modal (`PolicyModal.jsx`) for Profile & Auth | `ae0cc1c` |
 | 18 | Profile auto-return on save and iOS bundle identifier (`com.arrehman.AiTravelagent`) | `c0a0c3f` |
+| 19 | Rename `app/Go Guide` to `app/GoGuide` & upgrade all 25 modules to Expo SDK 58 (`^58.0.22`) | `0d018cb` |
+| 20 | Expo SDK 58 Streaming SSR fix (`useServerDocumentContext` in `+html.jsx`) for Vercel Web | `03114ce` |
+| 21 | Origin-to-Destination Dual Currency Engine across Economical, Moderate, Luxury & Boarding Pass | `d3216af` |
 
 ---
 

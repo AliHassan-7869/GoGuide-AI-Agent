@@ -94,7 +94,7 @@ No Expo account is needed. The project is not linked to an EAS project, so Expo 
 | Android phone | `npm start`, scan with Expo Go | No login needed on Android |
 | Android emulator | `npm start`, then press `a` | Needs Android Studio and an emulator. Expo Go installs itself |
 
-**Expo Go version:** the store Expo Go only opens one SDK. This app uses SDK 57. If Expo Go says the project is incompatible, update Expo Go or upgrade the app SDK to match.
+**Expo Go version:** the store Expo Go only opens one SDK. This app uses SDK 58. If Expo Go says the project is incompatible, update Expo Go or upgrade the app SDK to match.
 
 The console shows `[Backend] Using http://<your-ip>:8000` so you can see which address the app picked.
 

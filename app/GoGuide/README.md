@@ -1,14 +1,14 @@
 # 🌍 GoGuide AI — Autonomous Multi-Agent Travel Orchestration & Mobile Companion
 
-[![Expo SDK](https://img.shields.io/badge/Expo-SDK%2057-black?style=for-the-badge&logo=expo)](https://expo.dev/)
-[![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo SDK](https://img.shields.io/badge/Expo-SDK%2058-black?style=for-the-badge&logo=expo)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.84-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent%20System-orange?style=for-the-badge)](https://crewai.com)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.8%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> **GoGuide AI** is an enterprise-grade, offline-first mobile travel companion powered by an autonomous **10-Agent CrewAI** pipeline and **Google Gemini 3.8 Flash**. It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
+> **GoGuide AI** is an enterprise-grade, offline-first mobile & web travel companion powered by a consolidated **4-Agent CrewAI** pipeline, **Google Gemini 2.5 Flash & Groq Llama 3.3**, 100% Free-Tier optimizations, Origin-to-Destination Dual Currency conversion, and full account security (Email 2FA). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
 
 ---
 
@@ -68,18 +68,12 @@ graph TD
 - **Airplane Mode Ready**: Full access to daily timelines, flight tickets, hotel contact numbers, and packing checklists without active Wi-Fi or cellular connections.
 - **Visual Status Badging**: Live `⚡ Offline Ready` translucent badge and top-header sync pill.
 
-### 🤖 2. 10-Agent Autonomous CrewAI Pipeline
-- Rather than a generic single-prompt LLM, GoGuide orchestrates a specialized **10-agent team** using **CrewAI** and **Gemini 3.8 Flash**:
-  1. **City Selection Specialist**: Analyzes season, traveler style, and budget.
-  2. **Hotel & Accommodations Scout**: Curates verified stays with ratings, pricing, and amenities.
-  3. **Flight & Transport Logistics**: Identifies optimal routes, layovers, and pricing estimates.
-  4. **Activity & Attraction Curator**: Sequences daily attractions to minimize transit time.
-  5. **Cultural & Culinary Guide**: Suggests authentic local dining, cultural customs, and etiquette.
-  6. **Safety & Scam Intelligence**: Pinpoints tourist scam hotspots and emergency contacts.
-  7. **Budget Optimization Agent**: Allocates expenditure across stays, transit, and activities.
-  8. **Weather & Dynamic Packing Agent**: Matches 7-day weather patterns with tailored gear checklists.
-  9. **Interactive Copilot Agent**: Real-time travel chat assistant with quick suggestion chips.
-  10. **Quality Assurance Agent**: Validates JSON schema integrity and logical coherence.
+### 🤖 2. Consolidated 4-Agent Autonomous Pipeline (60-70% Token Reduction)
+- Rather than running 10 separate chat contexts that multiply LLM tokens, GoGuide consolidates the workflow into **4 expert agents** with specialized dynamic tools:
+  1. **Destination & Culture Specialist (`destination_agent`)**: Analyzes seasonal events, cultural customs, culinary traditions, and attraction gems.
+  2. **Budget & Logistics Scout (`budget_transport_agent`)**: Structures accommodation options, flight corridors, airport transit, and dynamic tier pricing.
+  3. **Safety & Preparation Advisor (`safety_prep_agent`)**: Advises on neighborhood safety, common tourist scams, weather trends, packing essentials, and emergency hotlines.
+  4. **Master Itinerary Architect (`planner_expert`)**: Synthesizes all inputs into an optimized, chronological day-by-day itinerary with exact timings and geolocation waypoints.
 
 ### 📅 3. 1-Click Calendar Synchronization
 - Directly integrates with **Google Calendar** and **Apple Calendar** using deep-link URLs.
@@ -102,13 +96,35 @@ graph TD
 - **Time-Coded Schedule Nodes**: Visual timeline with color-coded nodes (Amber Sunny for Morning, Sky Blue for Afternoon, Deep Purple Moon for Evening).
 - **Interactive Day Filter Pills**: Instant day selection with native haptic feedback.
 
+### 💰 8. In-Trip Expense Tracker & 1-Tap Quick Renew
+- **Live Budget Consumption Gauge**: Visual progress bar tracking spending across *Food*, *Transport*, *Stay*, and *Activities*.
+- **✏️ In-Place Edit**: 1-tap pencil icon to adjust title, amount, or category directly.
+- **⚡ 1-Tap Quick Renew**: Direct repeat icon (`repeat-outline`) to duplicate frequent daily travel expenses (e.g. daily coffee, transit fares) with current timestamp.
+- **🔁 Form Re-Add**: Option to renew logged expenses without tedious re-typing.
+
+### 🏨 9. Dynamic Booking.com Hotel Links (Direct Reservations)
+- Every hotel recommendation card dynamically links directly to **Booking.com** search results pre-filled with the exact hotel name, destination city, and dates.
+- Seamless booking pipeline turning itineraries into actionable reservations in seconds.
+
+### 🌐 10. Viral Web Itinerary Viewer & Rich Social Open Graph Previews
+- **Universal Web Link**: Deployed at `https://dist-seven-tau-79.vercel.app/trip`, allowing travelers to share their trip with co-travelers who can view the complete itinerary in any mobile or desktop browser without installing the app.
+- **Rich Social Previews**: Embedded Open Graph and Twitter Card tags ensure WhatsApp, iMessage, and Twitter shares render enticing preview cards with images and trip summaries.
+
+### 🤖 11. Dual AI Engine Architecture (Generator vs. Conversational Copilot)
+- **AI Trip Generator (Discover)**: 1-click comprehensive multi-day itinerary generation engine powered by `/plan` with 24-hour TTL caching for 200ms instantaneous repeat queries.
+- **AI Copilot (Tab 3)**: 24/7 conversational travel concierge powered by `/chat` for live travel inquiries, cultural etiquette, packing questions, and neighborhood advice.
+
+### 💱 12. Origin-to-Destination Dual Currency Engine
+- **Smart Origin & Destination Detection**: Automatically detects the traveler's home currency from their departure city or device timezone (e.g. `PKR`) and the destination's local currency (`AED`, `EUR`, `TRY`, `SAR`, `GBP`, `JPY`, `IDR`, `THB`, `CHF`, etc. across 21 currencies).
+- **Side-by-Side Tier Comparison**: Displays daily spending brackets in both the destination currency and the traveler's home currency across **Economical**, **Moderate**, and **Luxury** budget cards as well as the final Boarding Pass review screen.
+
 ---
 
 ## 🛠️ Technology Stack
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Mobile App** | React Native (Expo SDK 57) | Cross-platform iOS & Android client |
+| **Mobile & Web App** | React Native (Expo SDK 58, React 19.2) | Cross-platform iOS, Android & Vercel Web client |
 | **Routing** | Expo Router (`file-based`) | Deep-linking and declarative tab navigation |
 | **Local Storage** | AsyncStorage | Offline-first flight mode trip caching |
 | **Backend API** | FastAPI (Python 3.12) | High-performance asynchronous microservice |
