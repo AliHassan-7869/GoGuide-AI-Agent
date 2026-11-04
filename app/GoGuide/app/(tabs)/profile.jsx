@@ -945,7 +945,7 @@ export default function Profile() {
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="heart" size={22} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Favorite Places</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Travel Wishlist</Text>
               <View style={[styles.modalBadge, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
                 <Text style={[styles.modalBadgeText, { color: "#EF4444" }]}>
                   {favoritePlacesList.length}
@@ -1004,18 +1004,50 @@ export default function Profile() {
                       {place.category || "Top Destination"} • ⭐ {place.rating || "4.8"}
                     </Text>
 
-                    <TouchableOpacity
-                      style={[styles.openTripBtn, { backgroundColor: brandIconColor }]}
-                      onPress={() => {
-                        triggerHaptic();
-                        reopenFavoritesModalRef.current = true;
-                        setShowFavoritesModal(false);
-                        router.push("/explore");
-                      }}
-                    >
-                      <Text style={styles.openTripBtnText}>View in Explore</Text>
-                      <Ionicons name="arrow-forward" size={13} color="#FFF" style={{ marginLeft: 4 }} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.openTripBtn, { backgroundColor: Colors.PRIMARY, flex: 1.3 }]}
+                        onPress={() => {
+                          triggerHaptic();
+                          if (setTripData) {
+                            setTripData((prev) => ({
+                              ...prev,
+                              toLocation: {
+                                name: place.name || place.title,
+                                coordinates: { lat: place.lat || 0, lng: place.lon || 0 },
+                              },
+                              toLocationImage: place.image,
+                              toLocationRating: place.rating,
+                            }));
+                          }
+                          setShowFavoritesModal(false);
+                          router.push("/create-trip/trip-summer");
+                        }}
+                      >
+                        <Ionicons name="sparkles" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                        <Text style={styles.openTripBtnText}>Plan AI Trip</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.openTripBtn,
+                          {
+                            backgroundColor: theme.isDark ? "#2A2A2A" : "#F3F4F6",
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                            flex: 1,
+                          },
+                        ]}
+                        onPress={() => {
+                          triggerHaptic();
+                          reopenFavoritesModalRef.current = true;
+                          setShowFavoritesModal(false);
+                          router.push("/explore");
+                        }}
+                      >
+                        <Text style={[styles.openTripBtnText, { color: theme.text }]}>Explore</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))
