@@ -588,6 +588,7 @@ export default function Profile() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -1035,6 +1036,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",

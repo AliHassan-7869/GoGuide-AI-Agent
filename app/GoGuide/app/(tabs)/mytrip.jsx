@@ -750,7 +750,7 @@ export default function MyTrip() {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           <StartNewTripCard 
             userTrips={userTripsList} 
             onSelectTrip={handleSelectTrip} 
@@ -772,7 +772,7 @@ export default function MyTrip() {
       
       {/* Top Header */}
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 6 }}>
           <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -781,16 +781,16 @@ export default function MyTrip() {
             style={[styles.backToHubBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={16} color={theme.text} />
-            <Text style={[styles.backToHubText, { color: theme.text }]}>All Trips</Text>
+            <Ionicons name="arrow-back" size={15} color={theme.text} />
+            <Text style={[styles.backToHubText, { color: theme.text }]}>Trips</Text>
           </TouchableOpacity>
 
-          <View style={{ marginLeft: 10, flex: 1 }}>
-            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+          <View style={{ marginLeft: 8, flex: 1 }}>
+            <Text style={[styles.title, { color: theme.text, fontSize: 19 }]} numberOfLines={1}>
               My Itinerary
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={[styles.subtitle, { color: theme.subtext }]} numberOfLines={1}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "nowrap" }}>
+              <Text style={[styles.subtitle, { color: theme.subtext, fontSize: 12, flexShrink: 1 }]} numberOfLines={1}>
                 {plan.destination}
               </Text>
               {isOfflineCached && (
@@ -799,8 +799,8 @@ export default function MyTrip() {
                   style={styles.headerOfflinePill}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="cloud-done" size={11} color="#10B981" />
-                  <Text style={styles.headerOfflineText}>Cached • Vault</Text>
+                  <Ionicons name="cloud-done" size={10} color="#10B981" />
+                  <Text style={styles.headerOfflineText}>Vault</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -808,37 +808,37 @@ export default function MyTrip() {
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity 
-            style={[styles.iconButton, { backgroundColor: "rgba(239, 68, 68, 0.12)", marginRight: 4 }]} 
+            style={[styles.iconButton, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]} 
             onPress={() => handleDeleteTrip(tripData)}
             activeOpacity={0.7}
           >
-            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={styles.iconButton} 
+            style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowExportModal(true);
             }}
           >
-            <Ionicons name="document-text-outline" size={20} color={theme.text} />
+            <Ionicons name="document-text-outline" size={18} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.iconButton, { marginLeft: 8 }]} 
+            style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={addToCalendar}
           >
-            <Ionicons name="calendar-outline" size={20} color={theme.text} />
+            <Ionicons name="calendar-outline" size={18} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.iconButton, { marginLeft: 8 }]} 
+            style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={createNewTrip}
           >
-            <Ionicons name="add-circle" size={26} color={Colors.PRIMARY} />
+            <Ionicons name="add-circle" size={24} color={Colors.PRIMARY} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         
         {/* Animated Multi-Trip Slider (when user has trips) */}
         {userTripsList.length > 0 && (
@@ -1757,49 +1757,50 @@ export default function MyTrip() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    paddingHorizontal: 16 
+    paddingHorizontal: 14,
+    overflow: "hidden",
   },
   header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginBottom: 16 
+    marginBottom: 12 
   },
   backToHubBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    gap: 4,
+    gap: 3,
   },
   backToHubText: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
-  title: { fontSize: 28, fontFamily: "Outfit-Bold" },
-  subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },
+  title: { fontSize: 22, fontFamily: "Outfit-Bold" },
+  subtitle: { fontSize: 13, fontFamily: "Outfit-Medium", marginTop: 1 },
   headerOfflinePill: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(16, 185, 129, 0.15)",
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 8,
+    borderRadius: 6,
+    marginLeft: 6,
   },
   headerOfflineText: {
     color: "#10B981",
-    fontSize: 10,
+    fontSize: 9.5,
     fontFamily: "Outfit-Bold",
-    marginLeft: 3,
+    marginLeft: 2,
   },
-  headerActions: { flexDirection: "row", alignItems: "center" },
+  headerActions: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
   iconButton: { 
-    width: 38, 
-    height: 38, 
-    borderRadius: 19, 
+    width: 34, 
+    height: 34, 
+    borderRadius: 17, 
     backgroundColor: "rgba(150, 150, 150, 0.1)", 
     justifyContent: "center", 
     alignItems: "center" 

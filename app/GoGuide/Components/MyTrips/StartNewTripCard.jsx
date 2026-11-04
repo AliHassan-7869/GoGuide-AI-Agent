@@ -372,18 +372,11 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
               <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
                 {vibe.label}
               </Text>
-              <FavoriteHeartButton
-                variant="inline"
-                size={15}
-                inactiveColor={theme.subtext}
-                item={{
-                  id: vibe.id,
-                  name: vibe.label,
-                  title: vibe.label,
-                  image: vibe.image,
-                  category: vibe.category,
-                  rating: "4.9",
-                }}
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={theme.subtext}
+                style={{ marginLeft: "auto" }}
               />
             </TouchableOpacity>
           ))}
@@ -407,18 +400,11 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
               <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
                 {vibe.label}
               </Text>
-              <FavoriteHeartButton
-                variant="inline"
-                size={15}
-                inactiveColor={theme.subtext}
-                item={{
-                  id: vibe.id,
-                  name: vibe.label,
-                  title: vibe.label,
-                  image: vibe.image,
-                  category: vibe.category,
-                  rating: "4.9",
-                }}
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={theme.subtext}
+                style={{ marginLeft: "auto" }}
               />
             </TouchableOpacity>
           ))}

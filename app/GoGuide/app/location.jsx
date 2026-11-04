@@ -263,6 +263,66 @@ export default function LocationPage() {
           )}
         </View>
 
+        {/* 100% Free In-App Google Maps Live Interactive Embed */}
+        {Platform.OS === "web" && activeLocation?.name && (
+          <View
+            style={{
+              backgroundColor: theme.card,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: theme.border,
+              overflow: "hidden",
+              marginBottom: 22,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="map" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13, fontFamily: "Outfit-Bold", color: theme.text }}>
+                  Live Google Map • {activeLocation.name.split(",")[0]}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    activeLocation.name
+                  )}`;
+                  if (typeof window !== "undefined") window.open(url, "_blank");
+                }}
+              >
+                <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
+                  Open Full Map ↗
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <iframe
+              title="Destination Google Map"
+              width="100%"
+              height="210"
+              frameBorder="0"
+              scrolling="no"
+              marginHeight="0"
+              marginWidth="0"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                activeLocation.name
+              )}&t=&z=12&ie=UTF8&iwloc=&output=embed`}
+              style={{ border: "none" }}
+              allowFullScreen
+              loading="lazy"
+            />
+          </View>
+        )}
+
         {/* Popular Travel Hubs Quick Chips */}
         <Text style={[styles.label, { color: theme.text }]}>Popular Destinations</Text>
         <ScrollView

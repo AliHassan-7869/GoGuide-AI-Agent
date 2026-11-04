@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   Platform,
@@ -31,6 +31,12 @@ function computeDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function DayRouteModal({ visible, day, destination, onClose, theme }) {
+  const [selectedStopIdx, setSelectedStopIdx] = useState(0);
+
+  useEffect(() => {
+    setSelectedStopIdx(0);
+  }, [day?.day, visible]);
+
   if (!day) return null;
 
   const activities = day.activities || [];
@@ -80,21 +86,24 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
   };
 
-  // Compute map bounding box for Web OpenStreetMap embed
-  const validCoords = activities
-    .map((a) => a.coordinates)
-    .filter((c) => c?.lat && c?.lng && c.lat !== 0 && c.lng !== 0);
-
-  let mapUrl = null;
-  if (validCoords.length > 0) {
-    const lats = validCoords.map((c) => c.lat);
-    const lngs = validCoords.map((c) => c.lng);
-    const minLat = Math.min(...lats) - 0.03;
-    const maxLat = Math.max(...lats) + 0.03;
-    const minLng = Math.min(...lngs) - 0.03;
-    const maxLng = Math.max(...lngs) + 0.03;
-    mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${validCoords[0].lat}%2C${validCoords[0].lng}`;
+  // Build 100% Free Keyless Google Maps Live Interactive Embed URL for the active stop or destination
+  const activeStop = activities[selectedStopIdx] || activities[0];
+  let googleMapQuery = destination || "Tourist Attractions";
+  if (activeStop) {
+    if (
+      activeStop.coordinates?.lat &&
+      activeStop.coordinates?.lng &&
+      activeStop.coordinates.lat !== 0 &&
+      activeStop.coordinates.lng !== 0
+    ) {
+      googleMapQuery = `${activeStop.coordinates.lat},${activeStop.coordinates.lng}`;
+    } else {
+      googleMapQuery = `${activeStop.placeName} ${destination || ""}`.trim();
+    }
   }
+  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
+    googleMapQuery
+  )}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <Modal
@@ -129,23 +138,27 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Live Map Preview on Web or Visual GPS Banner */}
-          {Platform.OS === "web" && mapUrl ? (
+          {/* Live Interactive Google Maps Embed on Web or Visual GPS Banner on Native */}
+          {Platform.OS === "web" ? (
             <View style={styles.mapFrameWrapper}>
               <iframe
-                title="Route Map"
+                title="Google Route Map"
                 width="100%"
-                height="220"
+                height="240"
                 frameBorder="0"
                 scrolling="no"
                 marginHeight="0"
                 marginWidth="0"
                 src={mapUrl}
                 style={{ borderRadius: 16, border: "none" }}
+                allowFullScreen
+                loading="lazy"
               />
               <View style={styles.mapOverlayHint}>
-                <Ionicons name="compass" size={14} color="#FFFFFF" />
-                <Text style={styles.mapOverlayHintText}>OpenStreetMap Real-time Coordinates</Text>
+                <Ionicons name="location" size={14} color="#FFFFFF" />
+                <Text style={styles.mapOverlayHintText} numberOfLines={1}>
+                  Google Maps Live: {activeStop?.placeName || destination} (Tap any stop below to focus)
+                </Text>
               </View>
             </View>
           ) : (
@@ -155,7 +168,7 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
                   <Ionicons name="map" size={24} color={Colors.PRIMARY} />
                 </View>
                 <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={[styles.nativeMapTitle, { color: theme.text }]}>Visual Waypoint Route</Text>
+                  <Text style={[styles.nativeMapTitle, { color: theme.text }]}>Google Maps Multi-Stop Route</Text>
                   <Text style={[styles.nativeMapSubtitle, { color: theme.subtext }]}>
                     {destination ? `Optimized for travel in ${destination}` : "Sequential transit line"}
                   </Text>
@@ -200,8 +213,22 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
                     )}
                   </View>
 
-                  {/* Right Column: Place Card */}
-                  <View style={[styles.waypointCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  {/* Right Column: Place Card (Tap to focus on live Google Map) */}
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      triggerHaptic();
+                      setSelectedStopIdx(idx);
+                    }}
+                    style={[
+                      styles.waypointCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: selectedStopIdx === idx ? Colors.PRIMARY : theme.border,
+                        borderWidth: selectedStopIdx === idx ? 1.5 : 1,
+                      },
+                    ]}
+                  >
                     <View style={styles.waypointCardTop}>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.timeLabel, { color: Colors.PRIMARY }]}>
@@ -236,7 +263,7 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
                         </Text>
                       </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
                 </View>
               );
             })}

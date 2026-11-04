@@ -2,12 +2,20 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 import { useContext } from "react";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../Components/constants/constants";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 export default function TabLayout() {
   const { preferences } = useContext(CreateTripContext);
+  const insets = useSafeAreaInsets();
   const isDark = preferences?.darkMode;
+
+  const bottomInset = Platform.select({
+    ios: Math.max(insets.bottom, 20),
+    android: Math.max(insets.bottom, 8),
+    default: Math.max(insets.bottom, 8),
+  });
 
   return (
     <Tabs
@@ -16,13 +24,18 @@ export default function TabLayout() {
         tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: Colors.PRIMARY,
         tabBarInactiveTintColor: isDark ? "#888888" : "#999999",
+        sceneStyle: {
+          flex: 1,
+          overflow: "hidden",
+        },
         tabBarStyle: {
           backgroundColor: isDark ? "#121212" : "#FFFFFF",
           borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
           borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 86 : 64,
-          paddingBottom: Platform.OS === "ios" ? 26 : 8,
-          paddingTop: 8,
+          height: 58 + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 6,
+          flexShrink: 0,
           // Completely remove shadows across Android and iOS
           elevation: 0,
           shadowOpacity: 0,
@@ -30,9 +43,13 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: 0 },
           shadowRadius: 0,
         },
+        tabBarItemStyle: {
+          paddingVertical: 2,
+        },
         tabBarLabelStyle: {
           fontFamily: "Outfit-Medium",
-          fontSize: 12,
+          fontSize: 11,
+          marginTop: 1,
         },
       }}
     >
@@ -41,7 +58,7 @@ export default function TabLayout() {
         options={{
           tabBarLabel: "My Trip",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="location-sharp" size={24} color={color} />
+            <Ionicons name="location-sharp" size={22} color={color} />
           ),
         }}
       />
@@ -51,7 +68,7 @@ export default function TabLayout() {
         options={{
           tabBarLabel: "Discover",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="globe-sharp" size={24} color={color} />
+            <Ionicons name="globe-sharp" size={22} color={color} />
           ),
         }}
       />
@@ -63,7 +80,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "sparkles" : "sparkles-outline"}
-              size={24}
+              size={22}
               color={focused ? "#7C3AED" : color}
             />
           ),
@@ -75,7 +92,7 @@ export default function TabLayout() {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="people-circle" size={24} color={color} />
+            <Ionicons name="people-circle" size={22} color={color} />
           ),
         }}
       />

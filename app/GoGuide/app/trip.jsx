@@ -387,7 +387,7 @@ export default function SharedTripView() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero Destination Banner */}
         <View style={styles.heroWrap}>
           <Image source={{ uri: heroImage }} style={styles.heroImage} />
@@ -926,6 +926,7 @@ export default function SharedTripView() {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
+    overflow: "hidden",
     backgroundColor: "#0F172A",
   },
   loadingContainer: {

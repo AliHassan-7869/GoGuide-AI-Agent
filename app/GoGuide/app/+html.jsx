@@ -60,7 +60,8 @@ export default function Root({ children }) {
           html, body, #root {
             width: 100%;
             height: 100%;
-            min-height: 100%;
+            height: 100dvh;
+            max-height: 100dvh;
             margin: 0;
             padding: 0;
             -webkit-text-size-adjust: 100%;
@@ -68,12 +69,16 @@ export default function Root({ children }) {
             -moz-osx-font-smoothing: grayscale;
             text-rendering: optimizeLegibility;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
+            overflow: hidden;
+            overscroll-behavior: none;
           }
           #root {
             display: flex;
             flex-direction: column;
             flex: 1;
+            height: 100%;
+            max-height: 100dvh;
+            overflow: hidden;
           }
           * {
             box-sizing: border-box;

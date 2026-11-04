@@ -535,7 +535,7 @@ export default function Discover() {
 
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         
         {/* Top Header */}
         <View style={styles.header}>
@@ -592,23 +592,8 @@ export default function Discover() {
                 onPress={() => executeAiTrip(vibe.destination, vibe.days, vibe.budget, vibe.image)}
                 activeOpacity={0.85}
               >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
-                    <Ionicons name={vibe.icon} size={15} color={vibe.color} />
-                  </View>
-                  <FavoriteHeartButton
-                    variant="inline"
-                    size={14}
-                    inactiveColor={themeStyles.subTextColor}
-                    item={{
-                      id: `quick_${vibe.id}`,
-                      name: vibe.destination,
-                      title: vibe.title,
-                      image: vibe.image,
-                      category: vibe.tag,
-                      rating: "4.9",
-                    }}
-                  />
+                <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
+                  <Ionicons name={vibe.icon} size={15} color={vibe.color} />
                 </View>
                 <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={1}>{vibe.title}</Text>
                 <Text style={[styles.vibeCardTag, { color: vibe.color }]}>{vibe.tag}</Text>
@@ -707,7 +692,7 @@ export default function Discover() {
               {categories.map((item) => (
                 <TouchableOpacity 
                   key={item.id} 
-                  style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor, position: "relative" }]}
+                  style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     if (item.route) {
@@ -716,20 +701,6 @@ export default function Discover() {
                   }}
                   activeOpacity={0.75}
                 >
-                  <FavoriteHeartButton
-                    variant="inline"
-                    size={13}
-                    inactiveColor={themeStyles.subTextColor}
-                    style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 11 }}
-                    item={{
-                      id: item.id,
-                      name: item.title,
-                      title: `${item.title} Vibe`,
-                      image: item.image,
-                      category: item.title,
-                      rating: "4.9",
-                    }}
-                  />
                   <View style={[styles.categoryIconWrap, { backgroundColor: Colors.PRIMARY + '12' }]}>
                     <Ionicons name={item.icon} size={22} color={Colors.PRIMARY} />
                   </View>
@@ -957,8 +928,8 @@ export default function Discover() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingBottom: 50 },
+  container: { flex: 1, overflow: "hidden" },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 90 },
   header: { marginBottom: 15 },
   title: { fontSize: 28, fontFamily: "Outfit-Bold" },
   subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },

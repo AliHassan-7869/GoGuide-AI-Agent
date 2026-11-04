@@ -77,10 +77,19 @@ function AppContent() {
     );
   }
 
-  // On Mobile Web, wrap in a full-height flex container so it fills mobile viewport cleanly
+  // On Mobile Web, wrap in a fixed viewport-height flex container so inner ScrollViews scroll while bottom tabs stay pinned
   if (Platform.OS === "web") {
     return (
-      <View style={{ flex: 1, width: "100%", minHeight: "100vh", backgroundColor: isDark ? "#121212" : "#FFFFFF" }}>
+      <View
+        style={{
+          flex: 1,
+          width: "100%",
+          height: "100%",
+          maxHeight: "100dvh",
+          overflow: "hidden",
+          backgroundColor: isDark ? "#121212" : "#FFFFFF",
+        }}
+      >
         {stack}
       </View>
     );
@@ -115,7 +124,8 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-    minHeight: "100vh",
+    maxHeight: "100dvh",
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -124,6 +134,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 460,
     height: "100%",
+    maxHeight: "100dvh",
     overflow: "hidden",
     borderLeftWidth: 1,
     borderRightWidth: 1,
