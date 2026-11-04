@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
-import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -142,25 +142,29 @@ export default function Profile() {
     const fetchStats = async () => {
       let localTrips = [];
       try {
-        const stored = await AsyncStorage.getItem("@goguide_user_trips");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) localTrips = parsed;
+        const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
+        const stored2 = await AsyncStorage.getItem("@goguide_local_trips");
+        const list1 = stored1 ? JSON.parse(stored1) : [];
+        const list2 = stored2 ? JSON.parse(stored2) : [];
+        if (Array.isArray(list1)) localTrips.push(...list1);
+        if (Array.isArray(list2)) {
+          list2.forEach((item) => {
+            const normalized = {
+              id: item.id,
+              ...(item.tripData || {}),
+              aiTripPlan: item.aiTripPlan || item.tripData?.aiTripPlan,
+              createdAt: item.createdAt,
+            };
+            localTrips.push(normalized);
+          });
         }
       } catch (e) {}
 
       const user = auth.currentUser;
       const email = user?.email || userData?.email;
 
-      let remoteCount = 0;
+      let remoteTrips = [];
       let uniqueDestinations = new Set();
-
-      localTrips.forEach((t) => {
-        const destName = t?.toLocation?.name || t?.destination || t?.aiTripPlan?.destination;
-        if (destName) {
-          uniqueDestinations.add(destName.split(",")[0].trim());
-        }
-      });
 
       if (email) {
         try {
@@ -169,19 +173,42 @@ export default function Profile() {
             where("userEmail", "==", email)
           );
           const tripsSnap = await getDocs(tripsQuery);
-          remoteCount = tripsSnap.size;
 
-          tripsSnap.forEach((doc) => {
-            const d = doc.data();
-            const destName = d?.tripData?.toLocation?.name || d?.tripData?.destination;
-            if (destName) {
-              uniqueDestinations.add(destName.split(",")[0].trim());
-            }
+          tripsSnap.forEach((docSnap) => {
+            const d = docSnap.data();
+            const normalized = {
+              id: docSnap.id,
+              ...(d?.tripData || {}),
+              aiTripPlan: d?.aiTripPlan || d?.tripData?.aiTripPlan,
+              createdAt: d?.createdAt,
+              isFirestore: true,
+            };
+            remoteTrips.push(normalized);
           });
         } catch (err) {
           console.log("Stats fetch notice (offline/fallback):", err?.message);
         }
       }
+
+      // Merge remote and local trips without duplicates
+      const seenKeys = new Set();
+      const mergedTrips = [];
+      [...remoteTrips, ...localTrips].forEach((t) => {
+        const destName =
+          t?.aiTripPlan?.destination ||
+          t?.toLocation?.name ||
+          t?.destination ||
+          t?.locationInfo?.name ||
+          "";
+        if (destName) {
+          uniqueDestinations.add(destName.split(",")[0].trim());
+        }
+        const key = t.id || `${destName}_${t.createdAt || ""}`;
+        if (!seenKeys.has(key) && destName) {
+          seenKeys.add(key);
+          mergedTrips.push(t);
+        }
+      });
 
       // Query bookings count
       let bookingsCount = 0;
@@ -204,10 +231,10 @@ export default function Profile() {
       // Fetch favorites
       const favPlaces = await getFavoritePlaces();
 
-      const totalTripsCount = Math.max(remoteCount, localTrips.length);
+      const totalTripsCount = mergedTrips.length;
 
       if (!cancelled) {
-        setSavedTripsList(localTrips);
+        setSavedTripsList(mergedTrips);
         setFavoritePlacesList(favPlaces);
         setStats({
           trips: totalTripsCount,
@@ -238,17 +265,47 @@ export default function Profile() {
     const destTitle =
       tripToDelete?.aiTripPlan?.destination ||
       tripToDelete?.destination ||
+      tripToDelete?.toLocation?.name ||
       tripToDelete?.locationInfo?.name ||
       "this trip";
 
     const proceedDelete = async () => {
       try {
-        const stored = await AsyncStorage.getItem("@goguide_user_trips");
-        const list = stored ? JSON.parse(stored) : [];
-        const filtered = list.filter((t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt);
-        await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(filtered));
-        setSavedTripsList(filtered);
-        setStats((prev) => ({ ...prev, trips: filtered.length }));
+        if (tripToDelete.id) {
+          try {
+            await deleteDoc(doc(db, "UserTrips", String(tripToDelete.id)));
+          } catch (e) {}
+        }
+
+        const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
+        if (stored1) {
+          const list1 = JSON.parse(stored1);
+          if (Array.isArray(list1)) {
+            const filtered1 = list1.filter(
+              (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+            );
+            await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(filtered1));
+          }
+        }
+
+        const stored2 = await AsyncStorage.getItem("@goguide_local_trips");
+        if (stored2) {
+          const list2 = JSON.parse(stored2);
+          if (Array.isArray(list2)) {
+            const filtered2 = list2.filter(
+              (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+            );
+            await AsyncStorage.setItem("@goguide_local_trips", JSON.stringify(filtered2));
+          }
+        }
+
+        setSavedTripsList((prev) => {
+          const next = prev.filter(
+            (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+          );
+          setStats((s) => ({ ...s, trips: next.length }));
+          return next;
+        });
       } catch (e) {
         console.error("Delete trip error:", e);
       }
@@ -556,7 +613,7 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              handleNavigate("/mytrip");
+              setShowSavedTripsModal(true);
             }}
             activeOpacity={0.7}
           >
@@ -680,7 +737,7 @@ export default function Profile() {
         </View>
       </ScrollView>
 
-      {/* 1. SAVED TRIPS MODAL */}
+      {/* 1. MY TRIPS & HISTORY MODAL */}
       <Modal
         visible={showSavedTripsModal}
         animationType="slide"
@@ -690,23 +747,86 @@ export default function Profile() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="map" size={22} color={brandIconColor} style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text }]}>My Saved Trips</Text>
+              <Ionicons name="airplane" size={22} color={brandIconColor} style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: theme.text }]}>My Trips & History</Text>
               <View style={[styles.modalBadge, { backgroundColor: brandIconBg }]}>
                 <Text style={[styles.modalBadgeText, { color: brandIconColor }]}>
                   {savedTripsList.length}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
-              onPress={() => setShowSavedTripsModal(false)}
-            >
-              <Ionicons name="close" size={20} color={theme.text} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: Colors.PRIMARY,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 16,
+                }}
+                onPress={() => {
+                  triggerHaptic();
+                  setShowSavedTripsModal(false);
+                  router.push("/create-trip/search-place");
+                }}
+              >
+                <Ionicons name="add" size={16} color="#FFF" style={{ marginRight: 3 }} />
+                <Text style={{ color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold" }}>
+                  New Trip
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
+                onPress={() => setShowSavedTripsModal(false)}
+              >
+                <Ionicons name="close" size={20} color={theme.text} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {/* Explorer Tier Progress Card inside Trips Modal */}
+            <View
+              style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                borderWidth: 1,
+                borderRadius: 16,
+                padding: 14,
+                marginBottom: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: `${tier.color}18`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name={tier.icon} size={20} color={tier.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: theme.text }}>
+                    {tier.title} ({tier.level})
+                  </Text>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }}>
+                    {stats.trips >= 5
+                      ? "Top Explorer Rank Unlocked! 🌍"
+                      : `${Math.max(0, 5 - stats.trips)} more trip${5 - stats.trips === 1 ? "" : "s"} to unlock Elite Globetrotter`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {savedTripsList.length === 0 ? (
               <View style={styles.modalEmptyWrap}>
                 <Ionicons name="airplane-outline" size={54} color={theme.subtext} />
@@ -766,11 +886,18 @@ export default function Profile() {
 
                       <TouchableOpacity
                         style={[styles.openTripBtn, { backgroundColor: Colors.PRIMARY }]}
-                        onPress={() => {
+                        onPress={async () => {
+                          triggerHaptic();
+                          try {
+                            await AsyncStorage.setItem(
+                              "@goguide_cached_trip",
+                              JSON.stringify(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip })
+                            );
+                          } catch (e) {}
                           setShowSavedTripsModal(false);
                           router.push({
                             pathname: "/trip",
-                            params: { id: trip.id },
+                            params: { id: trip.id || "cached" },
                           });
                         }}
                       >
