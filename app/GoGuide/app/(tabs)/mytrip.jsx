@@ -35,6 +35,7 @@ import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
 import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
+import { normalizeTrip } from "../../Components/utils/TripNormalizer";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
 import { saveTripToBookings, addActivityBooking } from "../../Components/utils/BookingService";
 import { fetchDestinationEssentials } from "../../Configs/AiModel";
@@ -84,7 +85,7 @@ export default function MyTrip() {
   const insets = useSafeAreaInsets();
   const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
-  const plan = tripData?.aiTripPlan;
+  const plan = normalizeTrip(tripData?.aiTripPlan || tripData);
 
   const safeTopPadding = Platform.select({
     android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
@@ -878,7 +879,7 @@ export default function MyTrip() {
     );
   }
 
-  const daysList = plan.itinerary || [];
+  const daysList = Array.isArray(plan?.itinerary) ? plan.itinerary : [];
   const filteredDays = selectedDay === "all" 
     ? daysList 
     : daysList.filter(d => String(d.day) === String(selectedDay));

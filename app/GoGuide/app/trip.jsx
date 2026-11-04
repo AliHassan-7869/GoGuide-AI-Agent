@@ -27,6 +27,7 @@ import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
 import { fetchDestinationEssentials } from "../Configs/AiModel";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../Components/utils/FlightEngine";
+import { normalizeTrip } from "../Components/utils/TripNormalizer";
 import {
   detectCurrencyFromLocation,
   getCurrencySymbol,
@@ -218,16 +219,26 @@ export default function SharedTripView() {
         }
       } catch (bErr) {}
       // 0. Check local persistent trips list (@goguide_user_trips) first for targetId
-      if (targetId && targetId !== "current-trip" && targetId !== "shared") {
+      if (targetId && targetId !== "current-trip" && targetId !== "shared" && targetId !== "cached") {
         try {
           const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
           if (storedTripsRaw) {
             const userTrips = JSON.parse(storedTripsRaw);
-            const found = userTrips.find((t) => String(t.id) === String(targetId) || String(t?.tripData?.id) === String(targetId));
-            if (found) {
-              setTripPlan(found.aiTripPlan || found.tripData?.aiTripPlan || found);
-              setLoading(false);
-              return;
+            if (Array.isArray(userTrips)) {
+              const found = userTrips.find(
+                (t) =>
+                  String(t.id) === String(targetId) ||
+                  String(t?.tripData?.id) === String(targetId) ||
+                  (t?.destination && targetId.includes && targetId.includes(t.destination))
+              );
+              if (found) {
+                const normalized = normalizeTrip(found);
+                if (normalized) {
+                  setTripPlan(normalized);
+                  setLoading(false);
+                  return;
+                }
+              }
             }
           }
         } catch (localErr) {
@@ -235,45 +246,65 @@ export default function SharedTripView() {
         }
       }
 
-      // 1. Try fetching from Firestore SharedTrips
-      if (targetId && targetId !== "current-trip" && targetId !== "shared") {
-        try {
-          const snap = await getDoc(doc(db, "SharedTrips", String(targetId)));
-          if (snap.exists()) {
-            const data = snap.data();
-            setTripPlan(data.plan || data);
+      // 1. Check local AsyncStorage cached trip (@goguide_cached_trip & @goguide_active_draft)
+      try {
+        const cached = await AsyncStorage.getItem("@goguide_cached_trip");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const normalized = normalizeTrip(parsed);
+          if (normalized) {
+            setTripPlan(normalized);
             setLoading(false);
             return;
           }
-        } catch (fbErr) {
-          console.log("SharedTrips load notice:", fbErr?.message);
         }
+        const draft = await AsyncStorage.getItem("@goguide_active_draft");
+        if (draft) {
+          const parsedDraft = JSON.parse(draft);
+          const normalized = normalizeTrip(parsedDraft);
+          if (normalized) {
+            setTripPlan(normalized);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (cErr) {
+        console.log("Cached trip read notice:", cErr);
+      }
 
-        // Try UserTrips as fallback
+      // 2. Try fetching from Firestore UserTrips or SharedTrips
+      if (targetId && targetId !== "current-trip" && targetId !== "shared" && targetId !== "cached") {
         try {
           const userSnap = await getDoc(doc(db, "UserTrips", String(targetId)));
           if (userSnap.exists()) {
             const data = userSnap.data();
-            setTripPlan(data.tripData?.aiTripPlan || data.tripData || data);
-            setLoading(false);
-            return;
+            const normalized = normalizeTrip(data);
+            if (normalized) {
+              setTripPlan(normalized);
+              setLoading(false);
+              return;
+            }
           }
         } catch (uErr) { }
-      }
 
-      // 2. Check local AsyncStorage cached trip
-      const cached = await AsyncStorage.getItem("@goguide_cached_trip");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.aiTripPlan) {
-          setTripPlan(parsed.aiTripPlan);
-          setLoading(false);
-          return;
+        try {
+          const snap = await getDoc(doc(db, "SharedTrips", String(targetId)));
+          if (snap.exists()) {
+            const data = snap.data();
+            const normalized = normalizeTrip(data.plan || data);
+            if (normalized) {
+              setTripPlan(normalized);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (fbErr) {
+          console.log("SharedTrips load notice:", fbErr?.message);
         }
       }
 
       // 3. Fallback to curated Demo Trip
-      setTripPlan(DEMO_TRIP);
+      setTripPlan(normalizeTrip(DEMO_TRIP));
     } catch (e) {
       console.log("Error loading shared trip:", e);
       setTripPlan(DEMO_TRIP);
@@ -444,13 +475,13 @@ export default function SharedTripView() {
 
   const destination = tripPlan?.destination || "Destination";
   const heroImage = getDestinationImage(destination);
-  const itinerary = tripPlan?.itinerary || [];
-  const hotels = tripPlan?.hotels || [];
+  const itinerary = Array.isArray(tripPlan?.itinerary) ? tripPlan.itinerary : [];
+  const hotels = Array.isArray(tripPlan?.hotels) ? tripPlan.hotels : [];
 
   const filteredDays =
     selectedDay === "all"
       ? itinerary
-      : itinerary.filter((d) => String(d.day) === String(selectedDay));
+      : itinerary.filter((d) => String(d?.day) === String(selectedDay));
 
   return (
     <View style={styles.outerContainer}>
