@@ -461,6 +461,254 @@ export default function SharedTripView() {
           </TouchableOpacity>
         </View>
 
+        {/* 1. FIRST: Recommended Stays Section with Booking.com Link */}
+        {hotels.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>🏨 Recommended Stays</Text>
+              <Text style={styles.sectionCount}>{hotels.length} options</Text>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+              {hotels.map((hotel, idx) => (
+                <View key={idx} style={styles.hotelCard}>
+                  <View style={{ position: "relative" }}>
+                    <Image source={{ uri: hotel.image || heroImage }} style={styles.hotelImg} />
+                    <FavoriteHeartButton
+                      place={{
+                        name: hotel.name,
+                        tag: `Hotel • ${destination}`,
+                        img: hotel.image || heroImage,
+                        desc: hotel.address || `Recommended stay in ${destination}`,
+                      }}
+                      size={14}
+                      style={{ position: "absolute", top: 8, left: 8, width: 28, height: 28, borderRadius: 14 }}
+                    />
+                  </View>
+                  <View style={styles.hotelRatingPill}>
+                    <Ionicons name="star" size={11} color="#FFD700" />
+                    <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>
+                  </View>
+
+                  <View style={styles.hotelBody}>
+                    <Text style={styles.hotelName} numberOfLines={1}>
+                      {hotel.name}
+                    </Text>
+                    <Text style={styles.hotelAddress} numberOfLines={1}>
+                      {hotel.address || "Prime location"}
+                    </Text>
+
+                    {/* Dynamic Booking.com Deep Link */}
+                    <TouchableOpacity
+                      style={styles.hotelBookBtn}
+                      onPress={() => openBookingCom(hotel.name)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="bed" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.hotelBookBtnText}>Book on Booking.com</Text>
+                      <Ionicons name="open-outline" size={11} color="#93C5FD" style={{ marginLeft: 4 }} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.hotelMapBtn}
+                      onPress={() => openInMaps(hotel.name)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="location-outline" size={13} color={Colors.PRIMARY} />
+                      <Text style={styles.hotelMapBtnText}>View Map</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* 2. SECOND: Outbound & Return Flight Schedule (Departure Day & Return Day) */}
+        {(() => {
+          const originName = tripPlan?.flights?.origin || tripPlan?.origin || "Home Airport";
+          const numDays = itinerary.length || parseInt(tripPlan?.duration, 10) || 3;
+          const startObj = new Date();
+          const endObj = new Date(startObj.getTime() + Math.max(1, numDays - 1) * 24 * 60 * 60 * 1000);
+          const fmtDate = (d) =>
+            d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          const depDateStr = tripPlan?.flights?.departureDate || tripPlan?.departureDate || fmtDate(startObj);
+          const retDateStr = tripPlan?.flights?.returnDate || tripPlan?.returnDate || fmtDate(endObj);
+          const flightPrice = tripPlan?.flights?.price || "$680 - $980 (Round-Trip)";
+          const bookingUrl =
+            tripPlan?.flights?.bookingUrl && tripPlan.flights.bookingUrl !== "string"
+              ? tripPlan.flights.bookingUrl
+              : `https://www.google.com/travel/flights?q=${encodeURIComponent(
+                  `Flights from ${originName} to ${destination}`
+                )}`;
+
+          return (
+            <View style={[styles.section, { marginTop: 22 }]}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>✈️ Outbound & Return Flights</Text>
+                <Text style={styles.sectionCount}>{originName} ⇄ {destination}</Text>
+              </View>
+
+              <View
+                style={{
+                  backgroundColor: "#1E293B",
+                  borderRadius: 16,
+                  padding: 14,
+                  marginTop: 10,
+                  borderWidth: 1,
+                  borderColor: "#334155",
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: "#0F172A",
+                    borderRadius: 12,
+                    padding: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: "#0EA5E9",
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#38BDF8" }}>
+                    🛫 GOING • DAY 1 ({depDateStr})
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
+                    {originName} ✈️ {destination}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: "#0F172A",
+                    borderRadius: 12,
+                    padding: 12,
+                    marginTop: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: "#10B981",
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#34D399" }}>
+                    🛬 RETURNING • DAY {numDays} ({retDateStr})
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
+                    {destination} ✈️ {originName}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#10B981" }}>
+                    Est. {flightPrice}
+                  </Text>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: Colors.PRIMARY,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                    }}
+                    onPress={() => Linking.openURL(bookingUrl)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>
+                      Search Flights ✈️
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* 3. THIRD: Day-by-Day Timeline Schedule */}
+        <View style={[styles.section, { marginTop: 24 }]}>
+          <Text style={styles.sectionTitle}>🗓️ Day-by-Day Schedule</Text>
+
+          {/* Day Filter Pills */}
+          {itinerary.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabsScroll}>
+              <TouchableOpacity
+                style={[styles.dayTabPill, selectedDay === "all" && styles.dayTabActive]}
+                onPress={() => setSelectedDay("all")}
+              >
+                <Text style={[styles.dayTabText, selectedDay === "all" && styles.dayTabTextActive]}>
+                  All Days
+                </Text>
+              </TouchableOpacity>
+              {itinerary.map((d) => (
+                <TouchableOpacity
+                  key={d.day}
+                  style={[styles.dayTabPill, String(selectedDay) === String(d.day) && styles.dayTabActive]}
+                  onPress={() => setSelectedDay(String(d.day))}
+                >
+                  <Text
+                    style={[
+                      styles.dayTabText,
+                      String(selectedDay) === String(d.day) && styles.dayTabTextActive,
+                    ]}
+                  >
+                    Day {d.day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Activity Timeline List */}
+          {filteredDays.map((dayItem) => (
+            <View key={dayItem.day} style={styles.dayGroup}>
+              <View style={styles.dayHeader}>
+                <View style={styles.dayNumberBadge}>
+                  <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+                </View>
+                {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
+              </View>
+
+              {(dayItem.activities || []).map((act, actIdx) => (
+                <View key={actIdx} style={styles.activityCard}>
+                  <View style={styles.actTopRow}>
+                    <View style={styles.timePill}>
+                      <Ionicons name="time-outline" size={12} color={Colors.PRIMARY} />
+                      <Text style={styles.timePillText}>{act.time || "Scheduled"}</Text>
+                    </View>
+                    {act.tickets && (
+                      <View style={styles.ticketPill}>
+                        <Ionicons name="ticket-outline" size={12} color="#10B981" />
+                        <Text style={styles.ticketPillText}>{act.tickets}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.actTitle}>{act.placeName}</Text>
+                  <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
+
+                  <View style={styles.actBottomRow}>
+                    {act.travelTime && (
+                      <View style={styles.travelTimeRow}>
+                        <Ionicons name="footsteps-outline" size={13} color="#64748B" />
+                        <Text style={styles.travelTimeText}>{act.travelTime}</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.actMapBtn}
+                      onPress={() => openInMaps(act.placeName)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="navigate-outline" size={13} color={Colors.PRIMARY} />
+                      <Text style={styles.actMapBtnText}>Directions</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+
         {/* Destination Essentials (Visa, Emergency, Money & Events) */}
         {essentials && (
           <View style={styles.section}>
@@ -568,151 +816,59 @@ export default function SharedTripView() {
           </View>
         )}
 
-        {/* Recommended Stays Section with Booking.com Link */}
-        {hotels.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>🏨 Curated Stays</Text>
-              <Text style={styles.sectionCount}>{hotels.length} options</Text>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-              {hotels.map((hotel, idx) => (
-                <View key={idx} style={styles.hotelCard}>
-                  <View style={{ position: "relative" }}>
-                    <Image source={{ uri: hotel.image || heroImage }} style={styles.hotelImg} />
-                    <FavoriteHeartButton
-                      place={{
-                        name: hotel.name,
-                        tag: `Hotel • ${destination}`,
-                        img: hotel.image || heroImage,
-                        desc: hotel.address || `Recommended stay in ${destination}`,
-                      }}
-                      size={14}
-                      style={{ position: "absolute", top: 8, left: 8, width: 28, height: 28, borderRadius: 14 }}
-                    />
-                  </View>
-                  <View style={styles.hotelRatingPill}>
-                    <Ionicons name="star" size={11} color="#FFD700" />
-                    <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>
-                  </View>
-
-                  <View style={styles.hotelBody}>
-                    <Text style={styles.hotelName} numberOfLines={1}>
-                      {hotel.name}
-                    </Text>
-                    <Text style={styles.hotelAddress} numberOfLines={1}>
-                      {hotel.address || "Prime location"}
-                    </Text>
-
-                    {/* Dynamic Booking.com Deep Link */}
-                    <TouchableOpacity
-                      style={styles.hotelBookBtn}
-                      onPress={() => openBookingCom(hotel.name)}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="bed" size={13} color="#FFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.hotelBookBtnText}>Book on Booking.com</Text>
-                      <Ionicons name="open-outline" size={11} color="#93C5FD" style={{ marginLeft: 4 }} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.hotelMapBtn}
-                      onPress={() => openInMaps(hotel.name)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="location-outline" size={13} color={Colors.PRIMARY} />
-                      <Text style={styles.hotelMapBtnText}>View Map</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Day-by-Day Timeline Schedule */}
-        <View style={[styles.section, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>🗓️ Day-by-Day Schedule</Text>
-
-          {/* Day Filter Pills */}
-          {itinerary.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabsScroll}>
-              <TouchableOpacity
-                style={[styles.dayTabPill, selectedDay === "all" && styles.dayTabActive]}
-                onPress={() => setSelectedDay("all")}
-              >
-                <Text style={[styles.dayTabText, selectedDay === "all" && styles.dayTabTextActive]}>
-                  All Days
-                </Text>
-              </TouchableOpacity>
-              {itinerary.map((d) => (
-                <TouchableOpacity
-                  key={d.day}
-                  style={[styles.dayTabPill, String(selectedDay) === String(d.day) && styles.dayTabActive]}
-                  onPress={() => setSelectedDay(String(d.day))}
+        {/* 4. LAST: End-of-Day Trip Budget & Log Expense Card */}
+        <View style={[styles.section, { marginTop: 22 }]}>
+          <View
+            style={{
+              backgroundColor: "#1E293B",
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: "#334155",
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: "rgba(245, 158, 11, 0.15)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 10,
+                  }}
                 >
-                  <Text
-                    style={[
-                      styles.dayTabText,
-                      String(selectedDay) === String(d.day) && styles.dayTabTextActive,
-                    ]}
-                  >
-                    Day {d.day}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
-          {/* Activity Timeline List */}
-          {filteredDays.map((dayItem) => (
-            <View key={dayItem.day} style={styles.dayGroup}>
-              <View style={styles.dayHeader}>
-                <View style={styles.dayNumberBadge}>
-                  <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+                  <Ionicons name="wallet" size={18} color="#F59E0B" />
                 </View>
-                {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: "#F8FAFC" }}>
+                    Trip Budget & Daily Expenses
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                    Adjust & log your daily expenses at the end of the day ({tripPlan?.budget || "Moderate"})
+                  </Text>
+                </View>
               </View>
 
-              {(dayItem.activities || []).map((act, actIdx) => (
-                <View key={actIdx} style={styles.activityCard}>
-                  <View style={styles.actTopRow}>
-                    <View style={styles.timePill}>
-                      <Ionicons name="time-outline" size={12} color={Colors.PRIMARY} />
-                      <Text style={styles.timePillText}>{act.time || "Scheduled"}</Text>
-                    </View>
-                    {act.tickets && (
-                      <View style={styles.ticketPill}>
-                        <Ionicons name="ticket-outline" size={12} color="#10B981" />
-                        <Text style={styles.ticketPillText}>{act.tickets}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <Text style={styles.actTitle}>{act.placeName}</Text>
-                  <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
-
-                  <View style={styles.actBottomRow}>
-                    {act.travelTime && (
-                      <View style={styles.travelTimeRow}>
-                        <Ionicons name="footsteps-outline" size={13} color="#64748B" />
-                        <Text style={styles.travelTimeText}>{act.travelTime}</Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      style={styles.actMapBtn}
-                      onPress={() => openInMaps(act.placeName)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="navigate-outline" size={13} color={Colors.PRIMARY} />
-                      <Text style={styles.actMapBtnText}>Directions</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#F59E0B",
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                }}
+                onPress={() => router.push("/(tabs)/mytrip")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={15} color="#FFF" style={{ marginRight: 4 }} />
+                <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>Log Expense</Text>
+              </TouchableOpacity>
             </View>
-          ))}
+          </View>
         </View>
 
         {/* Viral Bottom Call-to-Action Banner */}

@@ -172,9 +172,64 @@ export default function GenerateTrip() {
   };
 
   const handleSaveAndProceed = async (plan) => {
+    const cleanOrigin =
+      tripData?.fromLocation?.name?.split(",")[0]?.trim() ||
+      plan?.origin ||
+      preferences?.originCountry ||
+      "Home Airport";
+    const cleanDest =
+      plan?.destination ||
+      tripData?.toLocation?.name?.split(",")[0]?.trim() ||
+      "Trip Destination";
+    const startObj = tripData?.startDate ? new Date(tripData.startDate) : new Date();
+    const numDays =
+      plan?.itinerary?.length ||
+      tripData?.totalNoOfDays ||
+      Math.max(1, Math.ceil(Math.abs((tripData?.endDate ? new Date(tripData.endDate) : startObj) - startObj) / (1000 * 60 * 60 * 24)) + 1) ||
+      3;
+    const endObj = tripData?.endDate
+      ? new Date(tripData.endDate)
+      : new Date(startObj.getTime() + Math.max(1, numDays - 1) * 24 * 60 * 60 * 1000);
+    const fmtDate = (d) =>
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const departureDateStr = fmtDate(startObj);
+    const returnDateStr = fmtDate(endObj);
+    const budgetTier = plan?.budget || tripData?.budget || "Moderate";
+    const estFlightPrice =
+      budgetTier.toLowerCase().includes("luxury")
+        ? "$1,450 - $2,200 (Business / Flex)"
+        : budgetTier.toLowerCase().includes("economical") || budgetTier.toLowerCase().includes("cheap")
+        ? "$420 - $650 (Economy Saver)"
+        : "$680 - $980 (Round-Trip Economy)";
+    const flightQuery = encodeURIComponent(`Flights from ${cleanOrigin} to ${cleanDest}`);
+
+    const enrichedPlan = {
+      ...plan,
+      origin: cleanOrigin,
+      departureDate: departureDateStr,
+      returnDate: returnDateStr,
+      flights: {
+        ...(plan?.flights || {}),
+        origin: cleanOrigin,
+        destination: cleanDest,
+        departureDate: departureDateStr,
+        returnDate: returnDateStr,
+        outbound: `Outbound (Day 1 • ${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} International Airport`,
+        returnFlight: `Return (Day ${numDays} • ${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
+        details:
+          plan?.flights?.details ||
+          `Outbound (${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} • Return (${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
+        price: plan?.flights?.price || estFlightPrice,
+        bookingUrl:
+          plan?.flights?.bookingUrl && plan.flights.bookingUrl !== "string"
+            ? plan.flights.bookingUrl
+            : `https://www.google.com/travel/flights?q=${flightQuery}`,
+      },
+    };
+
     const completeTripData = {
       ...tripData,
-      aiTripPlan: plan,
+      aiTripPlan: enrichedPlan,
       createdAt: new Date().toISOString(),
     };
 

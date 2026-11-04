@@ -304,8 +304,32 @@ export default function Discover() {
     borderColor: isDark ? "#2C2C2C" : "#E2E8F0",
   };
 
+  // Helper to normalize and title-case place names & common country shorthands
+  const normalizePlaceName = (raw) => {
+    if (!raw) return "";
+    const aliases = {
+      pak: "Pakistan",
+      pk: "Pakistan",
+      uk: "United Kingdom",
+      uae: "United Arab Emirates",
+      usa: "United States",
+      us: "United States",
+      ksa: "Saudi Arabia",
+      nz: "New Zealand",
+    };
+    return raw
+      .trim()
+      .split(/\s+/)
+      .map((word) => {
+        const cleanWord = word.toLowerCase().replace(/[^a-z]/g, "");
+        if (aliases[cleanWord]) return aliases[cleanWord];
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(" ");
+  };
+
   // Instant 1-Click AI Generation
-  const executeAiTrip = async (destination, days = 3, budget = "Moderate", fallbackImage = null) => {
+  const executeAiTrip = async (destination, days = 3, budget = "Moderate", fallbackImage = null, origin = null) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setAiLoading(true);
     setAiError(null);
@@ -316,11 +340,21 @@ export default function Discover() {
     const stepTimer2 = setTimeout(() => setAiStep(3), 2800);
 
     try {
-      console.log("[AI-Copilot] Generating instant trip for:", destination);
+      const cleanDest = normalizePlaceName(destination) || destination;
+      const cleanOrigin = origin ? normalizePlaceName(origin) : (preferences?.originCountry || "Home Airport");
+      const startObj = new Date();
+      const endObj = new Date(Date.now() + Math.max(1, days - 1) * 24 * 60 * 60 * 1000);
+      const fmtDate = (d) =>
+        d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const departureDateStr = fmtDate(startObj);
+      const returnDateStr = fmtDate(endObj);
+
+      console.log("[AI-Copilot] Generating instant trip for:", cleanDest, "from:", cleanOrigin);
       const result = await generateTripWithAgent({
-        destination: destination,
+        destination: cleanDest,
         days: days,
-        budget: budget
+        budget: budget,
+        interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
       });
 
       const responseText = await result.response.text();
@@ -331,12 +365,52 @@ export default function Discover() {
       const parsedData = JSON.parse(cleanResponse);
       const completePlan = parsedData.trip || parsedData;
 
+      // Ensure clean destination title & origin metadata
+      completePlan.destination = completePlan.destination
+        ? normalizePlaceName(completePlan.destination)
+        : cleanDest;
+      completePlan.origin = cleanOrigin;
+      completePlan.departureDate = departureDateStr;
+      completePlan.returnDate = returnDateStr;
+      completePlan.duration = completePlan.duration || `${days} Days ${Math.max(1, days - 1)} Nights`;
+
+      // Ensure Outbound & Return Flight Logistics are always populated
+      const estFlightPrice =
+        budget === "Luxury"
+          ? "$1,450 - $2,200 (Business / Flex)"
+          : budget === "Economical"
+          ? "$420 - $650 (Economy Saver)"
+          : "$680 - $980 (Round-Trip Economy)";
+      const flightQuery = encodeURIComponent(`Flights from ${cleanOrigin} to ${cleanDest}`);
+
+      completePlan.flights = {
+        ...(completePlan.flights || {}),
+        origin: cleanOrigin,
+        destination: cleanDest,
+        departureDate: departureDateStr,
+        returnDate: returnDateStr,
+        outbound: `Outbound (Day 1 • ${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} International Airport`,
+        returnFlight: `Return (Day ${days} • ${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
+        details:
+          completePlan.flights?.details ||
+          `Outbound (${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} • Return (${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
+        price: completePlan.flights?.price || estFlightPrice,
+        bookingUrl:
+          completePlan.flights?.bookingUrl && completePlan.flights.bookingUrl !== "string"
+            ? completePlan.flights.bookingUrl
+            : `https://www.google.com/travel/flights?q=${flightQuery}`,
+      };
+
       const completeTripData = {
-        toLocation: { name: destination, coordinates: { lat: 0, lng: 0 } },
-        toLocationImage: fallbackImage || getDestinationImage(destination),
+        fromLocation: { name: cleanOrigin, coordinates: { lat: 0, lng: 0 } },
+        toLocation: { name: cleanDest, coordinates: { lat: 0, lng: 0 } },
+        toLocationImage: fallbackImage || getDestinationImage(cleanDest),
+        startDate: startObj.toISOString(),
+        endDate: endObj.toISOString(),
+        totalNoOfDays: days,
         budget: budget,
         duration: `${days} Days`,
-        aiTripPlan: completePlan
+        aiTripPlan: completePlan,
       };
 
       setTripData(completeTripData);
@@ -361,37 +435,52 @@ export default function Discover() {
     }
   };
 
-  // Parse natural language from AI prompt box
+  // Parse natural language from AI prompt box (supports "4 days of plan from pak to england", "from germany to pakistan", etc.)
   const handleCustomAiPrompt = () => {
     if (!aiPrompt.trim()) return;
 
     const lower = aiPrompt.toLowerCase();
-    
+
     // Extract days if typed (e.g. 4 days)
     const daysMatch = lower.match(/(\d+)\s*day/);
-    const days = daysMatch ? parseInt(daysMatch[1]) : 3;
+    const days = daysMatch ? parseInt(daysMatch[1], 10) : 3;
 
     // Extract budget hint
     let budget = "Moderate";
     if (lower.includes("luxury") || lower.includes("expensive")) budget = "Luxury";
     else if (lower.includes("cheap") || lower.includes("budget") || lower.includes("economical")) budget = "Economical";
 
-    // Clean destination
-    let dest = aiPrompt
-      .replace(/plan/gi, "")
-      .replace(/a trip/gi, "")
-      .replace(/trip to/gi, "")
-      .replace(/trip/gi, "")
-      .replace(/\d+\s*days?/gi, "")
-      .replace(/for/gi, "")
-      .replace(/in/gi, "")
-      .replace(/on a budget/gi, "")
-      .replace(/luxury/gi, "")
+    // Strip common noise phrases first
+    let cleaned = aiPrompt
+      .replace(/\b\d+\s*days?\b/gi, "")
+      .replace(/\bof\s+plan\b/gi, "")
+      .replace(/\bplan\s+a\s+trip\b/gi, "")
+      .replace(/\bplan\b/gi, "")
+      .replace(/\ba\s+trip\b/gi, "")
+      .replace(/\btrip\b/gi, "")
+      .replace(/\bon\s+a\s+budget\b/gi, "")
+      .replace(/\b(luxury|expensive|cheap|economical|moderate|budget)\b/gi, "")
+      .replace(/\s+/g, " ")
       .trim();
+
+    let origin = null;
+    let dest = cleaned;
+
+    // Check for "from <origin> to <destination>" pattern
+    const fromToMatch = cleaned.match(/\bfrom\s+(.+?)\s+to\s+(.+)/i);
+    if (fromToMatch) {
+      origin = fromToMatch[1].replace(/\b(in|for|of)\b/gi, "").trim();
+      dest = fromToMatch[2].replace(/\b(in|for|of)\b/gi, "").trim();
+    } else {
+      dest = cleaned
+        .replace(/^\b(to|in|for|of|from)\b\s*/gi, "")
+        .replace(/\b(for|in)\b\s*$/gi, "")
+        .trim();
+    }
 
     if (!dest) dest = aiPrompt.trim();
 
-    executeAiTrip(dest, days, budget);
+    executeAiTrip(dest, days, budget, null, origin);
   };
 
   const searchPlace = (text) => {
