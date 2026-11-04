@@ -628,6 +628,76 @@ export default function SharedTripView() {
                 </View>
               )}
 
+              {/* Currency & Tipping */}
+              {essentials.currency && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+                    <Ionicons name="cash-outline" size={16} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>MONEY & TIPPING</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {typeof essentials.currency === "string"
+                        ? "Currency & Payments"
+                        : essentials.currency.currency_code
+                          ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
+                          : "Cash & Cards"}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.currency === "string"
+                        ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "")
+                        : essentials.currency.tipping || "Standard 10% tipping appreciated."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Emergency Hotline */}
+              {essentials.emergency && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
+                    <Ionicons name="call-outline" size={16} color="#EF4444" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>EMERGENCY NUMBERS</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {typeof essentials.emergency === "string"
+                        ? "Local Emergency & Health"
+                        : `Police: ${essentials.emergency.police || "911/112"} · Amb: ${essentials.emergency.ambulance || "911/112"}`}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.emergency === "string"
+                        ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "")
+                        : `General hotline: ${essentials.emergency.general || "112"}`}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Seasonal & Events */}
+              {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+                    <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>SEASON & HIGHLIGHTS</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {typeof essentials.events === "string"
+                        ? "Seasonal Highlights"
+                        : `${essentials.seasonal_events[0].event} (${essentials.seasonal_events[0].month})`}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.events === "string"
+                        ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "")
+                        : essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* 1. FIRST: Recommended Stays Section with Booking.com Link */}
         {hotels.length > 0 && (
@@ -1006,164 +1076,11 @@ export default function SharedTripView() {
                 </View>
               ))}
 
-              {/* Add Custom Activity Footer Button for this Day */}
-              <TouchableOpacity
-                style={styles.dayAddBottomBtn}
-                onPress={() => {
-                  triggerHaptic();
-                  setTargetDayForActivity(dayItem.day);
-                  setShowAddActivityModal(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle-outline" size={15} color={Colors.PRIMARY} />
-                <Text style={styles.dayAddBottomText}>+ Add custom activity to Day {dayItem.day}</Text>
-              </TouchableOpacity>
+
             </View>
           ))}
         </View>
 
-
-              {/* Currency & Tipping */}
-              {essentials.currency && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                    <Ionicons name="cash-outline" size={16} color="#10B981" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>MONEY & TIPPING</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.currency === "string"
-                        ? "Currency & Payments"
-                        : essentials.currency.currency_code
-                          ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
-                          : "Cash & Cards"}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.currency === "string"
-                        ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "")
-                        : essentials.currency.tipping || "Standard 10% tipping appreciated."}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Emergency Hotline */}
-              {essentials.emergency && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
-                    <Ionicons name="call-outline" size={16} color="#EF4444" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>EMERGENCY NUMBERS</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.emergency === "string"
-                        ? "Local Emergency & Health"
-                        : `Police: ${essentials.emergency.police || "911/112"} · Amb: ${essentials.emergency.ambulance || "911/112"}`}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.emergency === "string"
-                        ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "")
-                        : `General hotline: ${essentials.emergency.general || "112"}`}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Seasonal & Events */}
-              {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
-                    <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>SEASON & HIGHLIGHTS</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.events === "string"
-                        ? "Seasonal Highlights"
-                        : `${essentials.seasonal_events[0].event} (${essentials.seasonal_events[0].month})`}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.events === "string"
-                        ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "")
-                        : essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* 4. LAST: End-of-Day Trip Budget & Log Expense Card */}
-        {(() => {
-          const rawTier = tripPlan?.budget || "Moderate";
-          const baseBudgetUSD = rawTier.toLowerCase().includes("luxury")
-            ? 3000
-            : rawTier.toLowerCase().includes("economical") || rawTier.toLowerCase().includes("cheap")
-            ? 600
-            : 1500;
-          const destCur = detectCurrencyFromLocation(destination) || "GBP";
-          const origCur = detectCurrencyFromLocation(tripPlan?.origin || "") || "PKR";
-          const destSym = getCurrencySymbol(destCur);
-          const origSym = getCurrencySymbol(origCur);
-
-          return (
-            <View style={[styles.section, { marginTop: 22 }]}>
-              <View
-                style={{
-                  backgroundColor: "#1E293B",
-                  borderRadius: 16,
-                  padding: 16,
-                  borderWidth: 1,
-                  borderColor: "#334155",
-                }}
-              >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: "rgba(245, 158, 11, 0.15)",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: 10,
-                      }}
-                    >
-                      <Ionicons name="wallet" size={18} color="#F59E0B" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#F8FAFC" }}>
-                        Trip Budget & Daily Expenses
-                      </Text>
-                      <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-                        Est. Cap: ${baseBudgetUSD.toLocaleString()} USD • ≈ {destSym}{convertAmount(baseBudgetUSD, destCur).toLocaleString()} ({destCur}) • {origSym}{convertAmount(baseBudgetUSD, origCur).toLocaleString()} ({origCur})
-                      </Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: "#F59E0B",
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                    }}
-                    onPress={() => { triggerHaptic(); setTargetDayForExpense("Day 1"); setShowExpenseModal(true); }}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="add" size={15} color="#FFF" style={{ marginRight: 4 }} />
-                    <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>Log Expense</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          );
-        })()}
 
         {/* Viral Bottom Call-to-Action Banner */}
         <View style={styles.viralBanner}>

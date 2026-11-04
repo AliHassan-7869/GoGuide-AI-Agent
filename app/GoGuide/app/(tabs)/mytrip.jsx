@@ -94,6 +94,29 @@ export default function MyTrip() {
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
   const [isOfflineCached, setIsOfflineCached] = useState(false);
+  const [essentials, setEssentials] = useState(null);
+  const [bookedActivities, setBookedActivities] = useState({});
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedDayForRoute, setSelectedDayForRoute] = useState(null);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [targetDayForExpense, setTargetDayForExpense] = useState("Day 1");
+  const [isSavedToTripsLocal, setIsSavedToTripsLocal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [selectedDayForAdd, setSelectedDayForAdd] = useState(1);
+  const [showVaultModal, setShowVaultModal] = useState(false);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(true);
+  const [userTripsList, setUserTripsList] = useState([]);
+  const [activeTripId, setActiveTripId] = useState(null);
+
+  // Smooth Shimmer pulse animation for skeleton loading
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+  // Slide & Fade animation for multi-trip carousel
+  const carouselSlideAnim = useRef(new Animated.Value(-20)).current;
+  const carouselFadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     const dest = plan?.destination || tripData?.destination || tripData?.toLocation?.name;
     if (dest) {
@@ -132,27 +155,72 @@ export default function MyTrip() {
       console.warn("Error booking activity:", e);
     }
   };
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedDayForRoute, setSelectedDayForRoute] = useState(null);
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [targetDayForExpense, setTargetDayForExpense] = useState("Day 1");
-  const [essentials, setEssentials] = useState(null);
-  const [bookedActivities, setBookedActivities] = useState({});
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
-  const [selectedDayForAdd, setSelectedDayForAdd] = useState(1);
-  const [showVaultModal, setShowVaultModal] = useState(false);
-  const [showNotificationBanner, setShowNotificationBanner] = useState(true);
-  const [userTripsList, setUserTripsList] = useState([]);
-  const [activeTripId, setActiveTripId] = useState(null);
 
-  // Smooth Shimmer pulse animation for skeleton loading
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    AsyncStorage.getItem("@goguide_user_trips").then((raw) => {
+      if (raw) {
+        try {
+          const list = JSON.parse(raw);
+          const found = list.some(
+            (t) =>
+              (activeTripId && (String(t.id) === String(activeTripId) || String(t?.tripData?.id) === String(activeTripId))) ||
+              (plan?.destination && (t.destination === plan.destination || t.aiTripPlan?.destination === plan.destination))
+          );
+          if (found) setIsSavedToTripsLocal(true);
+        } catch (e) {}
+      }
+    });
+  }, [activeTripId, plan?.destination]);
 
-  // Slide & Fade animation for multi-trip carousel
-  const carouselSlideAnim = useRef(new Animated.Value(-20)).current;
-  const carouselFadeAnim = useRef(new Animated.Value(0)).current;
+  const handleSaveCurrentTripToUserTrips = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!plan && !tripData) return;
+    if (isSavedToTripsLocal) {
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert("This itinerary is already saved in your My Trips!");
+      } else {
+        Alert.alert("Already Saved", "This itinerary is already saved in your My Trips!");
+      }
+      return;
+    }
+    try {
+      const tripId = activeTripId || `trip_${Date.now()}`;
+      const user = auth.currentUser;
+      const email = user?.email || "traveler@goguide.com";
+      const record = {
+        id: tripId,
+        userEmail: email,
+        destination: plan?.destination || tripData?.destination || tripData?.toLocation?.name || "Trip",
+        tripData: { ...tripData, aiTripPlan: plan },
+        aiTripPlan: plan,
+        createdAt: new Date().toISOString(),
+      };
+
+      const raw = await AsyncStorage.getItem("@goguide_user_trips");
+      const list = raw ? JSON.parse(raw) : [];
+      const updated = [record, ...list.filter((t) => t.id !== tripId)];
+      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updated));
+
+      if (user?.email) {
+        try {
+          await addDoc(collection(db, "UserTrips"), {
+            userEmail: user.email,
+            tripData: record.tripData,
+            createdAt: new Date().toISOString(),
+          });
+        } catch (e) {}
+      }
+
+      setIsSavedToTripsLocal(true);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert("Saved to My Trips! ✅ This trip itinerary is safely stored in your trips.");
+      } else {
+        Alert.alert("Saved to My Trips! ✅", "This trip itinerary is safely stored in your trips.");
+      }
+    } catch (e) {
+      console.warn("Save trip error:", e);
+    }
+  };
 
   useEffect(() => {
     if (userTripsList.length > 0) {
@@ -872,6 +940,13 @@ export default function MyTrip() {
             <Ionicons name="document-text-outline" size={18} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity 
+            style={[styles.iconButton, { marginLeft: 6 }, isSavedToTripsLocal && { backgroundColor: "rgba(16, 185, 129, 0.15)" }]} 
+            onPress={handleSaveCurrentTripToUserTrips}
+            accessibilityLabel="Save to Trips"
+          >
+            <Ionicons name={isSavedToTripsLocal ? "bookmark" : "bookmark-outline"} size={18} color={isSavedToTripsLocal ? "#10B981" : theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={addToCalendar}
           >
@@ -1007,6 +1082,28 @@ export default function MyTrip() {
             fallbackUri={getDestinationImage(plan?.destination || tripData?.locationInfo?.name)}
           />
           <View style={styles.heroGradient} />
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 60,
+              backgroundColor: isSavedToTripsLocal ? "#10B981" : "rgba(15, 23, 42, 0.75)",
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: isSavedToTripsLocal ? "#10B981" : "rgba(255, 255, 255, 0.2)",
+            }}
+            onPress={handleSaveCurrentTripToUserTrips}
+            activeOpacity={0.85}
+          >
+            <Ionicons name={isSavedToTripsLocal ? "checkmark-circle" : "bookmark"} size={13} color="#FFF" style={{ marginRight: 5 }} />
+            <Text style={{ color: "#FFF", fontSize: 11, fontFamily: "Outfit-Bold" }}>
+              {isSavedToTripsLocal ? "Saved in Trips ✅" : "Save to Trips"}
+            </Text>
+          </TouchableOpacity>
           <FavoriteHeartButton
             place={{
               name: plan?.destination || tripData?.locationInfo?.name || "Destination",
@@ -1118,6 +1215,19 @@ export default function MyTrip() {
           style={{ marginBottom: 20 }}
           contentContainerStyle={{ gap: 10, paddingRight: 4 }}
         >
+          <TouchableOpacity 
+            style={[
+              styles.quickActionBtn, 
+              { backgroundColor: isSavedToTripsLocal ? "rgba(16, 185, 129, 0.15)" : theme.card, borderWidth: 1, borderColor: isSavedToTripsLocal ? "#10B981" : theme.border }
+            ]} 
+            onPress={handleSaveCurrentTripToUserTrips}
+          >
+            <Ionicons name={isSavedToTripsLocal ? "checkmark-circle" : "bookmark"} size={17} color={isSavedToTripsLocal ? "#10B981" : Colors.PRIMARY} />
+            <Text style={[styles.quickActionLabel, { color: isSavedToTripsLocal ? "#10B981" : theme.text }]}>
+              {isSavedToTripsLocal ? "Saved in Trips ✅" : "Save to Trips"}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.card }]} 
             onPress={addToCalendar}
@@ -1683,148 +1793,10 @@ export default function MyTrip() {
                 );
               })}
 
-              {/* Add Custom Activity Button */}
-              <TouchableOpacity
-                style={[
-                  styles.addCustomActivityBtn,
-                  { borderColor: theme.border, backgroundColor: theme.card },
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedDayForAdd(day.day);
-                  setShowAddActivityModal(true);
-                }}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="add-circle-outline" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
-                <Text style={[styles.addCustomActivityText, { color: theme.text }]}>
-                  Add Activity to Day {day.day}
-                </Text>
-              </TouchableOpacity>
+
             </View>
           ))}
         </View>
-
-        {/* Weather & Packing Quick Widgets */}
-        <WeatherCard weatherBrief={plan.weatherBrief} />
-        <PackingList items={plan.packingList} />
-
-        {/* 4. LAST: In-Trip Live Budget & Expense Snapshot Card (End-of-Day Expense Adjustment) */}
-        {(() => {
-          const userCurrency = preferences?.currency || "USD";
-          const curSymbol = getCurrencySymbol(userCurrency);
-          const destCurrency = detectCurrencyFromLocation(plan?.destination || tripData?.toLocation?.name || "") || "GBP";
-          const originCurrency = detectCurrencyFromLocation(plan?.origin || tripData?.fromLocation?.name || preferences?.originCountry || "") || "PKR";
-          const destSymbol = getCurrencySymbol(destCurrency);
-          const originSymbol = getCurrencySymbol(originCurrency);
-          const rawTier = plan?.budget || tripData?.budget || "Moderate";
-          const baseBudgetUSD = rawTier.toLowerCase().includes("luxury")
-            ? 3000
-            : rawTier.toLowerCase().includes("economical") || rawTier.toLowerCase().includes("cheap")
-            ? 600
-            : 1500;
-          const targetBudget = convertAmount(baseBudgetUSD, userCurrency);
-          const expensesList = tripData?.expenses || [];
-          const totalSpent = expensesList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-          const remainingBudget = Math.max(0, targetBudget - totalSpent);
-          const percentSpent = Math.min(100, Math.round((totalSpent / targetBudget) * 100));
-
-          const spentDest = convertBetweenCurrencies(totalSpent, userCurrency, destCurrency);
-          const spentOrigin = convertBetweenCurrencies(totalSpent, userCurrency, originCurrency);
-          const remDest = convertBetweenCurrencies(remainingBudget, userCurrency, destCurrency);
-          const remOrigin = convertBetweenCurrencies(remainingBudget, userCurrency, originCurrency);
-
-          return (
-            <View style={[styles.expenseSnapshotCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 18 }]}>
-              <View style={styles.expenseSnapshotHeader}>
-                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                  <View style={[styles.expenseIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.14)" }]}>
-                    <Ionicons name="wallet" size={18} color="#F59E0B" />
-                  </View>
-                  <View style={{ marginLeft: 10, flex: 1 }}>
-                    <Text style={[styles.expenseSnapshotTitle, { color: theme.text }]}>Trip Budget & Live Expenses</Text>
-                    <Text style={[styles.expenseSnapshotSub, { color: theme.subtext }]}>
-                      Cap: {curSymbol}{targetBudget.toLocaleString()} • ≈ {destSymbol}{convertAmount(baseBudgetUSD, destCurrency).toLocaleString()} / {originSymbol}{convertAmount(baseBudgetUSD, originCurrency).toLocaleString()}
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity 
-                  style={styles.logExpenseQuickBtn}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowExpenseModal(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="add" size={15} color="#FFF" />
-                  <Text style={styles.logExpenseQuickBtnText}>Log Expense</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Numbers Row */}
-              <View style={styles.expenseNumbersRow}>
-                <View>
-                  <Text style={[styles.expenseLabel, { color: theme.subtext }]}>Total Spent</Text>
-                  <Text style={[styles.expenseValue, { color: theme.text }]}>
-                    {curSymbol}{totalSpent.toLocaleString()}
-                  </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
-                    ≈ {destSymbol}{spentDest.toLocaleString()} ({destCurrency}) • {originSymbol}{spentOrigin.toLocaleString()} ({originCurrency})
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={[styles.expenseLabel, { color: theme.subtext }]}>Remaining</Text>
-                  <Text style={[styles.expenseValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
-                    {curSymbol}{remainingBudget.toLocaleString()}
-                  </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
-                    ≈ {destSymbol}{remDest.toLocaleString()} • {originSymbol}{remOrigin.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress Bar */}
-              <View style={[styles.expenseProgressBarTrack, { backgroundColor: theme.isDark ? "#282828" : "#E2E8F0" }]}>
-                <View 
-                  style={[
-                    styles.expenseProgressBarFill, 
-                    { 
-                      width: `${percentSpent}%`,
-                      backgroundColor: percentSpent > 90 ? "#EF4444" : percentSpent > 70 ? "#F59E0B" : "#10B981",
-                    }
-                  ]} 
-                />
-              </View>
-
-              {/* Recent expenses quick preview */}
-              {expensesList.length > 0 ? (
-                <View style={styles.recentExpensesRow}>
-                  <Text style={[styles.recentExpensesLabel, { color: theme.subtext }]}>Recent:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginLeft: 6 }}>
-                    {expensesList.slice(0, 3).map((exp) => (
-                      <View key={exp.id} style={[styles.recentExpenseChip, { backgroundColor: theme.isDark ? "#252525" : "#F1F5F9" }]}>
-                        <Text style={[styles.recentExpenseChipText, { color: theme.text }]}>
-                          {exp.title} ({curSymbol}{exp.amount})
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              ) : (
-                <TouchableOpacity 
-                  onPress={() => setShowExpenseModal(true)} 
-                  style={{ marginTop: 8 }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.expenseEmptyHint, { color: theme.subtext }]}>
-                    Adjust & log your daily expenses here at the end of the day (+ Log Expense) ➔
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          );
-        })()}
 
         <TouchableOpacity style={styles.resetPlanBtn} onPress={createNewTrip}>
           <Ionicons name="refresh-outline" size={18} color="#EF4444" />
