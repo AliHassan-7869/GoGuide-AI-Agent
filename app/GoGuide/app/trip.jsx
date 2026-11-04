@@ -18,7 +18,9 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db, auth } from "../Configs/FirebaseConfig";
-import { addHotelBooking, addFlightBooking } from "../Components/utils/BookingService";
+import { addHotelBooking, addFlightBooking, addActivityBooking } from "../Components/utils/BookingService";
+import AddActivityModal from "../Components/MyTrips/AddActivityModal";
+import ExpenseTrackerModal from "../Components/MyTrips/ExpenseTrackerModal";
 import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
@@ -165,6 +167,21 @@ export default function SharedTripView() {
   const [isSavedInTrips, setIsSavedInTrips] = useState(false);
   const [bookedHotels, setBookedHotels] = useState({});
   const [isFlightBooked, setIsFlightBooked] = useState(false);
+  const [bookedActivities, setBookedActivities] = useState({});
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [targetDayForActivity, setTargetDayForActivity] = useState(1);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [targetDayForExpense, setTargetDayForExpense] = useState("Day 1");
+  const [tripExpenses, setTripExpenses] = useState([]);
+
+  const darkTheme = {
+    bg: "#0F172A",
+    card: "#1E293B",
+    border: "#334155",
+    text: "#F8FAFC",
+    subtext: "#94A3B8",
+    isDark: true,
+  };
 
   const loadSharedTrip = async () => {
     setLoading(true);
@@ -191,10 +208,13 @@ export default function SharedTripView() {
         if (rawBks) {
           const bList = JSON.parse(rawBks);
           const hMap = {};
+          const actMap = {};
           bList.forEach((b) => {
             if (b.type === "Hotels") hMap[b.title] = true;
+            if (b.type === "Activities") actMap[b.title] = true;
           });
           setBookedHotels(hMap);
+          setBookedActivities(actMap);
         }
       } catch (bErr) {}
       // 0. Check local persistent trips list (@goguide_user_trips) first for targetId
@@ -465,7 +485,7 @@ export default function SharedTripView() {
 
           <TouchableOpacity
             style={styles.logoRow}
-            onPress={() => router.push("/(tabs)/mytrip")}
+            onPress={() => { triggerHaptic(); setTargetDayForExpense("Day 1"); setShowExpenseModal(true); }}
             activeOpacity={0.8}
           >
             <View style={styles.logoIcon}>
@@ -571,6 +591,43 @@ export default function SharedTripView() {
             <Text style={styles.shareBtnText}>{copiedLink ? "Copied!" : "Share"}</Text>
           </TouchableOpacity>
         </View>
+
+{/* Destination Essentials (Visa, Emergency, Money & Events) */}
+        {essentials && (
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>🧭 Destination Essentials</Text>
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#0D9488" />
+                <Text style={styles.verifiedBadgeText}>Live Travel Intel</Text>
+              </View>
+            </View>
+
+            <View style={styles.essentialsGrid}>
+              {/* Visa & Entry */}
+              {essentials.visa && (
+                <View style={styles.essentialCard}>
+                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(14, 165, 233, 0.15)" }]}>
+                    <Ionicons name="card-outline" size={16} color="#0EA5E9" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.essentialLabel}>VISA & ENTRY</Text>
+                    <Text style={styles.essentialMainVal}>
+                      {typeof essentials.visa === "string"
+                        ? "Entry & Visa Guidelines"
+                        : essentials.visa.visa_required || "Passport required"}
+                    </Text>
+                    <Text style={styles.essentialSubVal} numberOfLines={3}>
+                      {typeof essentials.visa === "string"
+                        ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "")
+                        : essentials.visa.stay_limit
+                          ? `Stay limit: ${essentials.visa.stay_limit}`
+                          : essentials.visa.notes || "Check your passport validity."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
 
         {/* 1. FIRST: Recommended Stays Section with Booking.com Link */}
         {hotels.length > 0 && (
@@ -824,10 +881,59 @@ export default function SharedTripView() {
           {filteredDays.map((dayItem) => (
             <View key={dayItem.day} style={styles.dayGroup}>
               <View style={styles.dayHeader}>
-                <View style={styles.dayNumberBadge}>
-                  <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <View style={styles.dayNumberBadge}>
+                    <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+                  </View>
+                  {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
                 </View>
-                {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
+
+                {/* Day Action Buttons: + Add Activity, 💳 Log Expense & 💾 Save to Trips */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                  <TouchableOpacity
+                    style={styles.dayActionBtnAdd}
+                    onPress={() => {
+                      triggerHaptic();
+                      setTargetDayForActivity(dayItem.day);
+                      setShowAddActivityModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="add" size={13} color="#FFF" />
+                    <Text style={styles.dayActionBtnText}>Add Activity</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.dayActionBtnExpense}
+                    onPress={() => {
+                      triggerHaptic();
+                      setTargetDayForExpense(`Day ${dayItem.day}`);
+                      setShowExpenseModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="card-outline" size={12} color="#F59E0B" />
+                    <Text style={[styles.dayActionBtnText, { color: "#F59E0B" }]}>Log Expense</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.dayActionBtnSaveTrip,
+                      isSavedInTrips && { backgroundColor: "#10B981" },
+                    ]}
+                    onPress={handleSaveToMyTrips}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={isSavedInTrips ? "checkmark-circle" : "bookmark"}
+                      size={12}
+                      color="#FFF"
+                    />
+                    <Text style={styles.dayActionBtnText}>
+                      {isSavedInTrips ? "Saved to Trips ✅" : "Save to Trips"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {(dayItem.activities || []).map((act, actIdx) => (
@@ -855,56 +961,68 @@ export default function SharedTripView() {
                         <Text style={styles.travelTimeText}>{act.travelTime}</Text>
                       </View>
                     )}
-                    <TouchableOpacity
-                      style={styles.actMapBtn}
-                      onPress={() => openInMaps(act.placeName)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="navigate-outline" size={13} color={Colors.PRIMARY} />
-                      <Text style={styles.actMapBtnText}>Directions</Text>
-                    </TouchableOpacity>
+
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
+                      <FavoriteHeartButton
+                        place={{
+                          name: act.placeName,
+                          tag: `Activity • Day ${dayItem.day} • ${destination}`,
+                          img: heroImage,
+                          desc: act.details || act.placeDetails || `Attraction in ${destination}`,
+                        }}
+                        size={13}
+                        style={{ width: 28, height: 28, borderRadius: 14 }}
+                      />
+
+                      <TouchableOpacity
+                        style={styles.actMapBtn}
+                        onPress={() => openInMaps(act.placeName)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="navigate-outline" size={12} color={Colors.PRIMARY} />
+                        <Text style={styles.actMapBtnText}>Directions</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.actBookBtn,
+                          bookedActivities[act.placeName] && { backgroundColor: "#10B981" },
+                        ]}
+                        onPress={() => handleBookActivity(act, dayItem.day)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons
+                          name={bookedActivities[act.placeName] ? "checkmark-circle" : "ticket-outline"}
+                          size={12}
+                          color="#FFF"
+                          style={{ marginRight: 3 }}
+                        />
+                        <Text style={styles.actBookBtnText}>
+                          {bookedActivities[act.placeName] ? "Booked ✅" : "Add to Bookings"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))}
+
+              {/* Add Custom Activity Footer Button for this Day */}
+              <TouchableOpacity
+                style={styles.dayAddBottomBtn}
+                onPress={() => {
+                  triggerHaptic();
+                  setTargetDayForActivity(dayItem.day);
+                  setShowAddActivityModal(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={15} color={Colors.PRIMARY} />
+                <Text style={styles.dayAddBottomText}>+ Add custom activity to Day {dayItem.day}</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </View>
 
-        {/* Destination Essentials (Visa, Emergency, Money & Events) */}
-        {essentials && (
-          <View style={styles.section}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>🧭 Destination Essentials</Text>
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#0D9488" />
-                <Text style={styles.verifiedBadgeText}>Live Travel Intel</Text>
-              </View>
-            </View>
-
-            <View style={styles.essentialsGrid}>
-              {/* Visa & Entry */}
-              {essentials.visa && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(14, 165, 233, 0.15)" }]}>
-                    <Ionicons name="card-outline" size={16} color="#0EA5E9" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>VISA & ENTRY</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.visa === "string"
-                        ? "Entry & Visa Guidelines"
-                        : essentials.visa.visa_required || "Passport required"}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.visa === "string"
-                        ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "")
-                        : essentials.visa.stay_limit
-                          ? `Stay limit: ${essentials.visa.stay_limit}`
-                          : essentials.visa.notes || "Check your passport validity."}
-                    </Text>
-                  </View>
-                </View>
-              )}
 
               {/* Currency & Tipping */}
               {essentials.currency && (
@@ -1035,7 +1153,7 @@ export default function SharedTripView() {
                       paddingVertical: 8,
                       borderRadius: 10,
                     }}
-                    onPress={() => router.push("/(tabs)/mytrip")}
+                    onPress={() => { triggerHaptic(); setTargetDayForExpense("Day 1"); setShowExpenseModal(true); }}
                     activeOpacity={0.85}
                   >
                     <Ionicons name="add" size={15} color="#FFF" style={{ marginRight: 4 }} />
@@ -1066,6 +1184,28 @@ export default function SharedTripView() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+          {/* Add Custom Activity Modal */}
+      <AddActivityModal
+        visible={showAddActivityModal}
+        dayNumber={targetDayForActivity}
+        onClose={() => setShowAddActivityModal(false)}
+        onAddActivity={handleAddActivity}
+        theme={darkTheme}
+      />
+
+      {/* Trip Budget & Expense Tracker Modal */}
+      <ExpenseTrackerModal
+        visible={showExpenseModal}
+        initialDay={targetDayForExpense}
+        expenses={tripExpenses}
+        budgetTier={tripPlan?.budget || "Moderate"}
+        currency="USD"
+        destination={tripPlan?.destination || ""}
+        origin={tripPlan?.origin || ""}
+        onSaveExpenses={handleSaveExpenses}
+        onClose={() => setShowExpenseModal(false)}
+        theme={darkTheme}
+      />
     </View>
   );
 }
@@ -1587,5 +1727,70 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 14,
     fontFamily: "Outfit-Bold",
+  },
+  dayActionBtnAdd: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 3,
+  },
+  dayActionBtnExpense: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.35)",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 3,
+  },
+  dayActionBtnSaveTrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0284C7",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 3,
+  },
+  dayActionBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  actBookBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0284C7",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  actBookBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  dayAddBottomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#334155",
+    borderStyle: "dashed",
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
+    gap: 6,
+  },
+  dayAddBottomText: {
+    color: Colors.PRIMARY,
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

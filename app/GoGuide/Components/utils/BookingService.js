@@ -266,3 +266,49 @@ export async function addFlightBooking(flightInfo, destination, tripData, authUs
 
   return booking;
 }
+
+/**
+ * Manually reserves / adds an activity pass into My Bookings
+ */
+export async function addActivityBooking(activity, dayNumber, destination, tripData, authUser) {
+  if (!activity) return null;
+  const destName = destination || tripData?.destination || "Destination";
+  const userEmail = authUser?.email || "traveler@goguide.com";
+  const passRefCode = `GG-A${Math.floor(10000 + Math.random() * 90000)}`;
+
+  const booking = {
+    id: `bk_${Date.now()}_activity`,
+    type: "Activities",
+    status: "Upcoming",
+    bookingRef: passRefCode,
+    title: activity.placeName || "Day Tour & Attraction Pass",
+    subtitle: `${destName} • ${dayNumber ? `Day ${dayNumber}` : "Day 1"} (${activity.time || "Scheduled"})`,
+    checkIn: `${activity.time || "Morning"} • Confirmed Entry`,
+    checkOut: `${activity.travelTime || "Tour Completed"}`,
+    details: activity.details || activity.placeDetails || "Standard Activity Entry & Pass",
+    price: activity.tickets || "Free / Included",
+    image: getDestinationImage(destName),
+    userEmail: userEmail,
+    destination: destName,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    const rawExisting = await AsyncStorage.getItem("@goguide_user_bookings");
+    const existing = rawExisting ? JSON.parse(rawExisting) : [];
+    const updated = [booking, ...existing.filter((b) => b.title !== booking.title)];
+    await AsyncStorage.setItem("@goguide_user_bookings", JSON.stringify(updated));
+  } catch (e) {
+    console.warn("AsyncStorage activity booking notice:", e);
+  }
+
+  if (authUser?.email) {
+    try {
+      await addDoc(collection(db, "UserBookings"), booking);
+    } catch (e) {
+      console.warn("Firestore activity booking notice:", e);
+    }
+  }
+
+  return booking;
+}

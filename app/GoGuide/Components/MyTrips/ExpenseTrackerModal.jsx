@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Modal,
@@ -49,23 +49,37 @@ export default function ExpenseTrackerModal({
   onSaveExpenses,
   onClose,
   theme,
+  initialDay = "",
 }) {
   const [expenseTitle, setExpenseTitle] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Food");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [expenseDay, setExpenseDay] = useState(initialDay || "");
 
   const destCurrency = detectCurrencyFromLocation(destination) || "GBP";
   const originCurrency = detectCurrencyFromLocation(origin) || "PKR";
 
-  // Build unique list of smart currencies for this trip (USD + Destination + Origin + PKR/EUR/GBP)
+  // Build unique list of smart currencies for this trip (Destination + Home/Origin + USD + PKR/EUR/GBP)
   const currencyOptions = Array.from(
-    new Set([currency || "USD", destCurrency, originCurrency, "USD", "PKR", "GBP", "EUR"])
-  ).slice(0, 5);
+    new Set([destCurrency, originCurrency, currency || "USD", "USD", "PKR", "GBP", "EUR"])
+  ).filter(Boolean).slice(0, 5);
 
   const [activeViewCurrency, setActiveViewCurrency] = useState(currency || "USD");
-  const [inputCurrency, setInputCurrency] = useState(currency || "USD");
+  const [inputCurrency, setInputCurrency] = useState(destCurrency || currency || "USD");
+
+  useEffect(() => {
+    if (visible) {
+      if (initialDay) {
+        setExpenseDay(initialDay);
+        setShowAddForm(true);
+      }
+      if (destCurrency) {
+        setInputCurrency(destCurrency);
+      }
+    }
+  }, [visible, initialDay, destCurrency]);
 
   const triggerHaptic = () => {
     try {
@@ -166,6 +180,7 @@ export default function ExpenseTrackerModal({
             ...e,
             title: expenseTitle.trim(),
             amount: amountNum,
+            day: expenseDay || e.day || undefined,
             originalInput: `${inputSymbol}${rawNum.toLocaleString()} (${inputCurrency})`,
             category: selectedCategory,
             updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -181,6 +196,7 @@ export default function ExpenseTrackerModal({
         id: Date.now().toString(),
         title: expenseTitle.trim(),
         amount: amountNum,
+        day: expenseDay || undefined,
         originalInput: `${inputSymbol}${rawNum.toLocaleString()} (${inputCurrency})`,
         category: selectedCategory,
         createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -398,33 +414,108 @@ export default function ExpenseTrackerModal({
                 ]}
               />
 
-              {/* Input Currency Selector */}
+              {/* Day Tag Indicator if opened for specific day */}
+              {expenseDay ? (
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 6 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: Colors.PRIMARY + "18",
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: Colors.PRIMARY + "40",
+                    }}
+                  >
+                    <Ionicons name="calendar" size={13} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
+                      Logging for: {expenseDay}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setExpenseDay("")}
+                    style={{ padding: 4 }}
+                  >
+                    <Ionicons name="close-circle" size={16} color={theme.subtext} />
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* 1-Tap Quick Currency Selector (Local vs Home) */}
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
-                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginRight: 4 }}>
-                  Enter in:
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginRight: 2 }}>
+                  Currency:
                 </Text>
-                {currencyOptions.map((code) => {
-                  const isSel = inputCurrency === code;
-                  return (
-                    <TouchableOpacity
-                      key={code}
-                      onPress={() => {
-                        triggerHaptic();
-                        setInputCurrency(code);
-                      }}
-                      style={{
-                        paddingHorizontal: 9,
-                        paddingVertical: 4,
-                        borderRadius: 10,
-                        backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
-                        {code}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHaptic();
+                    setInputCurrency(destCurrency);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 9,
+                    paddingVertical: 4,
+                    borderRadius: 10,
+                    backgroundColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                    borderWidth: 1,
+                    borderColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: inputCurrency === destCurrency ? "#FFF" : theme.text }}>
+                    📍 Local ({destCurrency})
+                  </Text>
+                </TouchableOpacity>
+
+                {originCurrency !== destCurrency && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerHaptic();
+                      setInputCurrency(originCurrency);
+                    }}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                      borderRadius: 10,
+                      backgroundColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                      borderWidth: 1,
+                      borderColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: inputCurrency === originCurrency ? "#FFF" : theme.text }}>
+                      🏠 Home ({originCurrency})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {currencyOptions
+                  .filter((c) => c !== destCurrency && c !== originCurrency)
+                  .map((code) => {
+                    const isSel = inputCurrency === code;
+                    return (
+                      <TouchableOpacity
+                        key={code}
+                        onPress={() => {
+                          triggerHaptic();
+                          setInputCurrency(code);
+                        }}
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 10,
+                          backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
+                          {code}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
               </View>
 
               <TextInput
@@ -443,22 +534,41 @@ export default function ExpenseTrackerModal({
                 ]}
               />
 
-              {/* Live Real-Time Conversion Preview while typing */}
-              {parseFloat(expenseAmount) > 0 && (
-                <View
-                  style={{
-                    backgroundColor: Colors.PRIMARY + "12",
-                    paddingHorizontal: 10,
-                    paddingVertical: 7,
-                    borderRadius: 10,
-                    marginBottom: 10,
-                  }}
-                >
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
-                    💱 Auto-Converted: ${convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(destCurrency)}{convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, destCurrency).toLocaleString()} {destCurrency} • {getCurrencySymbol(originCurrency)}{convertBetweenCurrencies(parseFloat(expenseAmount), inputCurrency, originCurrency).toLocaleString()} {originCurrency}
-                  </Text>
-                </View>
-              )}
+              {/* Live Real-Time Auto-Conversion Preview Underneath */}
+              {parseFloat(expenseAmount) > 0 && (() => {
+                const num = parseFloat(expenseAmount);
+                // If entering in Local/foreign currency, convert to Home currency (e.g. PKR)
+                // If entering in Home currency, convert to Destination/Local currency
+                const targetConvCode = inputCurrency === originCurrency ? destCurrency : originCurrency;
+                const targetSym = getCurrencySymbol(targetConvCode);
+                const converted = convertBetweenCurrencies(num, inputCurrency, targetConvCode);
+                const unitRate = convertBetweenCurrencies(1, inputCurrency, targetConvCode);
+                const unitRateStr =
+                  unitRate >= 1
+                    ? unitRate.toLocaleString()
+                    : (CURRENCY_RATES[targetConvCode]?.rate / CURRENCY_RATES[inputCurrency]?.rate).toFixed(2);
+
+                return (
+                  <View
+                    style={{
+                      backgroundColor: Colors.PRIMARY + "14",
+                      borderLeftWidth: 3,
+                      borderLeftColor: Colors.PRIMARY,
+                      paddingHorizontal: 12,
+                      paddingVertical: 9,
+                      borderRadius: 8,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
+                      ≈ {targetSym}{converted.toLocaleString()} {targetConvCode}
+                    </Text>
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                      (Live Rate: 1 {inputCurrency} = {unitRateStr} {targetConvCode})
+                    </Text>
+                  </View>
+                );
+              })()}
 
               <Text style={[styles.categoryPickerLabel, { color: theme.subtext }]}>Category</Text>
               <View style={styles.categoryWrap}>
@@ -569,7 +679,7 @@ export default function ExpenseTrackerModal({
                       {item.title}
                     </Text>
                     <Text style={[styles.expenseItemMeta, { color: theme.subtext }]}>
-                      {catMeta.label} • {item.createdAt || "Today"} • ≈ ${usdAmt.toLocaleString()} / {getCurrencySymbol(originCurrency)}{pkrAmt.toLocaleString()}
+                      {item.day ? `${item.day} • ` : ""}{catMeta.label} • {item.createdAt || "Today"} • ≈ ${usdAmt.toLocaleString()} / {getCurrencySymbol(originCurrency)}{pkrAmt.toLocaleString()}
                     </Text>
                   </View>
 

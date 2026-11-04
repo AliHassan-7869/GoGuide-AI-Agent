@@ -653,8 +653,8 @@ export default function Profile() {
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconWrap, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
-              <Ionicons name="heart" size={22} color="#EF4444" />
+            <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+              <Ionicons name="heart" size={22} color={Colors.PRIMARY} />
             </View>
             <Text style={[styles.statLabel, { color: theme.text }]}>Favourites</Text>
           </TouchableOpacity>
@@ -936,10 +936,10 @@ export default function Profile() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="heart" size={22} color="#EF4444" style={{ marginRight: 8 }} />
+              <Ionicons name="heart" size={22} color={Colors.PRIMARY} style={{ marginRight: 8 }} />
               <Text style={[styles.modalTitle, { color: theme.text }]}>Favourites</Text>
-              <View style={[styles.modalBadge, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
-                <Text style={[styles.modalBadgeText, { color: "#EF4444" }]}>
+              <View style={[styles.modalBadge, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+                <Text style={[styles.modalBadgeText, { color: Colors.PRIMARY }]}>
                   {favoritePlacesList.length}
                 </Text>
               </View>
