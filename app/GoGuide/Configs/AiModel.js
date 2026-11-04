@@ -73,13 +73,28 @@ export const generationConfig = {
 
 const REQUEST_TIMEOUT_MS = 120000;
 
+async function ensureUserAuth() {
+  if (auth.currentUser) return auth.currentUser;
+  try {
+    const { signInAnonymously } = await import("firebase/auth");
+    const cred = await signInAnonymously(auth);
+    return cred.user;
+  } catch (e) {
+    console.warn("[Auth] Anonymous auto-signin notice:", e?.message);
+    return null;
+  }
+}
+
 // Calls the backend with the signed-in user's Firebase ID token.
 async function callBackend(path, body = null, method = "POST") {
   if (!API_URL) {
     throw new Error("Backend URL is not configured");
   }
 
-  const user = auth.currentUser;
+  let user = auth.currentUser;
+  if (!user) {
+    user = await ensureUserAuth();
+  }
   if (!user) {
     throw new Error("Please sign in to use AI features");
   }

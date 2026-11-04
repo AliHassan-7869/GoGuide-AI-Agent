@@ -176,18 +176,12 @@ export default function AiAssistant() {
     if (!textToSend || isLoading) return;
 
     if (!auth?.currentUser) {
-      Alert.alert(
-        "Sign In to Chat",
-        "Please sign in or create an account to chat with GoGuide AI Copilot and get personalized travel recommendations.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Sign In",
-            onPress: () => router.push("/auth/sign-in"),
-          },
-        ]
-      );
-      return;
+      try {
+        const { signInAnonymously } = await import("firebase/auth");
+        await signInAnonymously(auth);
+      } catch (authErr) {
+        console.warn("Auto-signin notice:", authErr);
+      }
     }
 
     const userMsg = {
