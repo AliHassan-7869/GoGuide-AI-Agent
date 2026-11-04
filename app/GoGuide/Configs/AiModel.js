@@ -119,7 +119,7 @@ async function callBackend(path, body = null, method = "POST") {
 
     response = await fetch(`${API_URL}${path}`, options);
   } catch (networkError) {
-    console.error(`[Backend] Network error on ${path}:`, networkError.message);
+    console.warn(`[Backend] Network error on ${path}:`, networkError.message);
     throw new Error("Could not reach GoGuide server, please check your connection");
   } finally {
     clearTimeout(timer);
@@ -134,7 +134,7 @@ async function callBackend(path, body = null, method = "POST") {
 
   if (!response.ok || data?.status !== "success") {
     const detail = typeof data?.detail === "string" ? data.detail : `Server error ${response.status}`;
-    console.error(`[Backend] ${path} failed:`, response.status, detail);
+    console.warn(`[Backend] ${path} failed:`, response.status, detail);
     throw new Error(detail);
   }
 

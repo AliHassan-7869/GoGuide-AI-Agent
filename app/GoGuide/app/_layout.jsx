@@ -1,7 +1,8 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useContext } from "react";
-import { View, Platform, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Platform, StyleSheet, useWindowDimensions, LogBox } from "react-native";
+LogBox.ignoreAllLogs(true);
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";

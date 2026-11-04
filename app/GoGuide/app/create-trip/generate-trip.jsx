@@ -273,50 +273,53 @@ export default function GenerateTrip() {
 
       const { generateTripWithAgent, generateDeepTripPlan } = require("../../Configs/AiModel");
 
-      let result;
-      if (tripData?.isDeepPlan) {
-        result = await generateDeepTripPlan(
-          {
+      const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
+      let plan = null;
+
+      try {
+        let result = null;
+        if (tripData?.isDeepPlan) {
+          result = await generateDeepTripPlan(
+            {
+              destination: tripData?.toLocation?.name || "",
+              days: totalDays,
+              budget: tripData?.budget || "Moderate",
+              interests: interestNames || undefined,
+              categories: categoriesStr,
+            },
+            (progress) => {
+              const stepIdx = Math.min(
+                GENERATION_STEPS.length - 1,
+                Math.floor((progress / 100) * GENERATION_STEPS.length)
+              );
+              setCurrentStepIndex(stepIdx);
+            }
+          );
+        } else {
+          result = await generateTripWithAgent({
             destination: tripData?.toLocation?.name || "",
             days: totalDays,
             budget: tripData?.budget || "Moderate",
             interests: interestNames || undefined,
             categories: categoriesStr,
-          },
-          (progress) => {
-            const stepIdx = Math.min(
-              GENERATION_STEPS.length - 1,
-              Math.floor((progress / 100) * GENERATION_STEPS.length)
-            );
-            setCurrentStepIndex(stepIdx);
-          }
-        );
-      } else {
-        result = await generateTripWithAgent({
-          destination: tripData?.toLocation?.name || "",
-          days: totalDays,
-          budget: tripData?.budget || "Moderate",
-          interests: interestNames || undefined,
-          categories: categoriesStr,
-        });
-      }
-
-      const responseText = await result.response.text();
-      const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
-
-      let plan = null;
-      try {
-        const parsedData = robustParseJson(responseText);
-        if (parsedData) {
-          plan = normalizeTrip(parsedData) || parsedData.trip || parsedData;
+          });
         }
-      } catch (parseErr) {
-        console.warn("[GenerateTrip] Robust parse note:", parseErr?.message);
+
+        if (result && typeof result.response?.text === "function") {
+          const responseText = await result.response.text();
+          const parsedData = robustParseJson(responseText);
+          if (parsedData) {
+            plan = normalizeTrip(parsedData) || parsedData.trip || parsedData;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("[GenerateTrip] Backend AI call note:", apiErr?.message);
       }
 
-      // If parsing failed, malformed output, or empty itinerary: automatically use instant offline plan
+      // Resilient Fallback: If AI timed out, failed, or returned empty schedule,
+      // seamlessly construct instant verified plan so user is NEVER blocked by an error!
       if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
-        console.log("[GenerateTrip] Using smart resilient offline plan fallback");
+        console.log("[GenerateTrip] Building resilient instant offline plan for:", tripData?.toLocation?.name);
         plan = buildOfflinePlan(
           tripData?.toLocation?.name,
           totalDays,

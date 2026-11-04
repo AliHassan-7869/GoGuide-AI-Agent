@@ -753,11 +753,18 @@ export default function Profile() {
         onRequestClose={() => setShowSavedTripsModal(false)}
       >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
-          {/* Modal Header: Clean, Responsive & 100% On-Screen */}
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 18, paddingVertical: 12 }]}>
+          {/* Modal Header: Clean, Responsive with Back Button */}
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
-              <Ionicons name="airplane" size={20} color={brandIconColor} style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20 }]} numberOfLines={1}>
+              <TouchableOpacity
+                onPress={() => setShowSavedTripsModal(false)}
+                style={styles.modalBackBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={22} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
                 My Trips
               </Text>
               <View style={[styles.modalBadge, { backgroundColor: brandIconBg, marginLeft: 8 }]}>
@@ -960,11 +967,20 @@ export default function Profile() {
         onRequestClose={() => setShowFavoritesModal(false)}
       >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="heart" size={22} color={Colors.PRIMARY} style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Favourites</Text>
-              <View style={[styles.modalBadge, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
+              <TouchableOpacity
+                onPress={() => setShowFavoritesModal(false)}
+                style={styles.modalBackBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={22} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
+                Favourites
+              </Text>
+              <View style={[styles.modalBadge, { backgroundColor: "rgba(10, 126, 164, 0.12)", marginLeft: 8 }]}>
                 <Text style={[styles.modalBadgeText, { color: Colors.PRIMARY }]}>
                   {favoritePlacesList.length}
                 </Text>
@@ -1317,6 +1333,13 @@ const styles = StyleSheet.create({
   modalBadgeText: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
+  },
+  modalBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCloseBtn: {
     width: 34,
