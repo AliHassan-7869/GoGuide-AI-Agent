@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useContext, useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -31,6 +31,7 @@ import { getFavoritePlaces, subscribeToFavorites, toggleFavoritePlace } from "..
 
 export default function Profile() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
 
@@ -45,6 +46,24 @@ export default function Profile() {
   const [showSavedTripsModal, setShowSavedTripsModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
+
+  // Track if user navigated to /trip or /explore from inside Saved Trips / Favorites modal
+  const reopenSavedModalRef = useRef(false);
+  const reopenFavoritesModalRef = useRef(false);
+
+  // Automatically re-open Saved Trips or Favorites modal when returning via Back button
+  useFocusEffect(
+    useCallback(() => {
+      if (reopenSavedModalRef.current || params?.openSaved === "true") {
+        reopenSavedModalRef.current = false;
+        setShowSavedTripsModal(true);
+      }
+      if (reopenFavoritesModalRef.current || params?.openFavorites === "true") {
+        reopenFavoritesModalRef.current = false;
+        setShowFavoritesModal(true);
+      }
+    }, [params?.openSaved, params?.openFavorites])
+  );
 
   const triggerHaptic = () => {
     try {
@@ -894,10 +913,11 @@ export default function Profile() {
                               JSON.stringify(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip })
                             );
                           } catch (e) {}
+                          reopenSavedModalRef.current = true;
                           setShowSavedTripsModal(false);
                           router.push({
                             pathname: "/trip",
-                            params: { id: trip.id || "cached" },
+                            params: { id: trip.id || "cached", from: "saved" },
                           });
                         }}
                       >
@@ -986,6 +1006,8 @@ export default function Profile() {
                     <TouchableOpacity
                       style={[styles.openTripBtn, { backgroundColor: brandIconColor }]}
                       onPress={() => {
+                        triggerHaptic();
+                        reopenFavoritesModalRef.current = true;
                         setShowFavoritesModal(false);
                         router.push("/explore");
                       }}

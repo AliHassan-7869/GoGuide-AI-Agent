@@ -337,6 +337,17 @@ export default function SharedTripView() {
           <TouchableOpacity
             style={styles.backNavBtn}
             onPress={() => {
+              if (params?.from === "saved") {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace({
+                    pathname: "/(tabs)/profile",
+                    params: { openSaved: "true" },
+                  });
+                }
+                return;
+              }
               if (router.canGoBack()) {
                 router.back();
               } else {
