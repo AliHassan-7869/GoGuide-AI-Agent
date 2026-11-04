@@ -36,6 +36,13 @@ export default function PrintableItineraryModal({
     await downloadItineraryPDF(plan, destination);
   };
 
+  const flights = plan.flights || plan.flightDetails;
+  const flightDetails =
+    typeof flights === "object"
+      ? [flights?.airline, flights?.flightNumber, flights?.details || flights?.route].filter(Boolean).join(" • ")
+      : String(flights || "");
+  const flightPrice = typeof flights === "object" ? flights?.price : null;
+
   return (
     <Modal
       visible={visible}
@@ -91,6 +98,25 @@ export default function PrintableItineraryModal({
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.traveler || "Explorer"}</Text>
               </View>
             </View>
+
+            {/* Flight / Transit Route Preview Box */}
+            {flights && (
+              <View
+                style={[
+                  styles.flightPreviewBox,
+                  {
+                    backgroundColor: theme.isDark ? "#1E293B" : "#F0F9FF",
+                    borderColor: theme.isDark ? "#334155" : "#BAE6FD",
+                  },
+                ]}
+              >
+                <View style={styles.flightHeaderRow}>
+                  <Text style={[styles.flightLabel, { color: Colors.PRIMARY }]}>✈️ FLIGHT / TRANSIT SUMMARY</Text>
+                  {flightPrice && <Text style={styles.flightPrice}>{flightPrice}</Text>}
+                </View>
+                <Text style={[styles.flightDetailsText, { color: theme.text }]}>{flightDetails}</Text>
+              </View>
+            )}
 
             <View style={[styles.divider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E2E8F0" }]} />
 
@@ -218,7 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   metaPill: {
     flexDirection: "row",
@@ -231,6 +257,34 @@ const styles = StyleSheet.create({
   metaPillText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
+  },
+  flightPreviewBox: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  flightHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  flightLabel: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 0.5,
+  },
+  flightPrice: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+    color: "#10B981",
+  },
+  flightDetailsText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    lineHeight: 17,
   },
   divider: {
     height: 1,
