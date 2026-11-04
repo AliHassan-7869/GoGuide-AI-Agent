@@ -431,7 +431,7 @@ export default function Profile() {
   const travelHubItems = [
     {
       id: "favorites",
-      title: "Favorite Places & Wishlist",
+      title: "Favourites",
       subtitle: "Liked attractions, beaches & spots",
       icon: "heart-outline",
       badge: favoritePlacesList.length > 0 ? `${favoritePlacesList.length}` : null,
@@ -627,29 +627,20 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Travel Stats Bar (Trips, Bookings, Places, Saved) */}
+        {/* Travel Quick Action Bar: Trips, Favourites, Bookings (Icon Symbols + Name Only, No Numbers) */}
         <View style={[styles.statsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <TouchableOpacity
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              setShowSavedTripsModal(true);
+              router.push("/(tabs)/mytrip");
             }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.statValue, { color: theme.text }]}>{stats.trips}</Text>
-            <Text style={[styles.statLabel, { color: theme.subtext }]}>Trips</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
-
-          <TouchableOpacity
-            style={styles.statCol}
-            onPress={() => handleNavigate("/my-bookings")}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.statValue, { color: theme.text }]}>{stats.bookings}</Text>
-            <Text style={[styles.statLabel, { color: theme.subtext }]}>Bookings</Text>
+            <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+              <Ionicons name="airplane" size={22} color={Colors.PRIMARY} />
+            </View>
+            <Text style={[styles.statLabel, { color: theme.text }]}>Trips</Text>
           </TouchableOpacity>
 
           <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
@@ -662,22 +653,23 @@ export default function Profile() {
             }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.statValue, { color: theme.text }]}>{stats.places}</Text>
-            <Text style={[styles.statLabel, { color: theme.subtext }]}>Places</Text>
+            <View style={[styles.statIconWrap, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
+              <Ionicons name="heart" size={22} color="#EF4444" />
+            </View>
+            <Text style={[styles.statLabel, { color: theme.text }]}>Favourites</Text>
           </TouchableOpacity>
 
           <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
 
           <TouchableOpacity
             style={styles.statCol}
-            onPress={() => {
-              triggerHaptic();
-              setShowSavedTripsModal(true);
-            }}
+            onPress={() => handleNavigate("/my-bookings")}
             activeOpacity={0.7}
           >
-            <Text style={[styles.statValue, { color: theme.text }]}>{savedTripsList.length}</Text>
-            <Text style={[styles.statLabel, { color: theme.subtext }]}>Saved</Text>
+            <View style={[styles.statIconWrap, { backgroundColor: "rgba(2, 132, 199, 0.12)" }]}>
+              <Ionicons name="ticket" size={22} color="#0284C7" />
+            </View>
+            <Text style={[styles.statLabel, { color: theme.text }]}>Bookings</Text>
           </TouchableOpacity>
         </View>
 
@@ -945,7 +937,7 @@ export default function Profile() {
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="heart" size={22} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Travel Wishlist</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Favourites</Text>
               <View style={[styles.modalBadge, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}>
                 <Text style={[styles.modalBadgeText, { color: "#EF4444" }]}>
                   {favoritePlacesList.length}
@@ -1172,15 +1164,23 @@ const styles = StyleSheet.create({
   statCol: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  statIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statValue: {
     fontSize: 20,
     fontFamily: "Outfit-Bold",
   },
   statLabel: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
+    marginTop: 6,
   },
   statDivider: {
     width: 1,
