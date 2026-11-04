@@ -23,6 +23,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { scheduleTripCountdown, sendLocalNotification } from "../../Components/utils/NotificationService";
 import { saveTripToBookings } from "../../Components/utils/BookingService";
+import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 const { width } = Dimensions.get("window");
 
@@ -195,36 +196,20 @@ export default function GenerateTrip() {
     const departureDateStr = fmtDate(startObj);
     const returnDateStr = fmtDate(endObj);
     const budgetTier = plan?.budget || tripData?.budget || "Moderate";
-    const estFlightPrice =
-      budgetTier.toLowerCase().includes("luxury")
-        ? "$1,450 - $2,200 (Business / Flex)"
-        : budgetTier.toLowerCase().includes("economical") || budgetTier.toLowerCase().includes("cheap")
-        ? "$420 - $650 (Economy Saver)"
-        : "$680 - $980 (Round-Trip Economy)";
-    const flightQuery = encodeURIComponent(`Flights from ${cleanOrigin} to ${cleanDest}`);
-
     const enrichedPlan = {
       ...plan,
       origin: cleanOrigin,
       departureDate: departureDateStr,
       returnDate: returnDateStr,
-      flights: {
-        ...(plan?.flights || {}),
+      flights: buildFlightItinerary({
         origin: cleanOrigin,
         destination: cleanDest,
-        departureDate: departureDateStr,
-        returnDate: returnDateStr,
-        outbound: `Outbound (Day 1 • ${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} International Airport`,
-        returnFlight: `Return (Day ${numDays} • ${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
-        details:
-          plan?.flights?.details ||
-          `Outbound (${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} • Return (${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
-        price: plan?.flights?.price || estFlightPrice,
-        bookingUrl:
-          plan?.flights?.bookingUrl && plan.flights.bookingUrl !== "string"
-            ? plan.flights.bookingUrl
-            : `https://www.google.com/travel/flights?q=${flightQuery}`,
-      },
+        startDate: startObj,
+        endDate: endObj,
+        days: numDays,
+        budget: budgetTier,
+        existingFlights: plan?.flights,
+      }),
     };
 
     const completeTripData = {

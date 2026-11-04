@@ -23,6 +23,7 @@ import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
 import { fetchDestinationEssentials } from "../Configs/AiModel";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
+import { buildFlightItinerary } from "../Components/utils/FlightEngine";
 
 // Curated default luxury itinerary if ID is preview or not found
 const DEMO_TRIP = {
@@ -528,25 +529,21 @@ export default function SharedTripView() {
         {(() => {
           const originName = tripPlan?.flights?.origin || tripPlan?.origin || "Home Airport";
           const numDays = itinerary.length || parseInt(tripPlan?.duration, 10) || 3;
-          const startObj = new Date();
-          const endObj = new Date(startObj.getTime() + Math.max(1, numDays - 1) * 24 * 60 * 60 * 1000);
-          const fmtDate = (d) =>
-            d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-          const depDateStr = tripPlan?.flights?.departureDate || tripPlan?.departureDate || fmtDate(startObj);
-          const retDateStr = tripPlan?.flights?.returnDate || tripPlan?.returnDate || fmtDate(endObj);
-          const flightPrice = tripPlan?.flights?.price || "$680 - $980 (Round-Trip)";
-          const bookingUrl =
-            tripPlan?.flights?.bookingUrl && tripPlan.flights.bookingUrl !== "string"
-              ? tripPlan.flights.bookingUrl
-              : `https://www.google.com/travel/flights?q=${encodeURIComponent(
-                  `Flights from ${originName} to ${destination}`
-                )}`;
+          const flightInfo = buildFlightItinerary({
+            origin: originName,
+            destination: destination,
+            days: numDays,
+            budget: tripPlan?.budget || "Moderate",
+            existingFlights: tripPlan?.flights,
+          });
 
           return (
             <View style={[styles.section, { marginTop: 22 }]}>
               <View style={styles.sectionTitleRow}>
                 <Text style={styles.sectionTitle}>✈️ Outbound & Return Flights</Text>
-                <Text style={styles.sectionCount}>{originName} ⇄ {destination}</Text>
+                <Text style={styles.sectionCount}>
+                  {flightInfo.originIata} ⇄ {flightInfo.destIata} • {flightInfo.airline}
+                </Text>
               </View>
 
               <View
@@ -568,11 +565,19 @@ export default function SharedTripView() {
                     borderLeftColor: "#0EA5E9",
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#38BDF8" }}>
-                    🛫 GOING • DAY 1 ({depDateStr})
-                  </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#38BDF8" }}>
+                      🛫 GOING • DAY 1 ({flightInfo.departureDate})
+                    </Text>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#94A3B8" }}>
+                      {flightInfo.outboundFlightNo} • {flightInfo.duration}
+                    </Text>
+                  </View>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
-                    {originName} ✈️ {destination}
+                    {flightInfo.origin} ({flightInfo.originIata}) ✈️ {flightInfo.destination} ({flightInfo.destIata})
+                  </Text>
+                  <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                    {flightInfo.outboundDepTime} ──({flightInfo.stops})──► {flightInfo.outboundArrTime} • {flightInfo.originAirport}
                   </Text>
                 </View>
 
@@ -586,11 +591,19 @@ export default function SharedTripView() {
                     borderLeftColor: "#10B981",
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#34D399" }}>
-                    🛬 RETURNING • DAY {numDays} ({retDateStr})
-                  </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#34D399" }}>
+                      🛬 RETURNING • DAY {numDays} ({flightInfo.returnDate})
+                    </Text>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#94A3B8" }}>
+                      {flightInfo.returnFlightNo} • {flightInfo.duration}
+                    </Text>
+                  </View>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
-                    {destination} ✈️ {originName}
+                    {flightInfo.destination} ({flightInfo.destIata}) ✈️ {flightInfo.origin} ({flightInfo.originIata})
+                  </Text>
+                  <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                    {flightInfo.returnDepTime} ──({flightInfo.stops})──► {flightInfo.returnArrTime} • 🧳 {flightInfo.baggage}
                   </Text>
                 </View>
 
@@ -600,25 +613,41 @@ export default function SharedTripView() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginTop: 12,
+                    flexWrap: "wrap",
+                    gap: 8,
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: "#10B981" }}>
-                    Est. {flightPrice}
+                    Est. Round-Trip: {flightInfo.price}
                   </Text>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: Colors.PRIMARY,
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                    }}
-                    onPress={() => Linking.openURL(bookingUrl)}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>
-                      Search Flights ✈️
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: "#0284C7",
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                      }}
+                      onPress={() => Linking.openURL(flightInfo.skyscannerUrl)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>Skyscanner</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: Colors.PRIMARY,
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                      }}
+                      onPress={() => Linking.openURL(flightInfo.bookingUrl)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>
+                        Google Flights ✈️
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>

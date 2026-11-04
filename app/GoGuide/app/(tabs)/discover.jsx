@@ -29,6 +29,7 @@ import {
 } from "../../Components/constants/Destinations";
 import { toggleFavoritePlace, getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
+import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
@@ -374,32 +375,16 @@ export default function Discover() {
       completePlan.returnDate = returnDateStr;
       completePlan.duration = completePlan.duration || `${days} Days ${Math.max(1, days - 1)} Nights`;
 
-      // Ensure Outbound & Return Flight Logistics are always populated
-      const estFlightPrice =
-        budget === "Luxury"
-          ? "$1,450 - $2,200 (Business / Flex)"
-          : budget === "Economical"
-          ? "$420 - $650 (Economy Saver)"
-          : "$680 - $980 (Round-Trip Economy)";
-      const flightQuery = encodeURIComponent(`Flights from ${cleanOrigin} to ${cleanDest}`);
-
-      completePlan.flights = {
-        ...(completePlan.flights || {}),
+      // Ensure Outbound & Return Flight Logistics are always populated via Smart IATA Flight Engine
+      completePlan.flights = buildFlightItinerary({
         origin: cleanOrigin,
         destination: cleanDest,
-        departureDate: departureDateStr,
-        returnDate: returnDateStr,
-        outbound: `Outbound (Day 1 • ${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} International Airport`,
-        returnFlight: `Return (Day ${days} • ${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
-        details:
-          completePlan.flights?.details ||
-          `Outbound (${departureDateStr}): ${cleanOrigin} ✈️ ${cleanDest} • Return (${returnDateStr}): ${cleanDest} ✈️ ${cleanOrigin}`,
-        price: completePlan.flights?.price || estFlightPrice,
-        bookingUrl:
-          completePlan.flights?.bookingUrl && completePlan.flights.bookingUrl !== "string"
-            ? completePlan.flights.bookingUrl
-            : `https://www.google.com/travel/flights?q=${flightQuery}`,
-      };
+        startDate: startObj,
+        endDate: endObj,
+        days: days,
+        budget: budget,
+        existingFlights: completePlan.flights,
+      });
 
       const completeTripData = {
         fromLocation: { name: cleanOrigin, coordinates: { lat: 0, lng: 0 } },

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../Configs/FirebaseConfig";
 import { getDestinationImage } from "../constants/Destinations";
+import { buildFlightItinerary } from "./FlightEngine";
 
 /**
  * Saves hotel & flight booking passes into My Bookings and ensures the trip is saved in My Trips
@@ -58,19 +59,33 @@ export async function saveTripToBookings(tripData, authUser) {
     createdAt: new Date().toISOString(),
   };
 
-  // 2. Create Flight / Transit Booking Entry
+  // 2. Create Flight / Transit Booking Entry with real IATA codes & airline details
   const flightRefCode = `GG-F${Math.floor(10000 + Math.random() * 90000)}`;
+  const originRaw =
+    flight?.origin ||
+    plan?.origin ||
+    tripData?.fromLocation?.name?.split(",")[0]?.trim() ||
+    "Home Airport";
+  const resolvedFlight = buildFlightItinerary({
+    origin: originRaw,
+    destination: destName,
+    startDate: tripData?.startDate,
+    endDate: tripData?.endDate,
+    days: plan?.itinerary?.length || tripData?.totalNoOfDays || 3,
+    budget: budgetTier,
+    existingFlights: flight,
+  });
   const flightBooking = {
     id: `bk_${Date.now()}_flight`,
     type: "Flights",
     status: "Upcoming",
     bookingRef: flightRefCode,
-    title: `${destClean} Express Air Transit`,
-    subtitle: `Flight to: ${destName} ✈️`,
-    checkIn: `${startFormatted} • 08:30 AM`,
-    checkOut: `${startFormatted} • 01:15 PM`,
-    details: `Confirmed Boarding Pass • Terminal 1 • Seat 14A, 14B • ${travelerType}`,
-    price: flight?.price || "$320.00",
+    title: `${resolvedFlight.airline} (${resolvedFlight.outboundFlightNo} / ${resolvedFlight.returnFlightNo})`,
+    subtitle: `${resolvedFlight.originIata} (${resolvedFlight.origin}) ✈️ ${resolvedFlight.destIata} (${resolvedFlight.destination})`,
+    checkIn: `Outbound: ${resolvedFlight.departureDate} • ${resolvedFlight.outboundDepTime}`,
+    checkOut: `Return: ${resolvedFlight.returnDate} • ${resolvedFlight.returnDepTime}`,
+    details: `${resolvedFlight.cabinClass} • ${resolvedFlight.duration} (${resolvedFlight.stops}) • ${resolvedFlight.baggage}`,
+    price: resolvedFlight.price || "$680.00",
     image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
     coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
     userEmail: userEmail,

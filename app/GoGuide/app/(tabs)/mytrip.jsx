@@ -34,6 +34,7 @@ import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
 import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
 import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
+import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
 import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { convertPriceString, getCurrencySymbol, convertAmount } from "../../Components/constants/Currency";
@@ -1244,30 +1245,17 @@ export default function MyTrip() {
             tripData?.toLocation?.name?.split(",")[0]?.trim() ||
             "Destination";
           const numDays = daysList.length || parseInt(plan?.duration, 10) || 3;
-          const startObj = tripData?.startDate ? new Date(tripData.startDate) : new Date();
-          const endObj = tripData?.endDate
-            ? new Date(tripData.endDate)
-            : new Date(startObj.getTime() + Math.max(1, numDays - 1) * 24 * 60 * 60 * 1000);
-          const fmtDate = (d) =>
-            d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-          const depDateStr = plan?.flights?.departureDate || plan?.departureDate || fmtDate(startObj);
-          const retDateStr = plan?.flights?.returnDate || plan?.returnDate || fmtDate(endObj);
           const rawTier = plan?.budget || tripData?.budget || "Moderate";
-          const defaultFlightPrice = rawTier.toLowerCase().includes("luxury")
-            ? "$1,450 - $2,200"
-            : rawTier.toLowerCase().includes("economical") || rawTier.toLowerCase().includes("cheap")
-            ? "$420 - $650"
-            : "$680 - $980";
-          const flightPrice = convertPriceString(
-            plan?.flights?.price || defaultFlightPrice,
-            preferences?.currency
-          );
-          const bookingUrl =
-            plan?.flights?.bookingUrl && plan.flights.bookingUrl !== "string"
-              ? plan.flights.bookingUrl
-              : `https://www.google.com/travel/flights?q=${encodeURIComponent(
-                  `Flights from ${originName} to ${destName}`
-                )}`;
+          const flightInfo = buildFlightItinerary({
+            origin: originName,
+            destination: destName,
+            startDate: tripData?.startDate,
+            endDate: tripData?.endDate,
+            days: numDays,
+            budget: rawTier,
+            existingFlights: plan?.flights,
+          });
+          const flightPrice = convertPriceString(flightInfo.price, preferences?.currency);
 
           return (
             <View style={[styles.sectionCard, { backgroundColor: theme.card, marginTop: 18 }]}>
@@ -1280,7 +1268,19 @@ export default function MyTrip() {
                     ✈️ Outbound & Return Flights
                   </Text>
                   <Text style={{ fontSize: 12, color: theme.subtext, fontFamily: "Outfit-Medium", marginTop: 1 }}>
-                    {originName} ⇄ {destName} • Round-Trip Schedule
+                    {flightInfo.airline} • {flightInfo.cabinClass}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: "rgba(10, 126, 164, 0.12)",
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
+                    {flightInfo.originIata} ⇄ {flightInfo.destIata}
                   </Text>
                 </View>
               </View>
@@ -1298,14 +1298,17 @@ export default function MyTrip() {
               >
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: Colors.PRIMARY, textTransform: "uppercase" }}>
-                    🛫 Going • Day 1 ({depDateStr})
+                    🛫 Going • Day 1 ({flightInfo.departureDate})
                   </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext }}>
-                    Departure
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: theme.subtext }}>
+                    Flight {flightInfo.outboundFlightNo} • {flightInfo.duration}
                   </Text>
                 </View>
                 <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: theme.text, marginTop: 4 }}>
-                  {originName} ✈️ {destName}
+                  {flightInfo.origin} ({flightInfo.originIata}) ✈️ {flightInfo.destination} ({flightInfo.destIata})
+                </Text>
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }}>
+                  {flightInfo.outboundDepTime} ──({flightInfo.stops})──► {flightInfo.outboundArrTime} • {flightInfo.originAirport}
                 </Text>
               </View>
 
@@ -1322,22 +1325,36 @@ export default function MyTrip() {
               >
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#10B981", textTransform: "uppercase" }}>
-                    🛬 Returning • Day {numDays} ({retDateStr})
+                    🛬 Returning • Day {numDays} ({flightInfo.returnDate})
                   </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext }}>
-                    Return Home
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: theme.subtext }}>
+                    Flight {flightInfo.returnFlightNo} • {flightInfo.duration}
                   </Text>
                 </View>
                 <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: theme.text, marginTop: 4 }}>
-                  {destName} ✈️ {originName}
+                  {flightInfo.destination} ({flightInfo.destIata}) ✈️ {flightInfo.origin} ({flightInfo.originIata})
+                </Text>
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }}>
+                  {flightInfo.returnDepTime} ──({flightInfo.stops})──► {flightInfo.returnArrTime} • 🧳 {flightInfo.baggage}
                 </Text>
               </View>
 
-              <View style={[styles.priceRow, { marginTop: 12 }]}>
+              <View style={[styles.priceRow, { marginTop: 12, flexWrap: "wrap", gap: 8 }]}>
                 <Text style={styles.priceTag}>Est. Round-Trip: {flightPrice}</Text>
-                <TouchableOpacity style={styles.bookButton} onPress={() => Linking.openURL(bookingUrl)}>
-                  <Text style={styles.bookButtonText}>Search Flights ✈️</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.bookButton, { backgroundColor: "#0284C7" }]}
+                    onPress={() => Linking.openURL(flightInfo.skyscannerUrl)}
+                  >
+                    <Text style={styles.bookButtonText}>Skyscanner</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.bookButton}
+                    onPress={() => Linking.openURL(flightInfo.bookingUrl)}
+                  >
+                    <Text style={styles.bookButtonText}>Google Flights ✈️</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           );
