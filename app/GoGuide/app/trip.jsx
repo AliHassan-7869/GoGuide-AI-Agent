@@ -1522,6 +1522,9 @@ const styles = StyleSheet.create({
   dayHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
     marginBottom: 10,
   },
   dayNumberBadge: {
@@ -1603,6 +1606,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.05)",
