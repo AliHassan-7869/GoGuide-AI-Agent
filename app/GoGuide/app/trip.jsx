@@ -158,9 +158,7 @@ export default function SharedTripView() {
     }
   }
 
-  useEffect(() => {
-    loadSharedTrip();
-  }, [targetId]);
+
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [savedLocally, setSavedLocally] = useState(false);
@@ -185,7 +183,6 @@ export default function SharedTripView() {
   };
 
   const loadSharedTrip = async () => {
-    setLoading(true);
     try {
       // Check if this trip or destination is already saved in My Trips
       try {
@@ -312,6 +309,21 @@ export default function SharedTripView() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    const fetchTrip = async () => {
+      try {
+        await loadSharedTrip();
+      } catch (err) {
+        if (active) console.log("Shared trip fetch note:", err);
+      }
+    };
+    fetchTrip();
+    return () => {
+      active = false;
+    };
+  }, [targetId]);
 
   const triggerHaptic = () => {
     try {
@@ -462,6 +474,57 @@ export default function SharedTripView() {
     } catch (e) {
       console.warn("Flight booking error:", e);
     }
+  };
+
+  const handleBookActivity = async (activity, dayNumber) => {
+    triggerHaptic();
+    if (!activity) return;
+    try {
+      const dest = tripPlan?.destination || "Destination";
+      await addActivityBooking(activity, dayNumber, dest, tripPlan, auth.currentUser);
+      setBookedActivities((prev) => ({ ...prev, [activity.placeName]: true }));
+      const msg = `"${activity.placeName}" has been added to My Bookings! View your confirmation pass under Profile -> My Bookings.`;
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Activity Pass Saved! 🎫", msg);
+      }
+    } catch (e) {
+      console.warn("Activity booking error:", e);
+    }
+  };
+
+  const handleAddActivity = (dayNumber, newActivity) => {
+    triggerHaptic();
+    if (!tripPlan || !tripPlan.itinerary) return;
+    const updatedItinerary = tripPlan.itinerary.map((d) => {
+      if (String(d.day) === String(dayNumber)) {
+        return {
+          ...d,
+          activities: [...(d.activities || []), newActivity],
+        };
+      }
+      return d;
+    });
+
+    const updatedPlan = {
+      ...tripPlan,
+      itinerary: updatedItinerary,
+    };
+    setTripPlan(updatedPlan);
+    setShowAddActivityModal(false);
+
+    // Save updated plan to cached trip
+    AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(updatedPlan)).catch(() => {});
+
+    const msg = `"${newActivity.placeName}" added to Day ${dayNumber}.`;
+    if (Platform.OS === "web" && typeof window !== "undefined") window.alert(msg);
+    else Alert.alert("Activity Added!", msg);
+  };
+
+  const handleSaveExpenses = (updatedExpenses) => {
+    setTripExpenses(updatedExpenses);
+    setShowExpenseModal(false);
   };
 
   if (loading) {

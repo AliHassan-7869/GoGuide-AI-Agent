@@ -32,7 +32,7 @@ import { getFavoritePlaces, subscribeToFavorites, toggleFavoritePlace } from "..
 export default function Profile() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
+  const { tripData, setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
 
   const [stats, setStats] = useState({
