@@ -6,6 +6,163 @@ with real coordinates, realistic hotels, and accurate local attractions.
 """
 
 CURATED_DESTINATIONS = {
+    "tokyo": {
+        "destination": "Tokyo, Japan",
+        "hotels": [
+            {
+                "name": "Hotel Gracery Shinjuku",
+                "address": "1-19-1 Kabukicho, Shinjuku City",
+                "price": "$140 per night",
+                "coordinates": {"lat": 35.6953, "lng": 139.7022},
+                "rating": "4.6"
+            },
+            {
+                "name": "Keio Plaza Hotel Tokyo",
+                "address": "2-2-1 Nishi-Shinjuku, Shinjuku City",
+                "price": "$220 per night",
+                "coordinates": {"lat": 35.6896, "lng": 139.6922},
+                "rating": "4.7"
+            }
+        ],
+        "days": [
+            {
+                "day": 1,
+                "theme": "Historic Asakusa & Modern Skyline",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Senso-ji Temple & Nakamise-dori",
+                        "details": "Tokyo's oldest Buddhist temple, giant red lanterns, and traditional artisanal snack stalls.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.7148, "lng": 139.7967}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Tokyo Skytree & Solamachi Mall",
+                        "details": "Towering 634-meter observation tower with 360-degree views of Tokyo Bay and Mount Fuji.",
+                        "tickets": "¥2,100 ($14 per person)",
+                        "coordinates": {"lat": 35.7101, "lng": 139.8107}
+                    },
+                    {
+                        "time": "Evening (7:00 PM)",
+                        "placeName": "Sumida River Promenade & Izakaya Dining",
+                        "details": "Evening river breeze stroll followed by authentic Japanese yakitori and craft ramen.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.7126, "lng": 139.7989}
+                    }
+                ]
+            },
+            {
+                "day": 2,
+                "theme": "Iconic Shibuya & Harajuku Pop Culture",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Meiji Jingu Shrine & Yoyogi Park",
+                        "details": "Peaceful forest sanctuary with grand wooden Torii gates in the center of Tokyo.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.6764, "lng": 139.6993}
+                    },
+                    {
+                        "time": "Afternoon (1:30 PM)",
+                        "placeName": "Takeshita Street & Omotesando Avenue",
+                        "details": "Vibrant fashion boutiques, famous Japanese crepes, and architectural flagship stores.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.6702, "lng": 139.7027}
+                    },
+                    {
+                        "time": "Evening (6:30 PM)",
+                        "placeName": "Shibuya Scramble Crossing & Shibuya Sky",
+                        "details": "World's busiest pedestrian crossing, iconic Hachiko statue, and open-air rooftop observation deck.",
+                        "tickets": "¥2,200 for Shibuya Sky",
+                        "coordinates": {"lat": 35.6595, "lng": 139.7005}
+                    }
+                ]
+            },
+            {
+                "day": 3,
+                "theme": "Culinary Tsukiji & Digital Art Wonderland",
+                "activities": [
+                    {
+                        "time": "Morning (9:00 AM)",
+                        "placeName": "Tsukiji Outer Market Food Crawl",
+                        "details": "Fresh sushi, tamagoyaki Japanese omelettes, matcha ice cream, and seafood delicacies.",
+                        "tickets": "Free entry (pay per food item)",
+                        "coordinates": {"lat": 35.6655, "lng": 139.7708}
+                    },
+                    {
+                        "time": "Afternoon (1:30 PM)",
+                        "placeName": "teamLab Planets Digital Art Museum",
+                        "details": "Immersive water-walking museum with infinite crystal light rooms and floating flower gardens.",
+                        "tickets": "¥3,800 ($25 advance reservation)",
+                        "coordinates": {"lat": 35.6534, "lng": 139.7915}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Ginza District & Evening Ramen",
+                        "details": "Luxury avenues, Kabuki-za theater exterior, and world-class culinary dining.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.6719, "lng": 139.7648}
+                    }
+                ]
+            },
+            {
+                "day": 4,
+                "theme": "Akihabara Otaku Hub & Ueno Cultural Park",
+                "activities": [
+                    {
+                        "time": "Morning (10:00 AM)",
+                        "placeName": "Akihabara Electric Town",
+                        "details": "Epicenter of gaming, electronics, retro arcades, anime figurines, and multi-floor hobby shops.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.6984, "lng": 139.7731}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Ueno Park & Tokyo National Museum",
+                        "details": "Historic public park, Shinobazu Pond, and Japan's oldest national art and cultural museum.",
+                        "tickets": "¥1,000 for National Museum",
+                        "coordinates": {"lat": 35.7188, "lng": 139.7765}
+                    },
+                    {
+                        "time": "Evening (7:00 PM)",
+                        "placeName": "Ameyoko Shopping Street & Street Food",
+                        "details": "Open-air market street packed with affordable clothing, cosmetics, and bustling food stalls.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.7112, "lng": 139.7744}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Futuristic Odaiba & Shinjuku Nightscape",
+                "activities": [
+                    {
+                        "time": "Morning (10:00 AM)",
+                        "placeName": "Odaiba Seaside Park & Life-Size Unicorn Gundam",
+                        "details": "Tokyo Bay man-made island, Rainbow Bridge views, and the transforming anime mecha statue.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 35.6244, "lng": 139.7755}
+                    },
+                    {
+                        "time": "Afternoon (2:30 PM)",
+                        "placeName": "Shinjuku Gyoen National Garden",
+                        "details": "Sprawling tranquil park featuring French formal, English landscape, and traditional Japanese gardens.",
+                        "tickets": "¥500 entry",
+                        "coordinates": {"lat": 35.6852, "lng": 139.7101}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Shinjuku Omoide Yokocho (Memory Lane) & Golden Gai",
+                        "details": "Atmospheric retro lantern-lit alleyways filled with cozy counter izakayas and yakitori grills.",
+                        "tickets": "Free to explore",
+                        "coordinates": {"lat": 35.6928, "lng": 139.7001}
+                    }
+                ]
+            }
+        ]
+    },
+
     "dubai": {
         "destination": "Dubai, United Arab Emirates",
         "hotels": [

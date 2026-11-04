@@ -1052,8 +1052,8 @@ export default function SharedTripView() {
                   {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
                 </View>
 
-                {/* Day Action Buttons: + Add Activity, 💳 Log Expense & 💾 Save to Trips */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                {/* Clean Day Action Buttons */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
                   <TouchableOpacity
                     style={styles.dayActionBtnAdd}
                     onPress={() => {
@@ -1079,24 +1079,6 @@ export default function SharedTripView() {
                     <Ionicons name="card-outline" size={12} color="#F59E0B" />
                     <Text style={[styles.dayActionBtnText, { color: "#F59E0B" }]}>Log Expense</Text>
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.dayActionBtnSaveTrip,
-                      isSavedInTrips && { backgroundColor: "#10B981" },
-                    ]}
-                    onPress={handleSaveToMyTrips}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={isSavedInTrips ? "checkmark-circle" : "bookmark"}
-                      size={12}
-                      color="#FFF"
-                    />
-                    <Text style={styles.dayActionBtnText}>
-                      {isSavedInTrips ? "Saved to Trips ✅" : "Save to Trips"}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -1113,6 +1095,18 @@ export default function SharedTripView() {
                         <Text style={styles.ticketPillText}>{act.tickets}</Text>
                       </View>
                     )}
+                    <View style={{ marginLeft: "auto" }}>
+                      <FavoriteHeartButton
+                        place={{
+                          name: act.placeName,
+                          tag: `Activity • Day ${dayItem.day} • ${destination}`,
+                          img: heroImage,
+                          desc: act.details || act.placeDetails || `Attraction in ${destination}`,
+                        }}
+                        size={14}
+                        style={{ width: 28, height: 28, borderRadius: 14 }}
+                      />
+                    </View>
                   </View>
 
                   <Text style={styles.actTitle}>{act.placeName}</Text>
@@ -1126,18 +1120,7 @@ export default function SharedTripView() {
                       </View>
                     )}
 
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
-                      <FavoriteHeartButton
-                        place={{
-                          name: act.placeName,
-                          tag: `Activity • Day ${dayItem.day} • ${destination}`,
-                          img: heroImage,
-                          desc: act.details || act.placeDetails || `Attraction in ${destination}`,
-                        }}
-                        size={13}
-                        style={{ width: 28, height: 28, borderRadius: 14 }}
-                      />
-
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" }}>
                       <TouchableOpacity
                         style={styles.actMapBtn}
                         onPress={() => openInMaps(act.placeName)}

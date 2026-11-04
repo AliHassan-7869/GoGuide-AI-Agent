@@ -332,10 +332,6 @@ export default function MyTrip() {
     setShowHubView(false);
     setTripData(selectedTrip);
     AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
-    router.push({
-      pathname: "/trip",
-      params: { id: selectedTrip.id },
-    });
   };
 
   const handleDeleteTrip = (tripToDelete) => {

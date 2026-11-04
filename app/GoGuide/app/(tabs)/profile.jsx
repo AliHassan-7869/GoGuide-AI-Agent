@@ -939,12 +939,11 @@ export default function Profile() {
                               JSON.stringify(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip })
                             );
                           } catch (e) {}
-                          reopenSavedModalRef.current = true;
+                          if (setTripData) {
+                            setTripData(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip });
+                          }
                           setShowSavedTripsModal(false);
-                          router.push({
-                            pathname: "/trip",
-                            params: { id: trip.id || "cached", from: "saved" },
-                          });
+                          router.push("/(tabs)/mytrip");
                         }}
                       >
                         <Text style={styles.openTripBtnText}>Open Itinerary</Text>
