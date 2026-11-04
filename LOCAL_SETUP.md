@@ -170,7 +170,36 @@ Find the computer IP with `ip -4 -br addr` (Linux) or `ipconfig` (Windows, look 
 
 ---
 
-## 6. Production
+## 6. Web Export & Production Deployment
+
+### Static Web Export (Expo SDK 58)
+GoGuide exports cleanly to static HTML/JS for Vercel, Netlify, or any static hosting:
+
+```bash
+cd "app/GoGuide"
+$env:EXPO_NO_TELEMETRY="1"
+npx expo export -p web
+```
+
+All 36 routes (including universal web trip viewer `/trip`) will be exported to `app/GoGuide/dist`.
+
+### Local Web Preview
+Test the exported production build locally:
+
+```bash
+npx serve dist
+```
+
+### Vercel Deployment Configuration
+The root `vercel.json` coordinates automated builds on Git push:
+- **Build Command**: `npm --prefix app/GoGuide run build`
+- **Install Command**: `npm --prefix app/GoGuide install --legacy-peer-deps`
+- **Output Directory**: `app/GoGuide/dist`
+- **Live URL**: `https://dist-seven-tau-79.vercel.app`
+
+---
+
+## 7. Production
 
 For a release build, set the deployed backend in `app/GoGuide/.env` (or EAS env):
 

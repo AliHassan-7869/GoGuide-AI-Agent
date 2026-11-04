@@ -102,7 +102,7 @@ app/GoGuide/
 │   ├── safety-alerts.jsx     AI safety tips for the destination
 │   ├── location.jsx          Save user location
 │   ├── edit-profile.jsx, preferences.jsx, help-center.jsx
-├── Components/               Reusable UI, constants & modals
+├── components/               Reusable UI, constants & modals
 │   ├── MyTrips/              Trip tools and interactive modals
 │   │   ├── DayRouteModal.jsx            Multi-stop route map & distance calculator
 │   │   ├── ExpenseTrackerModal.jsx      Budget cap gauge, expense logger with in-place edit & 1-tap quick renew
@@ -110,6 +110,9 @@ app/GoGuide/
 │   │   ├── PrintableItineraryModal.jsx  Magazine-style printable PDF export
 │   │   ├── ShareTripModal.jsx           Web link, social share & trip cloning
 │   │   ├── WeatherCard.jsx, PackingList.jsx, StartNewTripCard.jsx
+│   ├── utils/                Core utility & normalization helpers
+│   │   ├── TripNormalizer.js     Universal schema unwrapper & array safety guard
+│   │   └── PdfDownloadService.js Native jspdf vector PDF & HTML print fallback
 │   └── constants/Destinations.js, Option.js, theme.js
 ├── Configs/
 │   ├── AiModel.js            All AI calls (goes to backend)
@@ -182,6 +185,14 @@ flowchart TD
 | Saved trips | Firestore `UserTrips` |
 | Travel bookings & passes | Firestore `Bookings` |
 | User profile | Firestore `users/{uid}` |
+
+---
+
+### 3.4 Data Normalization Layer (`TripNormalizer.js`)
+All incoming and cached trip plans pass through `normalizeTrip(raw)`:
+- Recursively decodes JSON strings and extracts payloads from `aiTripPlan`, `tripData`, `travelPlan`, or `trip` root keys.
+- Converts dictionary-based itineraries (`{"day1": ...}`) to chronological array structures.
+- Enforces array invariants for `itinerary`, `hotels`, and each day's `activities` to ensure `.filter()`, `.map()`, and `.length` calls never throw runtime errors.
 
 ---
 

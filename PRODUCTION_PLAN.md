@@ -31,6 +31,14 @@ Last updated: 2026-11-04
 | 19 | Rename `app/Go Guide` to `app/GoGuide` & upgrade all 25 modules to Expo SDK 58 (`^58.0.22`) | `0d018cb` |
 | 20 | Expo SDK 58 Streaming SSR fix (`useServerDocumentContext` in `+html.jsx`) for Vercel Web | `03114ce` |
 | 21 | Origin-to-Destination Dual Currency Engine across Economical, Moderate, Luxury & Boarding Pass | `d3216af` |
+| 22 | Universal Trip Normalizer Engine (`TripNormalizer.js`) resolving nested JSON & dictionary shapes | `35e29ec` |
+| 23 | Client-Side Vector PDF Engine (`jspdf` + `PdfDownloadService.js`) with FileSaver & print fallback | `35e29ec` |
+| 24 | Guest Anonymous Authentication (`signInAnonymously`) for zero-barrier AI Assistant access | `35e29ec` |
+| 25 | Itinerary UI Refinement: Clean day endings, removed trailing add-activity/packing/expense duplicates | `35e29ec` |
+| 26 | Multi-Position 1-Click `Save to Trips` action across top bar, destination hero card & action rows | `35e29ec` |
+| 27 | Live Dual-Currency PKR Auto-Conversion box in In-Trip Expense Tracker | `35e29ec` |
+| 28 | Expanded Verified Destination Catalog to 65 HD Destinations across 5 travel categories | `35e29ec` |
+| 29 | Comprehensive Mobile Viewport (360px-430px) & Web Static Export verification (36/36 routes clean) | `b07d314` |
 
 ---
 

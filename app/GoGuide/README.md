@@ -96,8 +96,9 @@ graph TD
 - **Time-Coded Schedule Nodes**: Visual timeline with color-coded nodes (Amber Sunny for Morning, Sky Blue for Afternoon, Deep Purple Moon for Evening).
 - **Interactive Day Filter Pills**: Instant day selection with native haptic feedback.
 
-### 💰 8. In-Trip Expense Tracker & 1-Tap Quick Renew
+### 💰 8. In-Trip Expense Tracker with Live Dual-Currency Auto-Conversion & 1-Tap Renew
 - **Live Budget Consumption Gauge**: Visual progress bar tracking spending across *Food*, *Transport*, *Stay*, and *Activities*.
+- **Live Dual-Currency Conversion**: Instant auto-conversion calculation box (e.g., logging `80 AED` shows `≈ Rs. 6,080 PKR` at live conversion rates).
 - **✏️ In-Place Edit**: 1-tap pencil icon to adjust title, amount, or category directly.
 - **⚡ 1-Tap Quick Renew**: Direct repeat icon (`repeat-outline`) to duplicate frequent daily travel expenses (e.g. daily coffee, transit fares) with current timestamp.
 - **🔁 Form Re-Add**: Option to renew logged expenses without tedious re-typing.
@@ -110,13 +111,25 @@ graph TD
 - **Universal Web Link**: Deployed at `https://dist-seven-tau-79.vercel.app/trip`, allowing travelers to share their trip with co-travelers who can view the complete itinerary in any mobile or desktop browser without installing the app.
 - **Rich Social Previews**: Embedded Open Graph and Twitter Card tags ensure WhatsApp, iMessage, and Twitter shares render enticing preview cards with images and trip summaries.
 
-### 🤖 11. Dual AI Engine Architecture (Generator vs. Conversational Copilot)
+### 🤖 11. Dual AI Engine Architecture & Seamless Guest Access
 - **AI Trip Generator (Discover)**: 1-click comprehensive multi-day itinerary generation engine powered by `/plan` with 24-hour TTL caching for 200ms instantaneous repeat queries.
 - **AI Copilot (Tab 3)**: 24/7 conversational travel concierge powered by `/chat` for live travel inquiries, cultural etiquette, packing questions, and neighborhood advice.
+- **Seamless Guest Anonymous Auth**: Automated `signInAnonymously(auth)` fallback enables guest travelers to immediately query the AI Copilot and generate trips without mandatory sign-in barriers.
 
 ### 💱 12. Origin-to-Destination Dual Currency Engine
 - **Smart Origin & Destination Detection**: Automatically detects the traveler's home currency from their departure city or device timezone (e.g. `PKR`) and the destination's local currency (`AED`, `EUR`, `TRY`, `SAR`, `GBP`, `JPY`, `IDR`, `THB`, `CHF`, etc. across 21 currencies).
 - **Side-by-Side Tier Comparison**: Displays daily spending brackets in both the destination currency and the traveler's home currency across **Economical**, **Moderate**, and **Luxury** budget cards as well as the final Boarding Pass review screen.
+
+### 🛡️ 13. Universal Trip Normalizer Engine (`TripNormalizer.js`)
+- **Bulletproof Schema Compatibility**: Universal schema unwrapper standardizing varied trip structures (`aiTripPlan`, `tripData`, `travelPlan`, `trip`, or nested JSON strings) across local storage, Firestore, and live API responses.
+- **Strict Array Guarantees**: Enforces array validation on `itinerary`, `hotels`, and each day's `activities` (safely handling key-value dictionaries like `{"day1": ...}` or arrays), eliminating `itinerary.filter is not a function` crashes.
+
+### 📄 14. 1-Click High-Quality Vector PDF Itinerary Download (`PdfDownloadService.js`)
+- **Native ESM `jspdf` Integration**: Client-side vector PDF generation that downloads an official, beautifully structured travel boarding pass and day-by-day itinerary with 1-click.
+- **High-Resolution Print Window Fallback**: Standalone printable HTML window with print-media CSS formatting for cross-platform browser support, offline archival, and physical printing.
+
+### 📍 15. Curated 65+ HD Destination Catalog
+- **Comprehensive Travel Categories**: 65 verified destinations across Cities, Beaches, Camping, Mountains, and Forests with curated HD imagery, seasonal best times, price estimates, and direct AI plan customization.
 
 ---
 
@@ -133,6 +146,8 @@ graph TD
 | **Cloud Database** | Firebase Firestore | Cloud sync, authentication, and user trips storage |
 | **Maps & Geospatial** | Google Maps Universal URLs | Multi-waypoint navigation and directions |
 | **Styling & Animation**| React Native Animated & Theme Provider | 60fps shimmer skeleton and dark/light palettes |
+| **PDF & Export** | `jspdf` & Printable Service | Client-side vector PDF generation and print window fallback |
+| **Data Normalizer** | `TripNormalizer.js` | Universal JSON unwrapping and array safety guard |
 
 ---
 
