@@ -51,9 +51,117 @@ export default function Profile() {
   const reopenSavedModalRef = useRef(false);
   const reopenFavoritesModalRef = useRef(false);
 
-  // Automatically re-open Saved Trips or Favorites modal when returning via Back button
+  // Fetch real user travel statistics
+  const fetchStats = useCallback(async () => {
+    let localTrips = [];
+    try {
+      const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
+      const stored2 = await AsyncStorage.getItem("@goguide_local_trips");
+      const list1 = stored1 ? JSON.parse(stored1) : [];
+      const list2 = stored2 ? JSON.parse(stored2) : [];
+      if (Array.isArray(list1)) localTrips.push(...list1);
+      if (Array.isArray(list2)) {
+        list2.forEach((item) => {
+          const normalized = {
+            id: item.id,
+            ...(item.tripData || {}),
+            aiTripPlan: item.aiTripPlan || item.tripData?.aiTripPlan,
+            createdAt: item.createdAt,
+          };
+          localTrips.push(normalized);
+        });
+      }
+    } catch (e) {}
+
+    const user = auth.currentUser;
+    const email = user?.email || userData?.email;
+
+    let remoteTrips = [];
+    let uniqueDestinations = new Set();
+
+    if (email) {
+      try {
+        const tripsQuery = query(
+          collection(db, "UserTrips"),
+          where("userEmail", "==", email)
+        );
+        const tripsSnap = await getDocs(tripsQuery);
+        tripsSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const normalized = {
+            id: docSnap.id,
+            ...(d?.tripData || {}),
+            aiTripPlan: d?.aiTripPlan || d?.tripData?.aiTripPlan,
+            createdAt: d?.createdAt,
+            isFirestore: true,
+          };
+          remoteTrips.push(normalized);
+        });
+      } catch (err) {
+        console.log("Stats fetch notice (offline/fallback):", err?.message);
+      }
+    }
+
+    // Merge remote and local trips without duplicates
+    const seenKeys = new Set();
+    const mergedTrips = [];
+    [...remoteTrips, ...localTrips].forEach((t) => {
+      const destName =
+        t?.aiTripPlan?.destination ||
+        t?.toLocation?.name ||
+        t?.destination ||
+        t?.locationInfo?.name ||
+        "";
+      if (destName) {
+        uniqueDestinations.add(destName.split(",")[0].trim());
+      }
+      const key = t.id || `${destName}_${t.createdAt || ""}`;
+      if (!seenKeys.has(key) && destName) {
+        seenKeys.add(key);
+        mergedTrips.push(t);
+      }
+    });
+
+    // Query bookings count
+    let bookingsCount = 0;
+    try {
+      const localBookingsRaw = await AsyncStorage.getItem("@goguide_user_bookings");
+      const localBookings = localBookingsRaw ? JSON.parse(localBookingsRaw) : [];
+      bookingsCount = Array.isArray(localBookings) ? localBookings.length : 0;
+    } catch (e) {}
+    if (email) {
+      try {
+        const bookingsQuery = query(
+          collection(db, "UserBookings"),
+          where("userEmail", "==", email)
+        );
+        const bookingsSnap = await getDocs(bookingsQuery);
+        bookingsCount = Math.max(bookingsCount, bookingsSnap.size);
+      } catch (e) {}
+    }
+
+    // Fetch favorites
+    const favPlaces = await getFavoritePlaces();
+
+    const totalTripsCount = mergedTrips.length;
+
+    setSavedTripsList(mergedTrips);
+    setFavoritePlacesList(favPlaces);
+    setStats({
+      trips: totalTripsCount,
+      places: favPlaces.length > 0 ? favPlaces.length : (uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0)),
+      bookings: bookingsCount,
+    });
+  }, [userData?.email]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Refresh trips & stats and automatically re-open modal when returning via Back button
   useFocusEffect(
     useCallback(() => {
+      fetchStats();
       if (reopenSavedModalRef.current || params?.openSaved === "true") {
         reopenSavedModalRef.current = false;
         setShowSavedTripsModal(true);
@@ -62,7 +170,7 @@ export default function Profile() {
         reopenFavoritesModalRef.current = false;
         setShowFavoritesModal(true);
       }
-    }, [params?.openSaved, params?.openFavorites])
+    }, [fetchStats, params?.openSaved, params?.openFavorites])
   );
 
   const triggerHaptic = () => {
@@ -154,120 +262,7 @@ export default function Profile() {
     );
   };
 
-  // Fetch real user travel statistics
-  useEffect(() => {
-    let cancelled = false;
 
-    const fetchStats = async () => {
-      let localTrips = [];
-      try {
-        const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
-        const stored2 = await AsyncStorage.getItem("@goguide_local_trips");
-        const list1 = stored1 ? JSON.parse(stored1) : [];
-        const list2 = stored2 ? JSON.parse(stored2) : [];
-        if (Array.isArray(list1)) localTrips.push(...list1);
-        if (Array.isArray(list2)) {
-          list2.forEach((item) => {
-            const normalized = {
-              id: item.id,
-              ...(item.tripData || {}),
-              aiTripPlan: item.aiTripPlan || item.tripData?.aiTripPlan,
-              createdAt: item.createdAt,
-            };
-            localTrips.push(normalized);
-          });
-        }
-      } catch (e) {}
-
-      const user = auth.currentUser;
-      const email = user?.email || userData?.email;
-
-      let remoteTrips = [];
-      let uniqueDestinations = new Set();
-
-      if (email) {
-        try {
-          const tripsQuery = query(
-            collection(db, "UserTrips"),
-            where("userEmail", "==", email)
-          );
-          const tripsSnap = await getDocs(tripsQuery);
-
-          tripsSnap.forEach((docSnap) => {
-            const d = docSnap.data();
-            const normalized = {
-              id: docSnap.id,
-              ...(d?.tripData || {}),
-              aiTripPlan: d?.aiTripPlan || d?.tripData?.aiTripPlan,
-              createdAt: d?.createdAt,
-              isFirestore: true,
-            };
-            remoteTrips.push(normalized);
-          });
-        } catch (err) {
-          console.log("Stats fetch notice (offline/fallback):", err?.message);
-        }
-      }
-
-      // Merge remote and local trips without duplicates
-      const seenKeys = new Set();
-      const mergedTrips = [];
-      [...remoteTrips, ...localTrips].forEach((t) => {
-        const destName =
-          t?.aiTripPlan?.destination ||
-          t?.toLocation?.name ||
-          t?.destination ||
-          t?.locationInfo?.name ||
-          "";
-        if (destName) {
-          uniqueDestinations.add(destName.split(",")[0].trim());
-        }
-        const key = t.id || `${destName}_${t.createdAt || ""}`;
-        if (!seenKeys.has(key) && destName) {
-          seenKeys.add(key);
-          mergedTrips.push(t);
-        }
-      });
-
-      // Query bookings count
-      let bookingsCount = 0;
-      try {
-        const localBookingsRaw = await AsyncStorage.getItem("@goguide_user_bookings");
-        const localBookings = localBookingsRaw ? JSON.parse(localBookingsRaw) : [];
-        bookingsCount = Array.isArray(localBookings) ? localBookings.length : 0;
-      } catch (e) {}
-      if (email) {
-        try {
-          const bookingsQuery = query(
-            collection(db, "UserBookings"),
-            where("userEmail", "==", email)
-          );
-          const bookingsSnap = await getDocs(bookingsQuery);
-          bookingsCount = Math.max(bookingsCount, bookingsSnap.size);
-        } catch (e) {}
-      }
-
-      // Fetch favorites
-      const favPlaces = await getFavoritePlaces();
-
-      const totalTripsCount = mergedTrips.length;
-
-      if (!cancelled) {
-        setSavedTripsList(mergedTrips);
-        setFavoritePlacesList(favPlaces);
-        setStats({
-          trips: totalTripsCount,
-          places: favPlaces.length > 0 ? favPlaces.length : (uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0)),
-          bookings: bookingsCount,
-        });
-      }
-    };
-
-    fetchStats();
-    return () => {
-      cancelled = true;
-    };
-  }, [userData]);
 
   // Subscribe to real-time changes in favorites
   useEffect(() => {
@@ -633,7 +628,8 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              router.push("/(tabs)/mytrip");
+              fetchStats();
+              setShowSavedTripsModal(true);
             }}
             activeOpacity={0.7}
           >
@@ -768,6 +764,29 @@ export default function Profile() {
               </View>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "rgba(10, 126, 164, 0.15)",
+                  borderWidth: 1,
+                  borderColor: Colors.PRIMARY,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 14,
+                }}
+                onPress={() => {
+                  triggerHaptic();
+                  setShowSavedTripsModal(false);
+                  router.push("/(tabs)/mytrip");
+                }}
+              >
+                <Ionicons name="compass-outline" size={14} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
+                <Text style={{ color: Colors.PRIMARY, fontSize: 12, fontFamily: "Outfit-Bold" }}>
+                  My Trips Hub ✈️
+                </Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={{
                   flexDirection: "row",
