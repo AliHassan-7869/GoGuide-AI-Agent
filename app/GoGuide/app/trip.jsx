@@ -134,7 +134,7 @@ export default function SharedTripView() {
         .then((data) => {
           if (data) setEssentials(data);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [tripPlan?.destination]);
 
@@ -198,7 +198,7 @@ export default function SharedTripView() {
             setLoading(false);
             return;
           }
-        } catch (uErr) {}
+        } catch (uErr) { }
       }
 
       // 2. Check local AsyncStorage cached trip
@@ -227,7 +227,7 @@ export default function SharedTripView() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const openBookingCom = (hotelName) => {
@@ -450,7 +450,7 @@ export default function SharedTripView() {
           </TouchableOpacity>
         </View>
 
-                {/* Destination Essentials (Visa, Emergency, Money & Events) */}
+        {/* Destination Essentials (Visa, Emergency, Money & Events) */}
         {essentials && (
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
@@ -479,8 +479,8 @@ export default function SharedTripView() {
                       {typeof essentials.visa === "string"
                         ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "")
                         : essentials.visa.stay_limit
-                        ? `Stay limit: ${essentials.visa.stay_limit}`
-                        : essentials.visa.notes || "Check your passport validity."}
+                          ? `Stay limit: ${essentials.visa.stay_limit}`
+                          : essentials.visa.notes || "Check your passport validity."}
                     </Text>
                   </View>
                 </View>
@@ -498,8 +498,8 @@ export default function SharedTripView() {
                       {typeof essentials.currency === "string"
                         ? "Currency & Payments"
                         : essentials.currency.currency_code
-                        ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
-                        : "Cash & Cards"}
+                          ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
+                          : "Cash & Cards"}
                     </Text>
                     <Text style={styles.essentialSubVal} numberOfLines={3}>
                       {typeof essentials.currency === "string"
@@ -1173,7 +1173,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 16,
   },
-    verifiedBadge: {
+  verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(13, 148, 136, 0.15)",
