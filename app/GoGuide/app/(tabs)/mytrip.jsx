@@ -36,7 +36,8 @@ import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
-import { saveTripToBookings } from "../../Components/utils/BookingService";
+import { saveTripToBookings, addActivityBooking } from "../../Components/utils/BookingService";
+import { fetchDestinationEssentials } from "../../Configs/AiModel";
 import {
   convertPriceString,
   getCurrencySymbol,
@@ -93,9 +94,50 @@ export default function MyTrip() {
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
   const [isOfflineCached, setIsOfflineCached] = useState(false);
+  useEffect(() => {
+    const dest = plan?.destination || tripData?.destination || tripData?.toLocation?.name;
+    if (dest) {
+      fetchDestinationEssentials(dest)
+        .then((data) => {
+          if (data) setEssentials(data);
+        })
+        .catch(() => {});
+    }
+  }, [plan?.destination, tripData?.destination]);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@goguide_user_bookings").then((raw) => {
+      if (raw) {
+        try {
+          const list = JSON.parse(raw);
+          const actMap = {};
+          list.forEach((b) => {
+            if (b.type === "Activities") actMap[b.title] = true;
+          });
+          setBookedActivities(actMap);
+        } catch (e) {}
+      }
+    });
+  }, []);
+
+  const handleBookActivity = async (activity, dayNumber) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!activity) return;
+    try {
+      const destName = plan?.destination || tripData?.destination || "Destination";
+      await addActivityBooking(activity, dayNumber, destName, tripData, auth.currentUser);
+      setBookedActivities((prev) => ({ ...prev, [activity.placeName]: true }));
+      Alert.alert("Activity Pass Saved! 🎫", `"${activity.placeName}" has been added to My Bookings.`);
+    } catch (e) {
+      console.warn("Error booking activity:", e);
+    }
+  };
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedDayForRoute, setSelectedDayForRoute] = useState(null);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [targetDayForExpense, setTargetDayForExpense] = useState("Day 1");
+  const [essentials, setEssentials] = useState(null);
+  const [bookedActivities, setBookedActivities] = useState({});
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
@@ -1158,6 +1200,95 @@ export default function MyTrip() {
           </TouchableOpacity>
         </ScrollView>
         
+        {/* Destination Essentials (Visa, Emergency, Money & Events) */}
+        {essentials && (
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, marginTop: 14 }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.iconCircle, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+                  <Ionicons name="compass" size={18} color={Colors.PRIMARY} />
+                </View>
+                <View>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>🧭 Destination Essentials</Text>
+                  <Text style={{ fontSize: 11, color: theme.subtext, fontFamily: "Outfit-Medium" }}>
+                    Live Travel & Safety Intel
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(13, 148, 136, 0.12)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+                <Ionicons name="shield-checkmark" size={12} color="#0D9488" style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#0D9488" }}>Verified Intel</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              {/* Visa */}
+              {essentials.visa && (
+                <View style={{ flex: 1, minWidth: "45%", backgroundColor: theme.isDark ? "#252525" : "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.border }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Ionicons name="card-outline" size={15} color="#0EA5E9" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#0EA5E9" }}>VISA & ENTRY</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }} numberOfLines={1}>
+                    {typeof essentials.visa === "string" ? "Visa Guidelines" : essentials.visa.visa_required || "Passport required"}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }} numberOfLines={2}>
+                    {typeof essentials.visa === "string" ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "") : essentials.visa.notes || "Check validity."}
+                  </Text>
+                </View>
+              )}
+
+              {/* Currency */}
+              {essentials.currency && (
+                <View style={{ flex: 1, minWidth: "45%", backgroundColor: theme.isDark ? "#252525" : "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.border }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Ionicons name="cash-outline" size={15} color="#10B981" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#10B981" }}>MONEY & TIPPING</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }} numberOfLines={1}>
+                    {typeof essentials.currency === "string" ? "Payments" : essentials.currency.currency_code ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}` : "Cash & Cards"}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }} numberOfLines={2}>
+                    {typeof essentials.currency === "string" ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "") : essentials.currency.tipping || "10% tip standard."}
+                  </Text>
+                </View>
+              )}
+
+              {/* Emergency */}
+              {essentials.emergency && (
+                <View style={{ flex: 1, minWidth: "45%", backgroundColor: theme.isDark ? "#252525" : "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.border }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Ionicons name="call-outline" size={15} color="#EF4444" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#EF4444" }}>EMERGENCY</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }} numberOfLines={1}>
+                    {typeof essentials.emergency === "string" ? "Hotlines" : `Police: ${essentials.emergency.police || "911"} · Amb: ${essentials.emergency.ambulance || "911"}`}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }} numberOfLines={2}>
+                    {typeof essentials.emergency === "string" ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "") : `General: ${essentials.emergency.general || "112"}`}
+                  </Text>
+                </View>
+              )}
+
+              {/* Season */}
+              {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
+                <View style={{ flex: 1, minWidth: "45%", backgroundColor: theme.isDark ? "#252525" : "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.border }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Ionicons name="calendar-outline" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#F59E0B" }}>SEASON</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }} numberOfLines={1}>
+                    {typeof essentials.events === "string" ? "Highlights" : `${essentials.seasonal_events[0].event}`}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }} numberOfLines={2}>
+                    {typeof essentials.events === "string" ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "") : essentials.seasonal_events[0].highlights || "Great regional weather."}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* 1. FIRST: Recommended Hotels Section */}
         {plan.hotels?.length > 0 && (
           <View style={styles.section}>
@@ -1416,23 +1547,54 @@ export default function MyTrip() {
           {/* Activities Timeline */}
           {filteredDays.map((day, i) => (
             <View key={i} style={styles.dayContainer}>
-              <View style={[styles.dayCardHeader, { backgroundColor: theme.card }]}>
-                <View style={styles.dayBadge}>
-                  <Text style={styles.dayBadgeText}>Day {day.day}</Text>
+              <View style={[styles.dayCardHeader, { backgroundColor: theme.card, flexWrap: "wrap", gap: 8 }]}>
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", minWidth: 160, gap: 8 }}>
+                  <View style={styles.dayBadge}>
+                    <Text style={styles.dayBadgeText}>Day {day.day}</Text>
+                  </View>
+                  <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={1}>{day.theme}</Text>
                 </View>
-                <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={1}>{day.theme}</Text>
-                
-                {/* 🗺️ Open Interactive Route Modal */}
-                <TouchableOpacity 
-                  style={styles.dayRouteBtn}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedDayForRoute(day);
-                  }}
-                >
-                  <Ionicons name="map" size={13} color="#FFF" />
-                  <Text style={styles.dayRouteBtnText}>Route Map</Text>
-                </TouchableOpacity>
+
+                {/* Day Action Buttons: + Add Activity, 💳 Log Expense & 🗺️ Route Map */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <TouchableOpacity 
+                    style={styles.dayAddBtn}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedDayForAdd(day.day);
+                      setShowAddActivityModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="add" size={13} color="#FFF" />
+                    <Text style={styles.dayAddBtnText}>Add Activity</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.dayExpenseBtn}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setTargetDayForExpense(`Day ${day.day}`);
+                      setShowExpenseModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="card-outline" size={12} color="#F59E0B" />
+                    <Text style={styles.dayExpenseBtnText}>Log Expense</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.dayRouteBtn}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedDayForRoute(day);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="map" size={13} color="#FFF" />
+                    <Text style={styles.dayRouteBtnText}>Route Map</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {day.activities?.map((act, j) => {
@@ -1745,6 +1907,7 @@ export default function MyTrip() {
       {/* Trip Budget & Expense Tracker Modal */}
       <ExpenseTrackerModal
         visible={showExpenseModal}
+        initialDay={targetDayForExpense}
         expenses={tripData?.expenses || []}
         budgetTier={plan?.budget || tripData?.budget || "Moderate"}
         currency={preferences?.currency || "USD"}
@@ -2282,6 +2445,36 @@ const styles = StyleSheet.create({
   },
   dayBadgeText: { color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold" },
   dayThemeText: { fontSize: 15, fontFamily: "Outfit-Bold", flex: 1 },
+  dayAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 3,
+  },
+  dayAddBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+  },
+  dayExpenseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.35)",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 3,
+  },
+  dayExpenseBtnText: {
+    color: "#F59E0B",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+  },
   dayRouteBtn: {
     flexDirection: "row",
     alignItems: "center",

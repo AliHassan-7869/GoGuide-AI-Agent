@@ -485,7 +485,7 @@ export default function SharedTripView() {
 
           <TouchableOpacity
             style={styles.logoRow}
-            onPress={() => { triggerHaptic(); setTargetDayForExpense("Day 1"); setShowExpenseModal(true); }}
+            onPress={() => router.push("/(tabs)/mytrip")}
             activeOpacity={0.8}
           >
             <View style={styles.logoIcon}>
