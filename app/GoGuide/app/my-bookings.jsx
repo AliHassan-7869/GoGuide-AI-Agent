@@ -20,6 +20,7 @@ import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
+import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 
 const STATUS_TABS = ["Upcoming", "Completed", "Cancelled"];
 const CATEGORY_FILTERS = ["All", "Hotels", "Flights", "Activities"];
@@ -317,6 +318,16 @@ export default function MyBookings() {
                 <View style={styles.cardHero}>
                   <Image source={{ uri: item.image }} style={styles.cardImage} />
                   <View style={styles.cardImageOverlay} />
+                  <FavoriteHeartButton
+                    place={{
+                      name: item.title,
+                      tag: item.type || "Booking",
+                      img: item.image,
+                      desc: item.subtitle || item.details || "Saved from My Bookings",
+                    }}
+                    size={16}
+                    style={{ position: "absolute", bottom: 12, right: 12, width: 32, height: 32, borderRadius: 16 }}
+                  />
 
                   <View style={styles.heroTopBadges}>
                     <View style={styles.typeBadge}>

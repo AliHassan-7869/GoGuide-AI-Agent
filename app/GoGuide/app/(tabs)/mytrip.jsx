@@ -33,6 +33,7 @@ import PrintableItineraryModal from "../../Components/MyTrips/PrintableItinerary
 import ShareTripModal from "../../Components/MyTrips/ShareTripModal";
 import AddActivityModal from "../../Components/MyTrips/AddActivityModal";
 import OfflineVaultModal from "../../Components/MyTrips/OfflineVaultModal";
+import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
 import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { convertPriceString, getCurrencySymbol, convertAmount } from "../../Components/constants/Currency";
@@ -890,6 +891,17 @@ export default function MyTrip() {
                     <SafeTripImage uri={destImg} style={styles.carouselCardImg} fallbackUri={fallbackForCard} />
                     <View style={styles.carouselOverlay} />
 
+                    <FavoriteHeartButton
+                      place={{
+                        name: destTitle,
+                        tag: t.aiTripPlan?.budget || t.budget || "Trip",
+                        img: destImg,
+                        desc: `${duration} itinerary in ${destTitle}`,
+                      }}
+                      size={13}
+                      style={{ position: "absolute", top: 8, right: 38, width: 26, height: 26, borderRadius: 13 }}
+                    />
+
                     {isSelected && (
                       <View style={styles.activePill}>
                         <View style={styles.activePillDot} />
@@ -946,6 +958,19 @@ export default function MyTrip() {
             fallbackUri={getDestinationImage(plan?.destination || tripData?.locationInfo?.name)}
           />
           <View style={styles.heroGradient} />
+          <FavoriteHeartButton
+            place={{
+              name: plan?.destination || tripData?.locationInfo?.name || "Destination",
+              tag: plan?.budget || "Trip Destination",
+              img: sanitizeImageUrl(
+                tripData?.toLocationImage || tripData?.locationInfo?.photoRef,
+                getDestinationImage(plan?.destination || tripData?.locationInfo?.name)
+              ),
+              desc: `${plan?.duration || "Multi-Day"} curated itinerary in ${plan?.destination || "Destination"}`,
+            }}
+            size={18}
+            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19 }}
+          />
           
           <View style={styles.heroGlassCard}>
             <View style={styles.badgeRow}>
@@ -1269,6 +1294,16 @@ export default function MyTrip() {
                       uri={hotel.image || HOTEL_IMAGES[idx % HOTEL_IMAGES.length]} 
                       style={styles.hotelImage} 
                       fallbackUri={HOTEL_IMAGES[idx % HOTEL_IMAGES.length]}
+                    />
+                    <FavoriteHeartButton
+                      place={{
+                        name: hotel.name,
+                        tag: `Hotel • ${plan?.destination || "Stay"}`,
+                        img: sanitizeImageUrl(hotel.image, HOTEL_IMAGES[idx % HOTEL_IMAGES.length]),
+                        desc: hotel.address || hotel.details || `Recommended stay in ${plan?.destination || "destination"}`,
+                      }}
+                      size={15}
+                      style={{ position: "absolute", bottom: 10, left: 10, width: 30, height: 30, borderRadius: 15 }}
                     />
                     <View style={styles.hotelRatingPill}>
                       <Ionicons name="star" size={12} color="#FFD700" />

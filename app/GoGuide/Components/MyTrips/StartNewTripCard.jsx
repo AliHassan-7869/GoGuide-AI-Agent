@@ -16,6 +16,7 @@ import {
 import { Colors } from "../constants/constants";
 import { useTheme } from "../constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import FavoriteHeartButton from "../FavoriteHeartButton";
 
 const { width } = Dimensions.get("window");
 
@@ -96,10 +97,38 @@ const TRENDING_DESTINATIONS = [
 ];
 
 const TRAVEL_VIBES = [
-  { id: "beach", label: "Beaches", icon: "umbrella-outline", route: { pathname: "/explore", params: { category: "beaches" } } },
-  { id: "mountain", label: "Mountains", icon: "trending-up-outline", route: { pathname: "/explore", params: { category: "mountains" } } },
-  { id: "city", label: "Historic Cities", icon: "trail-sign-outline", route: { pathname: "/explore", params: { category: "cities" } } },
-  { id: "forest", label: "Nature & Forest", icon: "leaf-outline", route: { pathname: "/explore", params: { category: "forest" } } },
+  {
+    id: "vibe_beach",
+    label: "Beaches",
+    category: "Beaches",
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop",
+    icon: "umbrella-outline",
+    route: { pathname: "/explore", params: { category: "beaches" } },
+  },
+  {
+    id: "vibe_mountain",
+    label: "Mountains",
+    category: "Mountains",
+    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop",
+    icon: "trending-up-outline",
+    route: { pathname: "/explore", params: { category: "mountains" } },
+  },
+  {
+    id: "vibe_city",
+    label: "Historic Cities",
+    category: "Cities",
+    image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=800&auto=format&fit=crop",
+    icon: "trail-sign-outline",
+    route: { pathname: "/explore", params: { category: "cities" } },
+  },
+  {
+    id: "vibe_forest",
+    label: "Nature & Forest",
+    category: "Nature & Forest",
+    image: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop",
+    icon: "leaf-outline",
+    route: { pathname: "/explore", params: { category: "forest" } },
+  },
 ];
 
 const FEATURE_PILLS = [
@@ -343,6 +372,19 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
               <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
                 {vibe.label}
               </Text>
+              <FavoriteHeartButton
+                variant="inline"
+                size={15}
+                inactiveColor={theme.subtext}
+                item={{
+                  id: vibe.id,
+                  name: vibe.label,
+                  title: vibe.label,
+                  image: vibe.image,
+                  category: vibe.category,
+                  rating: "4.9",
+                }}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -365,6 +407,19 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
               <Text style={[styles.vibeText, { color: theme.text }]} numberOfLines={1}>
                 {vibe.label}
               </Text>
+              <FavoriteHeartButton
+                variant="inline"
+                size={15}
+                inactiveColor={theme.subtext}
+                item={{
+                  id: vibe.id,
+                  name: vibe.label,
+                  title: vibe.label,
+                  image: vibe.image,
+                  category: vibe.category,
+                  rating: "4.9",
+                }}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -397,14 +452,35 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
               style={styles.destGradient}
             />
 
-            {/* Top Badge */}
+            {/* Top Badge & Heart Button */}
             <View style={styles.destTopRow}>
               <View style={styles.destDurationBadge}>
                 <Ionicons name="time-outline" size={11} color="#FFF" />
                 <Text style={styles.destDurationText}>{dest.days} Days</Text>
               </View>
-              <View style={styles.destBudgetBadge}>
-                <Text style={styles.destBudgetText}>{dest.budget}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View style={styles.destBudgetBadge}>
+                  <Text style={styles.destBudgetText}>{dest.budget}</Text>
+                </View>
+                <FavoriteHeartButton
+                  variant="inline"
+                  size={15}
+                  inactiveColor="#FFFFFF"
+                  style={{
+                    backgroundColor: "rgba(0, 0, 0, 0.55)",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                  }}
+                  item={{
+                    id: dest.id,
+                    name: `${dest.name}, ${dest.country}`,
+                    title: `${dest.name}, ${dest.country}`,
+                    image: dest.image,
+                    category: dest.tagline,
+                    rating: "4.9",
+                  }}
+                />
               </View>
             </View>
 

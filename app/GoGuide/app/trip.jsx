@@ -22,6 +22,7 @@ import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
 import { fetchDestinationEssentials } from "../Configs/AiModel";
+import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 
 // Curated default luxury itinerary if ID is preview or not found
 const DEMO_TRIP = {
@@ -390,6 +391,16 @@ export default function SharedTripView() {
         <View style={styles.heroWrap}>
           <Image source={{ uri: heroImage }} style={styles.heroImage} />
           <View style={styles.heroGradient} />
+          <FavoriteHeartButton
+            place={{
+              name: destination,
+              tag: tripPlan?.budget || "Trip Destination",
+              img: heroImage,
+              desc: `${tripPlan?.duration || "Multi-Day"} curated itinerary in ${destination}`,
+            }}
+            size={18}
+            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19 }}
+          />
 
           <View style={styles.heroTextContent}>
             <View style={styles.heroPillRow}>
@@ -568,7 +579,19 @@ export default function SharedTripView() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
               {hotels.map((hotel, idx) => (
                 <View key={idx} style={styles.hotelCard}>
-                  <Image source={{ uri: hotel.image || heroImage }} style={styles.hotelImg} />
+                  <View style={{ position: "relative" }}>
+                    <Image source={{ uri: hotel.image || heroImage }} style={styles.hotelImg} />
+                    <FavoriteHeartButton
+                      place={{
+                        name: hotel.name,
+                        tag: `Hotel • ${destination}`,
+                        img: hotel.image || heroImage,
+                        desc: hotel.address || `Recommended stay in ${destination}`,
+                      }}
+                      size={14}
+                      style={{ position: "absolute", top: 8, left: 8, width: 28, height: 28, borderRadius: 14 }}
+                    />
+                  </View>
                   <View style={styles.hotelRatingPill}>
                     <Ionicons name="star" size={11} color="#FFD700" />
                     <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>

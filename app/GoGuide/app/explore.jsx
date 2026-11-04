@@ -11,6 +11,7 @@ import {
   sanitizeImageUrl,
 } from '../Components/constants/Destinations';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import FavoriteHeartButton from '../Components/FavoriteHeartButton';
 
 const isKnownCategory = (id) => DESTINATION_CATEGORIES.some((c) => c.id === id);
 
@@ -140,7 +141,19 @@ export default function Explore() {
             onPress={() => selectDestination(item)}
             activeOpacity={0.8}
           >
-            <DestinationImage uri={item.image} style={styles.image} />
+            <View style={{ position: "relative" }}>
+              <DestinationImage uri={item.image} style={styles.image} />
+              <FavoriteHeartButton
+                item={{
+                  id: item.id || item.title,
+                  name: item.title,
+                  title: item.title,
+                  image: item.image,
+                  category: item.category || "Explore",
+                  rating: item.rating || "4.8",
+                }}
+              />
+            </View>
             <View style={styles.infoContainer}>
               <Text style={[styles.cardTitle, { color: themeStyles.textColor }]}>{item.title}</Text>
               <View style={styles.ratingRow}>

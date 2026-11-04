@@ -20,6 +20,7 @@ import {
 } from "../../Components/constants/Destinations";
 import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -136,6 +137,25 @@ export default function TripSummer() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
+
+          <FavoriteHeartButton
+            size={20}
+            style={{
+              top: Platform.OS === "ios" ? 54 : 36,
+              right: 18,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+            }}
+            item={{
+              id: destination,
+              name: destination,
+              title: destination,
+              image: imageUri,
+              category: "Curated Destination",
+              rating: rating,
+            }}
+          />
 
           <View style={styles.imageOverlay}>
             <Text style={styles.destName}>{destCity}</Text>

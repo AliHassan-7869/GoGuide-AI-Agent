@@ -27,7 +27,8 @@ import {
   getDestinationImage,
   sanitizeImageUrl,
 } from "../../Components/constants/Destinations";
-import { toggleFavoritePlace, getFavoritePlaces } from "../../Components/utils/FavoriteService";
+import { toggleFavoritePlace, getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
+import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
@@ -145,20 +146,21 @@ export default function Discover() {
   const [savedPlaces, setSavedPlaces] = useState({});
 
   useEffect(() => {
-    const loadSavedPlaces = async () => {
-      try {
-        const favs = await getFavoritePlaces();
-        const map = {};
-        favs.forEach((f) => {
-          const key = f.id || f.title || f.name;
-          if (key) map[key] = true;
-        });
-        setSavedPlaces(map);
-      } catch (e) {
-        console.log("Error loading saved places:", e);
-      }
+    const syncFavMap = (favs) => {
+      const map = {};
+      (favs || []).forEach((f) => {
+        const k1 = f.id;
+        const k2 = f.title;
+        const k3 = f.name;
+        if (k1) map[k1] = true;
+        if (k2) map[k2] = true;
+        if (k3) map[k3] = true;
+      });
+      setSavedPlaces(map);
     };
-    loadSavedPlaces();
+    getFavoritePlaces().then(syncFavMap).catch(() => {});
+    const unsubscribe = subscribeToFavorites(syncFavMap);
+    return () => unsubscribe();
   }, []);
 
   const toggleSavePlace = async (dest) => {
@@ -184,11 +186,11 @@ export default function Discover() {
   };
 
   const categories = [
-    { id: 1, title: "Cities", icon: "business", route: "/cities" },
-    { id: 2, title: "Beaches", icon: "water", route: "/beaches" },
-    { id: 3, title: "Mountains", icon: "triangle", route: "/mountains" },
-    { id: 4, title: "Forest", icon: "leaf", route: "/forest" },
-    { id: 5, title: "Camping", icon: "bonfire", route: "/explore?category=mountains" },
+    { id: "cat_cities", title: "Cities", icon: "business", route: "/cities", image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=800&auto=format&fit=crop" },
+    { id: "cat_beaches", title: "Beaches", icon: "water", route: "/beaches", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" },
+    { id: "cat_mountains", title: "Mountains", icon: "triangle", route: "/mountains", image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop" },
+    { id: "cat_forest", title: "Forest", icon: "leaf", route: "/forest", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop" },
+    { id: "cat_camping", title: "Camping", icon: "bonfire", route: "/explore?category=mountains", image: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?q=80&w=800&auto=format&fit=crop" },
   ];
 
   const popularDestinations = [
@@ -516,8 +518,23 @@ export default function Discover() {
                 onPress={() => executeAiTrip(vibe.destination, vibe.days, vibe.budget, vibe.image)}
                 activeOpacity={0.85}
               >
-                <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
-                  <Ionicons name={vibe.icon} size={15} color={vibe.color} />
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
+                    <Ionicons name={vibe.icon} size={15} color={vibe.color} />
+                  </View>
+                  <FavoriteHeartButton
+                    variant="inline"
+                    size={14}
+                    inactiveColor={themeStyles.subTextColor}
+                    item={{
+                      id: `quick_${vibe.id}`,
+                      name: vibe.destination,
+                      title: vibe.title,
+                      image: vibe.image,
+                      category: vibe.tag,
+                      rating: "4.9",
+                    }}
+                  />
                 </View>
                 <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={1}>{vibe.title}</Text>
                 <Text style={[styles.vibeCardTag, { color: vibe.color }]}>{vibe.tag}</Text>
@@ -616,7 +633,7 @@ export default function Discover() {
               {categories.map((item) => (
                 <TouchableOpacity 
                   key={item.id} 
-                  style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
+                  style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor, position: "relative" }]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     if (item.route) {
@@ -625,6 +642,20 @@ export default function Discover() {
                   }}
                   activeOpacity={0.75}
                 >
+                  <FavoriteHeartButton
+                    variant="inline"
+                    size={13}
+                    inactiveColor={themeStyles.subTextColor}
+                    style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 11 }}
+                    item={{
+                      id: item.id,
+                      name: item.title,
+                      title: `${item.title} Vibe`,
+                      image: item.image,
+                      category: item.title,
+                      rating: "4.9",
+                    }}
+                  />
                   <View style={[styles.categoryIconWrap, { backgroundColor: Colors.PRIMARY + '12' }]}>
                     <Ionicons name={item.icon} size={22} color={Colors.PRIMARY} />
                   </View>

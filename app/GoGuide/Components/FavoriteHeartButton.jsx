@@ -1,0 +1,103 @@
+import React, { useEffect, useState } from "react";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+  getFavoritePlaces,
+  subscribeToFavorites,
+  toggleFavoritePlace,
+} from "./utils/FavoriteService";
+
+export default function FavoriteHeartButton({
+  item,
+  size = 18,
+  style,
+  inactiveColor = "#FFFFFF",
+  variant = "overlay", // "overlay" (for images) or "inline" (for vibe cards)
+}) {
+  const [isFav, setIsFav] = useState(false);
+
+  const itemKey = String(item?.id || item?.name || item?.title || "")
+    .toLowerCase()
+    .trim();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkList = (favs) => {
+      if (!mounted || !itemKey) return;
+      const match = (favs || []).some(
+        (f) =>
+          (f.id && String(f.id).toLowerCase().trim() === itemKey) ||
+          (f.name && String(f.name).toLowerCase().trim() === itemKey) ||
+          (f.title && String(f.title).toLowerCase().trim() === itemKey)
+      );
+      setIsFav(match);
+    };
+
+    getFavoritePlaces().then(checkList).catch(() => {});
+    const unsubscribe = subscribeToFavorites(checkList);
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [itemKey]);
+
+  const handlePress = async (e) => {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
+    if (!item) return;
+    setIsFav((prev) => !prev);
+    await toggleFavoritePlace(item);
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      activeOpacity={0.8}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={[
+        variant === "overlay" ? styles.overlayBtn : styles.inlineBtn,
+        isFav && variant === "overlay" && styles.overlayBtnActive,
+        style,
+      ]}
+      accessibilityLabel={isFav ? "Remove from Favorites" : "Add to Favorites"}
+    >
+      <Ionicons
+        name={isFav ? "heart" : "heart-outline"}
+        size={size}
+        color={isFav ? "#EF4444" : inactiveColor}
+      />
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlayBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    zIndex: 10,
+  },
+  overlayBtnActive: {
+    backgroundColor: "rgba(15, 23, 42, 0.75)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
+  },
+  inlineBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(150, 150, 150, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
