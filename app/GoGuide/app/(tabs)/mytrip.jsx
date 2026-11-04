@@ -545,8 +545,9 @@ export default function MyTrip() {
   // 1-Click Direct PDF Downloader (No print/pdf dialog - direct file download)
   const handleDirectDownloadPDF = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const targetPlan = plan || tripData?.aiTripPlan || tripData;
-    const dest = targetPlan?.destination || tripData?.locationInfo?.name || "Trip";
+    const activeSelectedTrip = userTripsList.find((t) => t.id === activeTripId) || userTripsList[0];
+    const targetPlan = plan || activeSelectedTrip?.aiTripPlan || activeSelectedTrip?.tripData?.aiTripPlan || tripData?.aiTripPlan || tripData;
+    const dest = targetPlan?.destination || activeSelectedTrip?.destination || tripData?.locationInfo?.name || "Trip";
     try {
       await downloadItineraryPDF(targetPlan, dest);
     } catch (e) {

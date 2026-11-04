@@ -1,56 +1,179 @@
 import { Platform, Alert } from "react-native";
 
 /**
- * Dynamically resolves the browser-safe UMD jsPDF constructor.
- * This guarantees zero Metro SSR syntax errors during build time,
- * and lightning-fast client execution in the browser.
+ * Robust, cross-platform jsPDF resolver:
+ * 1. Resolves locally installed npm 'jspdf' package via dynamic import (works in client browser & zero SSR breakage).
+ * 2. Checks global window.jspdf / window.jsPDF objects.
+ * 3. Falls back to fast CDN injection with active interval polling.
  */
 async function getJsPDFConstructor() {
   if (typeof window !== "undefined") {
-    if (window.jspdf && window.jspdf.jsPDF) {
-      return window.jspdf.jsPDF;
-    }
-    if (window.jsPDF) {
-      return window.jsPDF;
+    // 1. Try dynamic ESM import from bundled node_modules
+    try {
+      const mod = await import("jspdf");
+      const ctor = mod.jsPDF || mod.default?.jsPDF || mod.default;
+      if (typeof ctor === "function") return ctor;
+    } catch (e) {
+      // Proceed to window checks
     }
 
+    // 2. Check window globals
+    if (window.jspdf && typeof window.jspdf.jsPDF === "function") {
+      return window.jspdf.jsPDF;
+    }
+    if (typeof window.jsPDF === "function") {
+      return window.jsPDF;
+    }
+    if (window.jspdf && typeof window.jspdf.default === "function") {
+      return window.jspdf.default;
+    }
+    if (typeof window.jspdf === "function") {
+      return window.jspdf;
+    }
+
+    // 3. Fallback: Inject CDN script with active polling
     return new Promise((resolve) => {
       let script = document.querySelector("script[src*='jspdf']");
       if (!script) {
         script = document.createElement("script");
-        script.src = "/jspdf.umd.min.js";
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        script.async = true;
         document.head.appendChild(script);
       }
 
-      const checkResolved = () => {
-        const ctor = window.jspdf?.jsPDF || window.jsPDF || null;
-        resolve(ctor);
-      };
+      let attempts = 0;
+      const pollTimer = setInterval(() => {
+        attempts++;
+        const ctor =
+          window.jspdf?.jsPDF ||
+          (typeof window.jsPDF === "function" ? window.jsPDF : null) ||
+          window.jspdf?.default ||
+          (typeof window.jspdf === "function" ? window.jspdf : null);
 
-      if (window.jspdf?.jsPDF || window.jsPDF) {
-        return checkResolved();
-      }
-
-      script.addEventListener("load", checkResolved);
-      script.addEventListener("error", () => {
-        // Resilient CDN fallback
-        const cdnScript = document.createElement("script");
-        cdnScript.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-        cdnScript.onload = checkResolved;
-        cdnScript.onerror = () => resolve(null);
-        document.head.appendChild(cdnScript);
-      });
-
-      setTimeout(checkResolved, 3500);
+        if (ctor) {
+          clearInterval(pollTimer);
+          resolve(ctor);
+        } else if (attempts > 25) {
+          clearInterval(pollTimer);
+          resolve(null);
+        }
+      }, 100);
     });
   }
   return null;
 }
 
 /**
- * Normalizes any shape of trip plan (AI output, Firebase doc, AsyncStorage cache, or offline plan)
- * into a predictable schema for vector PDF rendering.
+ * Universal Fallback: Formats and opens an ultra-crisp, printable HTML itinerary pass
+ * and triggers window.print() so the user can directly 'Save as PDF' from their browser.
  */
+function openPrintableHtmlItinerary(data) {
+  if (typeof window === "undefined") return;
+  try {
+    const printWin = window.open("", "_blank");
+    if (!printWin) {
+      window.alert("Please allow popups to download or print your itinerary.");
+      return;
+    }
+    const dest = data.destination || "Trip Destination";
+    const daysHtml = (data.itinerary || [])
+      .map(
+        (day) => `
+      <div style="margin-bottom: 24px; border-left: 4px solid #0A7EA4; padding-left: 14px;">
+        <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 17px; font-weight: 700;">Day ${day.day}: ${day.theme}</h3>
+        ${(day.activities || [])
+          .map(
+            (act) => `
+          <div style="margin-bottom: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; font-weight: 600; color: #0A7EA4; font-size: 13px;">
+              <span>⏰ ${act.time} — ${act.placeName}</span>
+              <span style="color: #10B981;">${act.tickets || ""}</span>
+            </div>
+            <p style="margin: 5px 0 0 0; color: #475569; font-size: 12.5px; line-height: 1.5;">${act.details}</p>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `
+      )
+      .join("");
+
+    const staysHtml = (data.hotels || [])
+      .map(
+        (h) => `
+      <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-weight: 600; color: #0F172A; font-size: 14px;">${h.name}</div>
+          <div style="font-size: 12px; color: #64748B;">${h.address}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${h.price}</div>
+          <div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>GoGuide.AI — ${dest} Itinerary Pass</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px; color: #0F172A; max-width: 820px; margin: 0 auto; background: #FFF; }
+            .header { background: #0A7EA4; color: white; padding: 22px 26px; border-radius: 12px; margin-bottom: 24px; }
+            .badges { display: flex; gap: 10px; margin-top: 10px; font-size: 12px; font-weight: 600; flex-wrap: wrap; }
+            .badge { background: rgba(255,255,255,0.22); padding: 4px 10px; border-radius: 6px; }
+            .no-print { margin-top: 28px; text-align: center; }
+            .print-btn { background: #0A7EA4; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 700; }
+            @media print { body { padding: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px; letter-spacing: 0.5px;">GoGuide.AI Official Itinerary Pass</h1>
+            <p style="margin: 6px 0 0 0; opacity: 0.95; font-size: 18px; font-weight: 600;">${dest}</p>
+            <div class="badges">
+              <span class="badge">📅 ${data.duration}</span>
+              <span class="badge">💰 ${data.budget}</span>
+              <span class="badge">👤 ${data.traveler}</span>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.4);">VERIFIED PASS</span>
+            </div>
+          </div>
+          ${
+            data.flights
+              ? `<div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;"><strong>✈️ Flight / Transit:</strong> ${
+                  typeof data.flights === "object" ? data.flights.details || data.flights.airline : data.flights
+                }</div>`
+              : ""
+          }
+          <h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 16px;">Day-by-Day Itinerary Schedule</h2>
+          ${daysHtml}
+          ${
+            data.hotels && data.hotels.length > 0
+              ? `<h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;">Recommended Stays & Accommodations</h2>${staysHtml}`
+              : ""
+          }
+          <div class="no-print">
+            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+          </div>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+    setTimeout(() => {
+      try {
+        printWin.print();
+      } catch (e) {}
+    }, 450);
+  } catch (err) {
+    console.warn("Print window fallback notice:", err);
+  }
+}
+
 function normalizeTripPlan(rawPlan, destinationName) {
   let plan = rawPlan;
 
@@ -731,6 +854,12 @@ function buildItineraryVectorPdf(data, JsPDFClass) {
  * - Downloads directly without opening print dialogs or navigating the window away.
  * - Perfectly formatted & responsive across all mobile screens and PDF readers.
  */
+/**
+ * Universal 1-Click PDF Downloader
+ * - Generates pure vector PDF with browser jsPDF (100% reliable, zero blank pages).
+ * - Direct doc.save(fileName) with cross-browser FileSaver support.
+ * - Automatic blob anchor & print window fallbacks so downloads never fail.
+ */
 export async function downloadItineraryPDF(plan, destinationName) {
   try {
     const normalizedData = normalizeTripPlan(plan, destinationName);
@@ -741,38 +870,47 @@ export async function downloadItineraryPDF(plan, destinationName) {
     const JsPDFClass = await getJsPDFConstructor();
 
     if (JsPDFClass) {
-      // Build Vector PDF
-      const doc = buildItineraryVectorPdf(normalizedData, JsPDFClass);
+      try {
+        // Build Vector PDF
+        const doc = buildItineraryVectorPdf(normalizedData, JsPDFClass);
 
-      // Web Browser: Direct Anchor Download
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        try {
-          const pdfBlob = doc.output("blob");
-          const blobUrl = URL.createObjectURL(pdfBlob);
+        // Web Browser: Direct Save & Download
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          try {
+            doc.save(fileName);
+            return true;
+          } catch (saveErr) {
+            console.warn("doc.save notice, falling back to blob anchor:", saveErr);
+            const pdfBlob = doc.output("blob");
+            const blobUrl = URL.createObjectURL(pdfBlob);
 
-          const dlLink = document.createElement("a");
-          dlLink.href = blobUrl;
-          dlLink.download = fileName;
-          dlLink.style.display = "none";
-          document.body.appendChild(dlLink);
-          dlLink.click();
+            const dlLink = document.createElement("a");
+            dlLink.href = blobUrl;
+            dlLink.download = fileName;
+            dlLink.style.display = "none";
+            document.body.appendChild(dlLink);
+            dlLink.click();
 
-          // Safely clean up without breaking navigation
-          setTimeout(() => {
-            if (dlLink.parentNode) dlLink.parentNode.removeChild(dlLink);
-            URL.revokeObjectURL(blobUrl);
-          }, 30000);
+            setTimeout(() => {
+              if (dlLink.parentNode) dlLink.parentNode.removeChild(dlLink);
+              URL.revokeObjectURL(blobUrl);
+            }, 15000);
 
-          return true;
-        } catch (browserDlErr) {
-          console.warn("Blob anchor download notice, falling back to doc.save:", browserDlErr);
-          doc.save(fileName);
-          return true;
+            return true;
+          }
         }
+      } catch (buildErr) {
+        console.warn("Vector PDF builder notice, falling back to print window:", buildErr);
       }
     }
 
-    // 2. React Native Mobile (Expo / Android / iOS)
+    // Web Fallback: If jsPDF was blocked or builder threw, open crisp print/PDF window
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      openPrintableHtmlItinerary(normalizedData);
+      return true;
+    }
+
+    // React Native Mobile (Expo / Android / iOS)
     if (Platform.OS !== "web") {
       Alert.alert(
         "Itinerary PDF Pass Ready 📄",
@@ -785,7 +923,7 @@ export async function downloadItineraryPDF(plan, destinationName) {
   } catch (err) {
     console.error("PDF generation error:", err);
     if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.alert("Could not generate PDF. Please try again.");
+      openPrintableHtmlItinerary(normalizeTripPlan(plan, destinationName));
     } else {
       Alert.alert("Notice", "Could not generate PDF. Please try again.");
     }

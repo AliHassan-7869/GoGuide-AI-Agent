@@ -23,6 +23,8 @@ export default function PrintableItineraryModal({
 }) {
   if (!plan) return null;
 
+  const [downloading, setDownloading] = React.useState(false);
+
   const triggerHaptic = () => {
     try {
       if (Platform.OS !== "web") {
@@ -33,7 +35,15 @@ export default function PrintableItineraryModal({
 
   const handlePrintOrPdf = async () => {
     triggerHaptic();
-    await downloadItineraryPDF(plan, destination);
+    if (downloading) return;
+    try {
+      setDownloading(true);
+      await downloadItineraryPDF(plan, destination);
+    } catch (e) {
+      console.warn("PDF generation error:", e);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const flights = plan.flights || plan.flightDetails;
@@ -156,7 +166,7 @@ export default function PrintableItineraryModal({
             activeOpacity={0.85}
           >
             <Ionicons name="download-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.printBtnText}>Download Itinerary PDF</Text>
+            <Text style={styles.printBtnText}>{downloading ? "Generating Official PDF..." : "Download Itinerary PDF"}</Text>
           </TouchableOpacity>
         </View>
       </View>
