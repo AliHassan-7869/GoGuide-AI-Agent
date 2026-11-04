@@ -67,6 +67,104 @@ async function getJsPDFConstructor() {
  * Universal Fallback: Formats and opens an ultra-crisp, printable HTML itinerary pass
  * and triggers window.print() so the user can directly 'Save as PDF' from their browser.
  */
+export function buildPrintableHtml(data) {
+  const dest = data.destination || "Trip Destination";
+  const daysHtml = (data.itinerary || [])
+    .map(
+      (day) => `
+    <div style="margin-bottom: 24px; border-left: 4px solid #0A7EA4; padding-left: 14px;">
+      <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 17px; font-weight: 700;">Day ${day.day}: ${day.theme}</h3>
+      ${(day.activities || [])
+        .map(
+          (act) => `
+        <div style="margin-bottom: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; font-weight: 600; color: #0A7EA4; font-size: 13px;">
+            <span>⏰ ${act.time} — ${act.placeName}</span>
+            <span style="color: #10B981;">${act.tickets || ""}</span>
+          </div>
+          <p style="margin: 5px 0 0 0; color: #475569; font-size: 12.5px; line-height: 1.5;">${act.details}</p>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `
+    )
+    .join("");
+
+  const staysHtml = (data.hotels || [])
+    .map(
+      (h) => `
+    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-weight: 600; color: #0F172A; font-size: 14px;">${h.name}</div>
+        <div style="font-size: 12px; color: #64748B;">${h.address}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${h.price}</div>
+        <div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  const packingHtml = (data.packingList || []).length > 0
+    ? `<h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;">Packing Essentials</h2>
+       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px;">
+         ${data.packingList.map(p => `<div style="background: #F1F5F9; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #334155;">✓ ${typeof p === "string" ? p : p.item || p.name}</div>`).join("")}
+       </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoGuide.AI — ${dest} Itinerary Pass</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #0F172A; max-width: 820px; margin: 0 auto; background: #FFF; }
+      .header { background: #0A7EA4; color: white; padding: 22px 26px; border-radius: 12px; margin-bottom: 24px; }
+      .badges { display: flex; gap: 10px; margin-top: 10px; font-size: 12px; font-weight: 600; flex-wrap: wrap; }
+      .badge { background: rgba(255,255,255,0.22); padding: 4px 10px; border-radius: 6px; }
+      .no-print { margin-top: 28px; text-align: center; }
+      .print-btn { background: #0A7EA4; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 700; }
+      @media print { body { padding: 0; } .no-print { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1 style="margin: 0; font-size: 24px; letter-spacing: 0.5px;">GoGuide.AI Official Itinerary Pass</h1>
+      <p style="margin: 6px 0 0 0; opacity: 0.95; font-size: 18px; font-weight: 600;">${dest}</p>
+      <div class="badges">
+        <span class="badge">📅 ${data.duration}</span>
+        <span class="badge">💰 ${data.budget}</span>
+        <span class="badge">👤 ${data.traveler}</span>
+        <span class="badge" style="background: rgba(16, 185, 129, 0.4);">VERIFIED PASS</span>
+      </div>
+    </div>
+    ${
+      data.flights
+        ? `<div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;"><strong>✈️ Flight / Transit:</strong> ${
+            typeof data.flights === "object" ? data.flights.details || data.flights.airline : data.flights
+          }</div>`
+        : ""
+    }
+    <h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 16px;">Day-by-Day Itinerary Schedule</h2>
+    ${daysHtml}
+    ${
+      data.hotels && data.hotels.length > 0
+        ? `<h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;">Recommended Stays & Accommodations</h2>${staysHtml}`
+        : ""
+    }
+    ${packingHtml}
+    <div class="no-print">
+      <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </body>
+</html>`;
+}
+
 function openPrintableHtmlItinerary(data) {
   if (typeof window === "undefined") return;
   try {
@@ -75,94 +173,7 @@ function openPrintableHtmlItinerary(data) {
       window.alert("Please allow popups to download or print your itinerary.");
       return;
     }
-    const dest = data.destination || "Trip Destination";
-    const daysHtml = (data.itinerary || [])
-      .map(
-        (day) => `
-      <div style="margin-bottom: 24px; border-left: 4px solid #0A7EA4; padding-left: 14px;">
-        <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 17px; font-weight: 700;">Day ${day.day}: ${day.theme}</h3>
-        ${(day.activities || [])
-          .map(
-            (act) => `
-          <div style="margin-bottom: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; font-weight: 600; color: #0A7EA4; font-size: 13px;">
-              <span>⏰ ${act.time} — ${act.placeName}</span>
-              <span style="color: #10B981;">${act.tickets || ""}</span>
-            </div>
-            <p style="margin: 5px 0 0 0; color: #475569; font-size: 12.5px; line-height: 1.5;">${act.details}</p>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-    `
-      )
-      .join("");
-
-    const staysHtml = (data.hotels || [])
-      .map(
-        (h) => `
-      <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div style="font-weight: 600; color: #0F172A; font-size: 14px;">${h.name}</div>
-          <div style="font-size: 12px; color: #64748B;">${h.address}</div>
-        </div>
-        <div style="text-align: right;">
-          <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${h.price}</div>
-          <div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    printWin.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>GoGuide.AI — ${dest} Itinerary Pass</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px; color: #0F172A; max-width: 820px; margin: 0 auto; background: #FFF; }
-            .header { background: #0A7EA4; color: white; padding: 22px 26px; border-radius: 12px; margin-bottom: 24px; }
-            .badges { display: flex; gap: 10px; margin-top: 10px; font-size: 12px; font-weight: 600; flex-wrap: wrap; }
-            .badge { background: rgba(255,255,255,0.22); padding: 4px 10px; border-radius: 6px; }
-            .no-print { margin-top: 28px; text-align: center; }
-            .print-btn { background: #0A7EA4; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 700; }
-            @media print { body { padding: 0; } .no-print { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 style="margin: 0; font-size: 24px; letter-spacing: 0.5px;">GoGuide.AI Official Itinerary Pass</h1>
-            <p style="margin: 6px 0 0 0; opacity: 0.95; font-size: 18px; font-weight: 600;">${dest}</p>
-            <div class="badges">
-              <span class="badge">📅 ${data.duration}</span>
-              <span class="badge">💰 ${data.budget}</span>
-              <span class="badge">👤 ${data.traveler}</span>
-              <span class="badge" style="background: rgba(16, 185, 129, 0.4);">VERIFIED PASS</span>
-            </div>
-          </div>
-          ${
-            data.flights
-              ? `<div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;"><strong>✈️ Flight / Transit:</strong> ${
-                  typeof data.flights === "object" ? data.flights.details || data.flights.airline : data.flights
-                }</div>`
-              : ""
-          }
-          <h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 16px;">Day-by-Day Itinerary Schedule</h2>
-          ${daysHtml}
-          ${
-            data.hotels && data.hotels.length > 0
-              ? `<h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;">Recommended Stays & Accommodations</h2>${staysHtml}`
-              : ""
-          }
-          <div class="no-print">
-            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-          </div>
-        </body>
-      </html>
-    `);
+    printWin.document.write(buildPrintableHtml(data));
     printWin.document.close();
     setTimeout(() => {
       try {
@@ -866,56 +877,70 @@ export async function downloadItineraryPDF(plan, destinationName) {
     const destClean = String(normalizedData.destination || "Trip").replace(/[^a-zA-Z0-9]/g, "_");
     const fileName = `GoGuide_Itinerary_${destClean}.pdf`;
 
-    // 1. Resolve jsPDF Constructor safely
+    // 1. React Native Mobile (Expo on Android & iOS): Save directly to phone storage
+    if (Platform.OS !== "web") {
+      try {
+        const Print = require("expo-print");
+        const Sharing = require("expo-sharing");
+        const html = buildPrintableHtml(normalizedData);
+
+        const { uri } = await Print.printToFileAsync({
+          html,
+          base64: false,
+        });
+
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable && uri) {
+          await Sharing.shareAsync(uri, {
+            UTI: ".pdf",
+            mimeType: "application/pdf",
+            dialogTitle: `Save ${normalizedData.destination} Itinerary PDF`,
+          });
+          return true;
+        }
+      } catch (nativeErr) {
+        console.warn("[PDF] Native mobile export notice:", nativeErr?.message);
+      }
+    }
+
+    // 2. Web Browser: jsPDF Vector Generation + Direct Browser File Download
     const JsPDFClass = await getJsPDFConstructor();
 
-    if (JsPDFClass) {
+    if (JsPDFClass && typeof window !== "undefined") {
       try {
-        // Build Vector PDF
         const doc = buildItineraryVectorPdf(normalizedData, JsPDFClass);
 
-        // Web Browser: Direct Save & Download
-        if (Platform.OS === "web" && typeof window !== "undefined") {
-          try {
-            doc.save(fileName);
-            return true;
-          } catch (saveErr) {
-            console.warn("doc.save notice, falling back to blob anchor:", saveErr);
-            const pdfBlob = doc.output("blob");
-            const blobUrl = URL.createObjectURL(pdfBlob);
+        try {
+          doc.save(fileName);
+          return true;
+        } catch (saveErr) {
+          console.warn("doc.save notice, falling back to blob anchor:", saveErr);
+          const pdfBlob = doc.output("blob");
+          const blobUrl = URL.createObjectURL(pdfBlob);
 
-            const dlLink = document.createElement("a");
-            dlLink.href = blobUrl;
-            dlLink.download = fileName;
-            dlLink.style.display = "none";
-            document.body.appendChild(dlLink);
-            dlLink.click();
+          const dlLink = document.createElement("a");
+          dlLink.href = blobUrl;
+          dlLink.download = fileName;
+          dlLink.target = "_blank";
+          dlLink.style.display = "none";
+          document.body.appendChild(dlLink);
+          dlLink.click();
 
-            setTimeout(() => {
-              if (dlLink.parentNode) dlLink.parentNode.removeChild(dlLink);
-              URL.revokeObjectURL(blobUrl);
-            }, 15000);
+          setTimeout(() => {
+            if (dlLink.parentNode) dlLink.parentNode.removeChild(dlLink);
+            URL.revokeObjectURL(blobUrl);
+          }, 15000);
 
-            return true;
-          }
+          return true;
         }
       } catch (buildErr) {
         console.warn("Vector PDF builder notice, falling back to print window:", buildErr);
       }
     }
 
-    // Web Fallback: If jsPDF was blocked or builder threw, open crisp print/PDF window
-    if (Platform.OS === "web" && typeof window !== "undefined") {
+    // 3. Web Fallback: Open crisp print / save as PDF window
+    if (typeof window !== "undefined") {
       openPrintableHtmlItinerary(normalizedData);
-      return true;
-    }
-
-    // React Native Mobile (Expo / Android / iOS)
-    if (Platform.OS !== "web") {
-      Alert.alert(
-        "Itinerary PDF Pass Ready 📄",
-        `Your complete official itinerary pass for ${normalizedData.destination} has been verified and saved to your device trips.`
-      );
       return true;
     }
 

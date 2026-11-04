@@ -753,26 +753,41 @@ export default function Profile() {
         onRequestClose={() => setShowSavedTripsModal(false)}
       >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="airplane" size={22} color={brandIconColor} style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: theme.text }]}>My Trips & History</Text>
-              <View style={[styles.modalBadge, { backgroundColor: brandIconBg }]}>
+          {/* Modal Header: Clean, Responsive & 100% On-Screen */}
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 18, paddingVertical: 12 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
+              <Ionicons name="airplane" size={20} color={brandIconColor} style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20 }]} numberOfLines={1}>
+                My Trips
+              </Text>
+              <View style={[styles.modalBadge, { backgroundColor: brandIconBg, marginLeft: 8 }]}>
                 <Text style={[styles.modalBadgeText, { color: brandIconColor }]}>
                   {savedTripsList.length}
                 </Text>
               </View>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
+              onPress={() => setShowSavedTripsModal(false)}
+            >
+              <Ionicons name="close" size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {/* Quick Action Buttons Row (Side-by-side, fits 100% of screen without cutoff) */}
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
               <TouchableOpacity
                 style={{
+                  flex: 1,
                   flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: "rgba(10, 126, 164, 0.15)",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(10, 126, 164, 0.12)",
                   borderWidth: 1,
                   borderColor: Colors.PRIMARY,
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
+                  paddingVertical: 11,
                   borderRadius: 14,
                 }}
                 onPress={() => {
@@ -781,20 +796,21 @@ export default function Profile() {
                   router.push("/(tabs)/mytrip");
                 }}
               >
-                <Ionicons name="compass-outline" size={14} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
-                <Text style={{ color: Colors.PRIMARY, fontSize: 12, fontFamily: "Outfit-Bold" }}>
+                <Ionicons name="compass-outline" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
+                <Text style={{ color: Colors.PRIMARY, fontSize: 13, fontFamily: "Outfit-Bold" }}>
                   My Trips Hub ✈️
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={{
+                  flex: 1,
                   flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center",
                   backgroundColor: Colors.PRIMARY,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 16,
+                  paddingVertical: 11,
+                  borderRadius: 14,
                 }}
                 onPress={() => {
                   triggerHaptic();
@@ -802,21 +818,12 @@ export default function Profile() {
                   router.push("/create-trip/search-place");
                 }}
               >
-                <Ionicons name="add" size={16} color="#FFF" style={{ marginRight: 3 }} />
-                <Text style={{ color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold" }}>
-                  New Trip
+                <Ionicons name="add-circle-outline" size={17} color="#FFF" style={{ marginRight: 5 }} />
+                <Text style={{ color: "#FFF", fontSize: 13, fontFamily: "Outfit-Bold" }}>
+                  Plan New Trip
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
-                onPress={() => setShowSavedTripsModal(false)}
-              >
-                <Ionicons name="close" size={20} color={theme.text} />
-              </TouchableOpacity>
             </View>
-          </View>
-
-          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
             {/* Explorer Tier Progress Card inside Trips Modal */}
             <View
               style={{
