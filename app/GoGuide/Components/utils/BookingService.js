@@ -164,3 +164,105 @@ export async function saveTripToBookings(tripData, authUser) {
     bookingsCount: newBookings.length,
   };
 }
+
+
+/**
+ * Manually reserves / adds a single hotel into My Bookings
+ */
+export async function addHotelBooking(hotel, destination, tripData, authUser) {
+  if (!hotel) return null;
+  const destName = destination || tripData?.destination || "Destination";
+  const userEmail = authUser?.email || "traveler@goguide.com";
+  const hotelRefCode = `GG-H${Math.floor(10000 + Math.random() * 90000)}`;
+
+  const startFormatted = tripData?.startDate
+    ? new Date(tripData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "Day 1";
+  const endFormatted = tripData?.endDate
+    ? new Date(tripData.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "Day 3";
+
+  const booking = {
+    id: `bk_${Date.now()}_hotel`,
+    type: "Hotels",
+    status: "Upcoming",
+    bookingRef: hotelRefCode,
+    title: hotel?.name || `${destName} Boutique Hotel`,
+    subtitle: hotel?.address || `${destName} (Central District)`,
+    checkIn: `${startFormatted} • 03:00 PM`,
+    checkOut: `${endFormatted} • 11:00 AM`,
+    details: `${tripData?.traveler || "Explorer"} • 1 Deluxe Room • Confirmed Reservation`,
+    price: hotel?.price || "$120/night",
+    image: hotel?.image || getDestinationImage(destName),
+    coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
+    userEmail: userEmail,
+    destination: destName,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    const rawExisting = await AsyncStorage.getItem("@goguide_user_bookings");
+    const existing = rawExisting ? JSON.parse(rawExisting) : [];
+    const updated = [booking, ...existing.filter((b) => b.title !== booking.title)];
+    await AsyncStorage.setItem("@goguide_user_bookings", JSON.stringify(updated));
+  } catch (e) {
+    console.warn("AsyncStorage booking notice:", e);
+  }
+
+  if (authUser?.email) {
+    try {
+      await addDoc(collection(db, "UserBookings"), booking);
+    } catch (e) {
+      console.warn("Firestore booking notice:", e);
+    }
+  }
+
+  return booking;
+}
+
+/**
+ * Manually reserves / adds a single flight into My Bookings
+ */
+export async function addFlightBooking(flightInfo, destination, tripData, authUser) {
+  if (!flightInfo) return null;
+  const destName = destination || tripData?.destination || "Destination";
+  const userEmail = authUser?.email || "traveler@goguide.com";
+  const flightRefCode = `GG-F${Math.floor(10000 + Math.random() * 90000)}`;
+
+  const booking = {
+    id: `bk_${Date.now()}_flight`,
+    type: "Flights",
+    status: "Upcoming",
+    bookingRef: flightRefCode,
+    title: `${flightInfo.airline} (${flightInfo.outboundFlightNo} / ${flightInfo.returnFlightNo})`,
+    subtitle: `${flightInfo.originIata} (${flightInfo.origin}) ✈️ ${flightInfo.destIata} (${flightInfo.destination})`,
+    checkIn: `Outbound: ${flightInfo.departureDate} • ${flightInfo.outboundDepTime}`,
+    checkOut: `Return: ${flightInfo.returnDate} • ${flightInfo.returnDepTime}`,
+    details: `${flightInfo.cabinClass} • ${flightInfo.duration} (${flightInfo.stops}) • ${flightInfo.baggage}`,
+    price: flightInfo.price || "$680.00",
+    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
+    coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
+    userEmail: userEmail,
+    destination: destName,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    const rawExisting = await AsyncStorage.getItem("@goguide_user_bookings");
+    const existing = rawExisting ? JSON.parse(rawExisting) : [];
+    const updated = [booking, ...existing.filter((b) => b.bookingRef !== booking.bookingRef)];
+    await AsyncStorage.setItem("@goguide_user_bookings", JSON.stringify(updated));
+  } catch (e) {
+    console.warn("AsyncStorage flight booking notice:", e);
+  }
+
+  if (authUser?.email) {
+    try {
+      await addDoc(collection(db, "UserBookings"), booking);
+    } catch (e) {
+      console.warn("Firestore flight booking notice:", e);
+    }
+  }
+
+  return booking;
+}

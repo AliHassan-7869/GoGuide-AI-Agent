@@ -225,57 +225,28 @@ export default function GenerateTrip() {
     const destName = plan?.destination || tripData?.toLocation?.name || "Trip Destination";
     const createdTripId = "trip_" + Date.now();
 
-    // 1. Save to local persistent trips list (always instant and reliable)
+    // Tarika A: Store as active draft preview ONLY (do not auto-save to My Trips or My Bookings)
     try {
-      const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
-      const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
-      const newTripRecord = {
+      const draftTripRecord = {
         id: createdTripId,
         userEmail: email,
         tripData: completeTripData,
         ...completeTripData,
+        isDraft: true,
         createdAt: new Date().toISOString(),
       };
-      const updatedList = [newTripRecord, ...existingTrips.filter(t => t.id !== newTripRecord.id)];
-      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
-
-      // Auto-save initial hotel & flight booking passes to My Bookings
-      await saveTripToBookings(completeTripData, user);
-
-      // 3. Schedule Smart Travel Reminders & Countdown Notification
-      scheduleTripCountdown(
-        destName,
-        completeTripData?.startDate,
-        completeTripData?.aiTripPlan?.hotels?.[0]?.name
-      );
-      sendLocalNotification(
-        `Trip to ${destName} Ready! ✈️`,
-        `Your ${tripData?.totalNoOfDays || "multi-day"} itinerary with hotels and route mapping is saved.`
-      );
-      // Cache as active current trip
-      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(newTripRecord));
+      // Cache as active current trip so /trip can display it immediately
+      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(draftTripRecord));
+      await AsyncStorage.setItem("@goguide_active_draft", JSON.stringify(draftTripRecord));
     } catch (localErr) {
-      console.warn("Could not save to local storage:", localErr);
-    }
-
-    // 2. Save to Firebase UserTrips
-    if (email) {
-      try {
-        await addDoc(collection(db, "UserTrips"), {
-          userEmail: email,
-          tripData: completeTripData,
-          createdAt: new Date().toISOString(),
-        });
-      } catch (fbErr) {
-        console.warn("Could not save to Firebase:", fbErr);
-      }
+      console.warn("Could not cache draft trip:", localErr);
     }
 
     setLoading(false);
-    // Navigate directly to the standalone dedicated trip page
+    // Navigate to /trip in Preview / Draft Mode (user saves explicitly via 'Save to My Trips')
     router.push({
       pathname: "/trip",
-      params: { id: createdTripId },
+      params: { id: createdTripId, isDraft: "true" },
     });
   };
 

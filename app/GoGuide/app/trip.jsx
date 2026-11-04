@@ -16,8 +16,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../Configs/FirebaseConfig";
+import { doc, getDoc, collection, addDoc } from "firebase/firestore";
+import { db, auth } from "../Configs/FirebaseConfig";
+import { addHotelBooking, addFlightBooking } from "../Components/utils/BookingService";
 import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
@@ -160,10 +161,42 @@ export default function SharedTripView() {
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [savedLocally, setSavedLocally] = useState(false);
+  const [isDraft, setIsDraft] = useState(params?.isDraft === "true");
+  const [isSavedInTrips, setIsSavedInTrips] = useState(false);
+  const [bookedHotels, setBookedHotels] = useState({});
+  const [isFlightBooked, setIsFlightBooked] = useState(false);
 
   const loadSharedTrip = async () => {
     setLoading(true);
     try {
+      // Check if this trip or destination is already saved in My Trips
+      try {
+        const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
+        if (storedTripsRaw) {
+          const userTrips = JSON.parse(storedTripsRaw);
+          const found = userTrips.some(
+            (t) =>
+              (targetId && (String(t.id) === String(targetId) || String(t?.tripData?.id) === String(targetId)))
+          );
+          if (found) {
+            setIsSavedInTrips(true);
+            setIsDraft(false);
+          }
+        }
+      } catch (checkErr) {}
+
+      // Check which hotels or flights are already in My Bookings
+      try {
+        const rawBks = await AsyncStorage.getItem("@goguide_user_bookings");
+        if (rawBks) {
+          const bList = JSON.parse(rawBks);
+          const hMap = {};
+          bList.forEach((b) => {
+            if (b.type === "Hotels") hMap[b.title] = true;
+          });
+          setBookedHotels(hMap);
+        }
+      } catch (bErr) {}
       // 0. Check local persistent trips list (@goguide_user_trips) first for targetId
       if (targetId && targetId !== "current-trip" && targetId !== "shared") {
         try {
@@ -284,29 +317,58 @@ export default function SharedTripView() {
     }
   };
 
-  const handleCloneToApp = async () => {
+  const handleSaveToMyTrips = async () => {
     triggerHaptic();
+    if (!tripPlan) return;
+
+    if (isSavedInTrips) {
+      const msg = "This itinerary is already saved in your My Trips!";
+      if (Platform.OS === "web" && typeof window !== "undefined") window.alert(msg);
+      else Alert.alert("Already Saved", msg);
+      return;
+    }
+
     try {
       const tripId = targetId || `trip_${Date.now()}`;
-      const cloned = {
+      const user = auth.currentUser;
+      const email = user?.email || "traveler@goguide.com";
+      const recordToSave = {
         id: tripId,
+        userEmail: email,
         destination: tripPlan.destination,
+        tripData: { ...tripPlan, aiTripPlan: tripPlan },
         aiTripPlan: tripPlan,
         createdAt: new Date().toISOString(),
       };
-      // 1. Cache as active trip
-      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(cloned));
 
-      // 2. Add to @goguide_user_trips so it appears in Profile -> Saved Trips
+      // 1. Cache as active trip
+      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(recordToSave));
+
+      // 2. Add to @goguide_user_trips (My Trips)
       const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
       const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
-      const updatedList = [cloned, ...existingTrips.filter((t) => t.id !== tripId)];
+      const updatedList = [recordToSave, ...existingTrips.filter((t) => t.id !== tripId)];
       await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
 
+      // 3. Sync to Firebase UserTrips if authenticated
+      if (user?.email) {
+        try {
+          await addDoc(collection(db, "UserTrips"), {
+            userEmail: user.email,
+            tripData: recordToSave.tripData,
+            createdAt: new Date().toISOString(),
+          });
+        } catch (fbErr) {
+          console.warn("Could not sync trip to Firebase:", fbErr);
+        }
+      }
+
+      setIsSavedInTrips(true);
+      setIsDraft(false);
       setSavedLocally(true);
       setTimeout(() => setSavedLocally(false), 3000);
 
-      const msg = "Trip Saved! You can access this anytime in your Profile under 'My Saved Trips'.";
+      const msg = "Trip Saved! You can now access this anytime in 'My Trips'.";
       if (Platform.OS === "web" && typeof window !== "undefined") {
         window.alert(msg);
       } else {
@@ -314,6 +376,40 @@ export default function SharedTripView() {
       }
     } catch (e) {
       console.log("Save error:", e);
+    }
+  };
+
+  const handleBookHotel = async (hotel) => {
+    triggerHaptic();
+    if (!hotel) return;
+    try {
+      await addHotelBooking(hotel, destination, tripPlan, auth.currentUser);
+      setBookedHotels((prev) => ({ ...prev, [hotel.name]: true }));
+      const msg = `${hotel.name} has been added to My Bookings! View your confirmation pass under Profile -> My Bookings.`;
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Hotel Added to Bookings! 🏨", msg);
+      }
+    } catch (e) {
+      console.warn("Hotel booking error:", e);
+    }
+  };
+
+  const handleBookFlight = async (flightInfo) => {
+    triggerHaptic();
+    if (!flightInfo) return;
+    try {
+      await addFlightBooking(flightInfo, destination, tripPlan, auth.currentUser);
+      setIsFlightBooked(true);
+      const msg = `Flight pass (${flightInfo.airline}) added to My Bookings! Access your ticket under Profile -> My Bookings.`;
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Flight Added to Bookings! ✈️", msg);
+      }
+    } catch (e) {
+      console.warn("Flight booking error:", e);
     }
   };
 
@@ -376,8 +472,17 @@ export default function SharedTripView() {
               <Ionicons name="navigate" size={16} color="#FFF" />
             </View>
             <Text style={styles.logoText}>GoGuide AI</Text>
-            <View style={[styles.sharedBadge, { backgroundColor: "rgba(10, 126, 164, 0.25)" }]}>
-              <Text style={styles.sharedBadgeText}>YOUR TRIP</Text>
+            <View
+              style={[
+                styles.sharedBadge,
+                isDraft && !isSavedInTrips
+                  ? { backgroundColor: "rgba(245, 158, 11, 0.15)", borderColor: "#F59E0B", borderWidth: 1 }
+                  : { backgroundColor: "rgba(10, 126, 164, 0.25)" },
+              ]}
+            >
+              <Text style={[styles.sharedBadgeText, isDraft && !isSavedInTrips && { color: "#F59E0B" }]}>
+                {isDraft && !isSavedInTrips ? "AI GENERATED PREVIEW" : "YOUR TRIP"}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -434,12 +539,12 @@ export default function SharedTripView() {
         {/* Action Callout Bar */}
         <View style={styles.actionCallout}>
           <TouchableOpacity
-            style={[styles.saveCloneBtn, savedLocally && { backgroundColor: "#10B981" }]}
-            onPress={handleCloneToApp}
+            style={[styles.saveCloneBtn, isSavedInTrips && { backgroundColor: "#10B981" }]}
+            onPress={handleSaveToMyTrips}
             activeOpacity={0.85}
           >
-            <Ionicons name={savedLocally ? "checkmark-circle" : "bookmark"} size={16} color="#FFF" style={{ marginRight: 6 }} />
-            <Text style={styles.saveCloneBtnText}>{savedLocally ? "Saved in Profile!" : "Save to My Trips"}</Text>
+            <Ionicons name={isSavedInTrips ? "checkmark-circle" : "bookmark"} size={16} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.saveCloneBtnText}>{isSavedInTrips ? "Saved to My Trips ✅" : "Save to My Trips"}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -513,6 +618,28 @@ export default function SharedTripView() {
                       <Ionicons name="bed" size={13} color="#FFF" style={{ marginRight: 4 }} />
                       <Text style={styles.hotelBookBtnText}>Book on Booking.com</Text>
                       <Ionicons name="open-outline" size={11} color="#93C5FD" style={{ marginLeft: 4 }} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.hotelBookBtn,
+                        {
+                          marginTop: 6,
+                          backgroundColor: bookedHotels[hotel.name] ? "#10B981" : "#0284C7",
+                        },
+                      ]}
+                      onPress={() => handleBookHotel(hotel)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons
+                        name={bookedHotels[hotel.name] ? "checkmark-circle" : "calendar-outline"}
+                        size={13}
+                        color="#FFF"
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={styles.hotelBookBtnText}>
+                        {bookedHotels[hotel.name] ? "Reserved in Bookings ✅" : "Reserve / Add to Bookings"}
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
