@@ -518,12 +518,20 @@ export default function Discover() {
       });
 
       const responseText = await result.response.text();
-      let cleanResponse = responseText.trim();
-      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) cleanResponse = jsonMatch[0];
+      const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
 
-      const parsedData = JSON.parse(cleanResponse);
-      const completePlan = parsedData.trip || parsedData;
+      let parsedData = null;
+      try {
+        parsedData = robustParseJson(responseText);
+      } catch (parseErr) {
+        console.warn("[Discover] Robust parse note:", parseErr?.message);
+      }
+
+      let completePlan = parsedData ? (normalizeTrip(parsedData) || parsedData.trip || parsedData) : null;
+      if (!completePlan || !completePlan.itinerary || !Array.isArray(completePlan.itinerary) || completePlan.itinerary.length === 0) {
+        console.log("[Discover] Using smart offline plan fallback for:", cleanDest);
+        completePlan = buildOfflinePlan(cleanDest, days, budget);
+      }
 
       // Ensure clean destination title & origin metadata
       completePlan.destination = completePlan.destination

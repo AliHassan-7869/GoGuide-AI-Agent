@@ -302,12 +302,28 @@ export default function GenerateTrip() {
       }
 
       const responseText = await result.response.text();
-      let cleanResponse = responseText.trim();
-      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) cleanResponse = jsonMatch[0];
+      const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
 
-      const data = JSON.parse(cleanResponse);
-      const plan = data.trip || data;
+      let plan = null;
+      try {
+        const parsedData = robustParseJson(responseText);
+        if (parsedData) {
+          plan = normalizeTrip(parsedData) || parsedData.trip || parsedData;
+        }
+      } catch (parseErr) {
+        console.warn("[GenerateTrip] Robust parse note:", parseErr?.message);
+      }
+
+      // If parsing failed, malformed output, or empty itinerary: automatically use instant offline plan
+      if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
+        console.log("[GenerateTrip] Using smart resilient offline plan fallback");
+        plan = buildOfflinePlan(
+          tripData?.toLocation?.name,
+          totalDays,
+          tripData?.budget,
+          tripData?.interests
+        );
+      }
 
       await handleSaveAndProceed(plan);
     } catch (err) {

@@ -1,4 +1,82 @@
 /**
+ * Resilient JSON Parser
+ * Recovers malformed LLM outputs: unquoted property names, single quotes,
+ * smart quotes, trailing commas, markdown fences, and truncated brackets.
+ */
+export function robustParseJson(raw) {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw;
+  if (typeof raw !== "string") return null;
+
+  let s = raw.trim();
+  // Strip markdown code blocks ```json ... ```
+  s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  // Find outermost { ... }
+  const firstBrace = s.indexOf("{");
+  const lastBrace = s.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    s = s.substring(firstBrace, lastBrace + 1);
+  }
+
+  // 1. Direct standard parse attempt
+  try {
+    return JSON.parse(s);
+  } catch (e1) {
+    // Continue to repair
+  }
+
+  // 2. Normalize smart / curly quotes
+  s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+
+  // 3. Fix unquoted property names (e.g. { name: "...", , price: "..." or \n day: 1)
+  s = s.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+
+  // 4. Fix single-quoted property names ({'name': "...")
+  s = s.replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":');
+
+  // 5. Fix single-quoted string values (: 'value')
+  s = s.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+  // 6. Remove trailing commas before } or ]
+  s = s.replace(/,\s*([}\]])/g, "$1");
+
+  // 7. Remove single-line comments // ... and multi-line comments /* ... */
+  s = s.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+
+  try {
+    return JSON.parse(s);
+  } catch (e2) {
+    // Continue to bracket repair
+  }
+
+  // 8. Auto-repair truncated JSON (e.g. LLM token limits)
+  const quoteCount = (s.match(/"/g) || []).length;
+  if (quoteCount % 2 !== 0) {
+    s += '"';
+  }
+  let openBraces = (s.match(/\{/g) || []).length;
+  let closeBraces = (s.match(/\}/g) || []).length;
+  let openBrackets = (s.match(/\[/g) || []).length;
+  let closeBrackets = (s.match(/\]/g) || []).length;
+
+  while (openBrackets > closeBrackets) {
+    s += "]";
+    closeBrackets++;
+  }
+  while (openBraces > closeBraces) {
+    s += "}";
+    closeBraces++;
+  }
+
+  try {
+    return JSON.parse(s);
+  } catch (e3) {
+    return null;
+  }
+}
+
+/**
  * Universal Trip Normalizer
  * Standardizes any shape of travel plan (AI raw JSON, Firestore document, 
  * AsyncStorage cache, stringified JSON, or nested wrappers) into a clean, 
@@ -8,11 +86,8 @@ export function normalizeTrip(raw) {
   if (!raw) return null;
   let data = raw;
   if (typeof data === "string") {
-    try {
-      data = JSON.parse(data);
-    } catch (e) {
-      return null;
-    }
+    data = robustParseJson(data);
+    if (!data) return null;
   }
 
   // Unnest common nested wrapper keys (up to 6 levels deep)
@@ -43,9 +118,7 @@ export function normalizeTrip(raw) {
   }
 
   if (typeof data === "string") {
-    try {
-      data = JSON.parse(data);
-    } catch (e) {}
+    data = robustParseJson(data) || data;
   }
 
   if (!data || typeof data !== "object") return null;
@@ -98,78 +171,79 @@ export function normalizeTrip(raw) {
               return { time: "Scheduled", placeName: a, details: a, tickets: "" };
             }
             return {
-              time: a.time || a.timing || "Scheduled",
-              placeName: a.placeName || a.place || a.name || a.activity || "Attraction Spot",
-              details: a.details || a.placeDetails || a.description || "Sightseeing and local visit.",
-              tickets: a.tickets || a.ticketPrice || a.price || "",
-              travelTime: a.travelTime || a.travel_time || a.duration || "",
+              time: a?.time || a?.timeSlot || "Scheduled",
+              placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
+              details: a?.details || a?.description || a?.notes || "",
+              tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
+              coordinates: a?.coordinates || a?.geo || null,
             };
           })
         : [];
-      return { day: dayNum, theme, activities };
-    });
-  } else if (rawItin && typeof rawItin === "object") {
-    // If itinerary was an object { day1: {...}, day2: {...} } or { "Day 1": [...] }
-    itinerary = Object.keys(rawItin).map((k, idx) => {
-      const d = rawItin[k];
-      const dayNum = Number(d?.day) || idx + 1;
-      if (Array.isArray(d)) {
-        return {
-          day: dayNum,
-          theme: `Day ${dayNum} Exploration`,
-          activities: d.map((a) =>
-            typeof a === "string"
-              ? { time: "Scheduled", placeName: a, details: a, tickets: "" }
-              : {
-                  time: a.time || a.timing || "Scheduled",
-                  placeName: a.placeName || a.place || a.name || a.activity || "Attraction Spot",
-                  details: a.details || a.placeDetails || a.description || "",
-                  tickets: a.tickets || a.ticketPrice || a.price || "",
-                  travelTime: a.travelTime || a.travel_time || "",
-                }
-          ),
-        };
-      }
-      const rawActs = d?.activities || d?.plan || d?.places || [];
       return {
         day: dayNum,
-        theme: d?.theme || d?.title || `Day ${dayNum} Exploration`,
-        activities: Array.isArray(rawActs)
-          ? rawActs.map((a) =>
-              typeof a === "string"
-                ? { time: "Scheduled", placeName: a, details: a, tickets: "" }
-                : {
-                    time: a.time || a.timing || "Scheduled",
-                    placeName: a.placeName || a.place || a.name || a.activity || "Attraction Spot",
-                    details: a.details || a.placeDetails || a.description || "",
-                    tickets: a.tickets || a.ticketPrice || a.price || "",
-                    travelTime: a.travelTime || a.travel_time || "",
-                  }
-            )
-          : [],
+        theme,
+        activities,
+      };
+    });
+  } else if (rawItin && typeof rawItin === "object") {
+    // Handle dictionaries like { "day1": { ... }, "day2": { ... } }
+    const keys = Object.keys(rawItin).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+      const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+      return numA - numB;
+    });
+
+    itinerary = keys.map((k, idx) => {
+      const d = rawItin[k] || {};
+      const dayNum = Number(d.day) || parseInt(k.replace(/\D/g, ""), 10) || idx + 1;
+      const theme = d.theme || d.title || d.heading || `Day ${dayNum} Exploration`;
+      const rawActs = d.activities || d.plan || d.places || d.schedule || [];
+      const activities = Array.isArray(rawActs)
+        ? rawActs.map((a) => {
+            if (typeof a === "string") {
+              return { time: "Scheduled", placeName: a, details: a, tickets: "" };
+            }
+            return {
+              time: a?.time || a?.timeSlot || "Scheduled",
+              placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
+              details: a?.details || a?.description || a?.notes || "",
+              tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
+              coordinates: a?.coordinates || a?.geo || null,
+            };
+          })
+        : [];
+      return {
+        day: dayNum,
+        theme,
+        activities,
       };
     });
   }
 
   // 6. Hotels -> Guaranteed to be an Array
-  let rawHotels = data.hotels || data.hotel || data.accommodations || raw.hotels || [];
+  let rawHotels = data.hotels || data.hotelList || raw.hotels || [];
   let hotels = [];
   if (Array.isArray(rawHotels)) {
     hotels = rawHotels.map((h) => {
       if (typeof h === "string") {
-        return { name: h, address: destination, price: "$95/night", rating: "4.8" };
+        return { name: h, address: destination, price: "N/A", rating: "4.5" };
       }
       return {
-        name: h.name || h.hotelName || "Boutique Hotel",
-        address: h.address || h.location || h.details || destination,
-        price: h.price || h.cost || h.pricing || "$110/night",
-        rating: String(h.rating || "4.8"),
+        name: h?.name || h?.hotelName || "Verified Stay",
+        address: h?.address || h?.hotelAddress || destination,
+        price: h?.price || h?.hotelPrice || "Competitive Rate",
+        rating: h?.rating || h?.hotelRating || "4.7",
+        geoCoordinates: h?.geoCoordinates || h?.coordinates || null,
+        description: h?.description || "",
       };
     });
   }
 
-  // 7. Flights
-  const flights = data.flights || data.flightDetails || data.flight || raw.flights || null;
+  // 7. Flights & Weather & PackingList
+  const flights = data.flights || raw.flights || null;
+  const weatherBrief = data.weatherBrief || raw.weatherBrief || "";
+  const packingList = Array.isArray(data.packingList) ? data.packingList : Array.isArray(raw.packingList) ? raw.packingList : [];
+  const expenses = Array.isArray(data.expenses) ? data.expenses : Array.isArray(raw.expenses) ? raw.expenses : [];
 
   return {
     ...data,
@@ -180,6 +254,8 @@ export function normalizeTrip(raw) {
     itinerary,
     hotels,
     flights,
+    weatherBrief,
+    packingList,
+    expenses,
   };
 }
-
