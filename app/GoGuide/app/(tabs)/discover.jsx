@@ -553,7 +553,9 @@ export default function Discover() {
         existingFlights: completePlan.flights,
       });
 
+      const generatedTripId = `trip_${Date.now()}`;
       const completeTripData = {
+        id: generatedTripId,
         fromLocation: { name: cleanOrigin, coordinates: { lat: 0, lng: 0 } },
         toLocation: { name: cleanDest, coordinates: { lat: 0, lng: 0 } },
         toLocationImage: fallbackImage || getDestinationImage(cleanDest),
@@ -563,15 +565,17 @@ export default function Discover() {
         budget: budget,
         duration: `${days} Days`,
         aiTripPlan: completePlan,
+        createdAt: new Date().toISOString(),
       };
 
       setTripData(completeTripData);
 
-      // Auto-save to My Trips (@goguide_user_trips) and My Bookings (@goguide_user_bookings)
+      // Cache active itinerary preview without creating duplicate saved entries before user clicks Save
       try {
-        await saveTripToBookings(completeTripData, auth.currentUser);
-      } catch (saveErr) {
-        console.warn("Could not auto-save trip to bookings:", saveErr);
+        await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(completeTripData));
+        await AsyncStorage.setItem("@goguide_active_draft", JSON.stringify(completeTripData));
+      } catch (cacheErr) {
+        console.warn("Could not cache active trip preview:", cacheErr);
       }
 
       setAiLoading(false);

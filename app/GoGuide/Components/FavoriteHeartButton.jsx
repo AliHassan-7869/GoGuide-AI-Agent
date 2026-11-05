@@ -9,6 +9,7 @@ import {
 
 export default function FavoriteHeartButton({
   item,
+  place,
   size = 18,
   style,
   inactiveColor = "#FFFFFF",
@@ -16,7 +17,8 @@ export default function FavoriteHeartButton({
 }) {
   const [isFav, setIsFav] = useState(false);
 
-  const itemKey = String(item?.id || item?.name || item?.title || "")
+  const rawTarget = item || place;
+  const itemKey = String(rawTarget?.id || rawTarget?.name || rawTarget?.title || "")
     .toLowerCase()
     .trim();
 
@@ -47,9 +49,18 @@ export default function FavoriteHeartButton({
     if (e && typeof e.stopPropagation === "function") {
       e.stopPropagation();
     }
-    if (!item) return;
+    if (!rawTarget) return;
     setIsFav((prev) => !prev);
-    await toggleFavoritePlace(item);
+    const normalizedItem = {
+      ...rawTarget,
+      id: rawTarget.id || rawTarget.name || rawTarget.title,
+      name: rawTarget.name || rawTarget.title || "Scenic Place",
+      title: rawTarget.title || rawTarget.name || "Scenic Place",
+      image: rawTarget.image || rawTarget.img || rawTarget.photoRef,
+      category: rawTarget.category || rawTarget.tag || "Must Visit",
+      description: rawTarget.description || rawTarget.desc || "Top rated destination to explore",
+    };
+    await toggleFavoritePlace(normalizedItem);
   };
 
   return (
@@ -86,7 +97,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.22)",
-    zIndex: 10,
+    zIndex: 50,
+    elevation: 8,
   },
   overlayBtnActive: {
     backgroundColor: "rgba(15, 23, 42, 0.75)",

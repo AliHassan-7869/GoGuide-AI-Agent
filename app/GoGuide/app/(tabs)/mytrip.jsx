@@ -186,32 +186,54 @@ export default function MyTrip() {
       return;
     }
     try {
-      const tripId = activeTripId || `trip_${Date.now()}`;
+      const initialId = activeTripId || tripData?.id || `trip_${Date.now()}`;
+      let finalTripId = initialId;
       const user = auth.currentUser;
       const email = user?.email || "traveler@goguide.com";
+      const destTitle =
+        plan?.destination || tripData?.destination || tripData?.toLocation?.name || "Trip";
+      const destNorm = String(destTitle).toLowerCase().trim();
+      const createdAtIso = new Date().toISOString();
+
+      // Save to Firestore first (if signed in) so local & cloud share the exact same ID
+      if (user?.email) {
+        try {
+          const docRef = await addDoc(collection(db, "UserTrips"), {
+            userEmail: user.email,
+            tripData: { ...tripData, aiTripPlan: plan },
+            createdAt: createdAtIso,
+          });
+          if (docRef?.id) {
+            finalTripId = docRef.id;
+          }
+        } catch (e) {}
+      }
+
       const record = {
-        id: tripId,
+        id: finalTripId,
         userEmail: email,
-        destination: plan?.destination || tripData?.destination || tripData?.toLocation?.name || "Trip",
-        tripData: { ...tripData, aiTripPlan: plan },
+        destination: destTitle,
+        tripData: { ...tripData, id: finalTripId, aiTripPlan: plan },
         aiTripPlan: plan,
-        createdAt: new Date().toISOString(),
+        createdAt: createdAtIso,
       };
 
       const raw = await AsyncStorage.getItem("@goguide_user_trips");
       const list = raw ? JSON.parse(raw) : [];
-      const updated = [record, ...list.filter((t) => t.id !== tripId)];
+      const updated = [
+        record,
+        ...(Array.isArray(list) ? list : []).filter((t) => {
+          const tDest = String(
+            t?.aiTripPlan?.destination || t?.destination || t?.toLocation?.name || ""
+          )
+            .toLowerCase()
+            .trim();
+          return t.id !== finalTripId && t.id !== initialId && (!destNorm || tDest !== destNorm);
+        }),
+      ];
       await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updated));
-
-      if (user?.email) {
-        try {
-          await addDoc(collection(db, "UserTrips"), {
-            userEmail: user.email,
-            tripData: record.tripData,
-            createdAt: new Date().toISOString(),
-          });
-        } catch (e) {}
-      }
+      setUserTripsList(updated);
+      setActiveTripId(finalTripId);
 
       setIsSavedToTripsLocal(true);
       if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -274,15 +296,16 @@ export default function MyTrip() {
 
   const GetMyTrips = async () => {
     try {
-      let allTrips = [];
+      let localList = [];
       const storedLocal = await AsyncStorage.getItem("@goguide_user_trips");
       if (storedLocal) {
         try {
           const parsedLocal = JSON.parse(storedLocal);
-          if (Array.isArray(parsedLocal)) allTrips = parsedLocal;
+          if (Array.isArray(parsedLocal)) localList = parsedLocal;
         } catch (e) {}
       }
 
+      let remoteTrips = [];
       const user = auth.currentUser;
       if (user?.email) {
         try {
@@ -293,32 +316,48 @@ export default function MyTrip() {
             limit(15)
           );
           const querySnapshot = await getDocs(q);
-          const remoteTrips = [];
-          querySnapshot.forEach((doc) => {
-            const d = doc.data();
+          querySnapshot.forEach((docSnap) => {
+            const d = docSnap.data();
             remoteTrips.push({
-              id: doc.id,
-              ...d.tripData,
+              id: docSnap.id,
+              ...(d.tripData || {}),
+              aiTripPlan: d.aiTripPlan || d.tripData?.aiTripPlan,
               createdAt: d.createdAt,
             });
           });
-
-          if (remoteTrips.length > 0) {
-            const remoteDestKeys = new Set(
-              remoteTrips.map((r) => r.aiTripPlan?.destination || r.destination || r.id)
-            );
-            const nonDuplicates = allTrips.filter(
-              (l) => !remoteDestKeys.has(l.aiTripPlan?.destination || l.destination || l.id)
-            );
-            allTrips = [...remoteTrips, ...nonDuplicates];
-          }
         } catch (fbErr) {
           console.log("Firestore trips query:", fbErr?.message);
         }
       }
 
-      if (allTrips.length > 0) {
-        setUserTripsList(allTrips);
+      // Deduplicate across remote + local by both ID and normalized destination name
+      const seenIds = new Set();
+      const seenDests = new Set();
+      const dedupedTrips = [];
+      [...remoteTrips, ...localList].forEach((t) => {
+        const destName =
+          t?.aiTripPlan?.destination ||
+          t?.toLocation?.name ||
+          t?.destination ||
+          t?.locationInfo?.name ||
+          "";
+        if (!destName) return;
+        const destNorm = String(destName).toLowerCase().trim();
+        const idStr = t.id ? String(t.id) : "";
+        if ((idStr && seenIds.has(idStr)) || seenDests.has(destNorm)) {
+          return;
+        }
+        if (idStr) seenIds.add(idStr);
+        seenDests.add(destNorm);
+        dedupedTrips.push(t);
+      });
+
+      if (localList.length > dedupedTrips.length) {
+        AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(dedupedTrips)).catch(() => {});
+      }
+
+      if (dedupedTrips.length > 0) {
+        setUserTripsList(dedupedTrips);
       }
     } catch (e) {
       console.log("Error loading trips:", e);
@@ -609,7 +648,11 @@ export default function MyTrip() {
     }
 
     const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}&travelmode=driving`;
-    Linking.openURL(routeUrl);
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.open(routeUrl, "_blank", "noopener,noreferrer");
+    } else {
+      Linking.openURL(routeUrl);
+    }
   };
 
   // 4. Direct Turn-by-Turn Navigation for individual place
@@ -622,7 +665,11 @@ export default function MyTrip() {
       dest = encodeURIComponent(placeName + " " + (plan?.destination || ""));
     }
     const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-    Linking.openURL(dirUrl);
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.open(dirUrl, "_blank", "noopener,noreferrer");
+    } else {
+      Linking.openURL(dirUrl);
+    }
   };
 
   const openInMaps = (placeName, coordinates) => {
@@ -633,7 +680,11 @@ export default function MyTrip() {
     } else {
       url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName + " " + (plan?.destination || ""))}`;
     }
-    Linking.openURL(url);
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      Linking.openURL(url);
+    }
   };
 
   const openBookingCom = (hotelName) => {
@@ -641,7 +692,11 @@ export default function MyTrip() {
     const dest = plan?.destination || tripData?.destination || "";
     const query = encodeURIComponent(`${hotelName} ${dest}`.trim());
     const bookingUrl = `https://www.booking.com/searchresults.html?ss=${query}`;
-    Linking.openURL(bookingUrl);
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.open(bookingUrl, "_blank", "noopener,noreferrer");
+    } else {
+      Linking.openURL(bookingUrl);
+    }
   };
 
   // Synchronize trip modifications across Active State, Local Storage, and Cloud Firestore
@@ -1090,12 +1145,13 @@ export default function MyTrip() {
             style={styles.heroImage} 
             fallbackUri={getDestinationImage(plan?.destination || tripData?.locationInfo?.name)}
           />
-          <View style={styles.heroGradient} />
+          <View style={styles.heroGradient} pointerEvents="none" />
           <TouchableOpacity
             style={{
               position: "absolute",
               top: 14,
               right: 60,
+              zIndex: 40,
               backgroundColor: isSavedToTripsLocal ? "#10B981" : "rgba(15, 23, 42, 0.75)",
               flexDirection: "row",
               alignItems: "center",
@@ -1124,7 +1180,7 @@ export default function MyTrip() {
               desc: `${plan?.duration || "Multi-Day"} curated itinerary in ${plan?.destination || "Destination"}`,
             }}
             size={18}
-            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19 }}
+            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19, zIndex: 50 }}
           />
           
           <View style={styles.heroGlassCard}>
@@ -1234,6 +1290,28 @@ export default function MyTrip() {
             <Ionicons name={isSavedToTripsLocal ? "checkmark-circle" : "bookmark"} size={17} color={isSavedToTripsLocal ? "#10B981" : Colors.PRIMARY} />
             <Text style={[styles.quickActionLabel, { color: isSavedToTripsLocal ? "#10B981" : theme.text }]}>
               {isSavedToTripsLocal ? "Saved in Trips ✅" : "Save to Trips"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.quickActionBtn, 
+              { backgroundColor: "rgba(10, 126, 164, 0.14)", borderWidth: 1, borderColor: "rgba(10, 126, 164, 0.35)" }
+            ]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setSelectedDayForRoute(
+                daysList[0] || {
+                  day: 1,
+                  theme: `${plan?.destination || "Destination"} Highlights`,
+                  activities: [{ placeName: plan?.destination || "City Center", time: "09:00 AM", details: "Main sightseeing route" }],
+                }
+              );
+            }}
+          >
+            <Ionicons name="navigate-circle" size={18} color={Colors.PRIMARY} />
+            <Text style={[styles.quickActionLabel, { color: Colors.PRIMARY, fontFamily: "Outfit-Bold" }]}>
+              Live Routes
             </Text>
           </TouchableOpacity>
 
@@ -1880,6 +1958,7 @@ export default function MyTrip() {
       <DayRouteModal
         visible={!!selectedDayForRoute}
         day={selectedDayForRoute}
+        allDays={daysList}
         destination={plan?.destination}
         onClose={() => setSelectedDayForRoute(null)}
         theme={theme}

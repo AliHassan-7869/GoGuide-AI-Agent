@@ -102,8 +102,9 @@ export default function Profile() {
       }
     }
 
-    // Merge remote and local trips without duplicates
-    const seenKeys = new Set();
+    // Merge remote and local trips without duplicates (by ID and normalized destination)
+    const seenIds = new Set();
+    const seenDests = new Set();
     const mergedTrips = [];
     [...remoteTrips, ...localTrips].forEach((t) => {
       const destName =
@@ -112,15 +113,23 @@ export default function Profile() {
         t?.destination ||
         t?.locationInfo?.name ||
         "";
-      if (destName) {
-        uniqueDestinations.add(destName.split(",")[0].trim());
+      if (!destName) return;
+      const destNorm = destName.toLowerCase().trim();
+      const idKey = t.id ? String(t.id) : "";
+      uniqueDestinations.add(destName.split(",")[0].trim());
+
+      if ((idKey && seenIds.has(idKey)) || seenDests.has(destNorm)) {
+        return;
       }
-      const key = t.id || `${destName}_${t.createdAt || ""}`;
-      if (!seenKeys.has(key) && destName) {
-        seenKeys.add(key);
-        mergedTrips.push(t);
-      }
+      if (idKey) seenIds.add(idKey);
+      seenDests.add(destNorm);
+      mergedTrips.push(t);
     });
+
+    // Self-heal local storage if duplicates existed
+    if (localTrips.length > mergedTrips.length) {
+      AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(mergedTrips)).catch(() => {});
+    }
 
     // Query bookings count
     let bookingsCount = 0;
@@ -285,6 +294,18 @@ export default function Profile() {
 
     const proceedDelete = async () => {
       try {
+        const targetDestNorm = String(destTitle || "").toLowerCase().trim();
+        const getTripDestNorm = (t) =>
+          String(
+            t?.aiTripPlan?.destination ||
+              t?.destination ||
+              t?.toLocation?.name ||
+              t?.locationInfo?.name ||
+              ""
+          )
+            .toLowerCase()
+            .trim();
+
         if (tripToDelete.id) {
           try {
             await deleteDoc(doc(db, "UserTrips", String(tripToDelete.id)));
@@ -296,7 +317,10 @@ export default function Profile() {
           const list1 = JSON.parse(stored1);
           if (Array.isArray(list1)) {
             const filtered1 = list1.filter(
-              (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+              (t) =>
+                t.id !== tripToDelete.id &&
+                t.createdAt !== tripToDelete.createdAt &&
+                (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
             );
             await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(filtered1));
           }
@@ -307,7 +331,10 @@ export default function Profile() {
           const list2 = JSON.parse(stored2);
           if (Array.isArray(list2)) {
             const filtered2 = list2.filter(
-              (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+              (t) =>
+                t.id !== tripToDelete.id &&
+                t.createdAt !== tripToDelete.createdAt &&
+                (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
             );
             await AsyncStorage.setItem("@goguide_local_trips", JSON.stringify(filtered2));
           }
@@ -315,7 +342,10 @@ export default function Profile() {
 
         setSavedTripsList((prev) => {
           const next = prev.filter(
-            (t) => t.id !== tripToDelete.id && t.createdAt !== tripToDelete.createdAt
+            (t) =>
+              t.id !== tripToDelete.id &&
+              t.createdAt !== tripToDelete.createdAt &&
+              (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
           );
           setStats((s) => ({ ...s, trips: next.length }));
           return next;

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -17,6 +17,7 @@ import { Colors } from "../constants/constants";
 import { useTheme } from "../constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../FavoriteHeartButton";
+import DayRouteModal from "./DayRouteModal";
 
 const { width } = Dimensions.get("window");
 
@@ -166,10 +167,68 @@ const FEATURE_PILLS = [
   },
 ];
 
+const DEFAULT_LIVE_ROUTE_DAYS = [
+  {
+    day: 1,
+    theme: "Dubai Downtown & Iconic Skyline Route",
+    activities: [
+      {
+        time: "09:30 AM",
+        placeName: "Burj Khalifa & Dubai Mall",
+        details: "Start at the world's tallest tower and observation deck in Downtown Dubai.",
+        coordinates: { lat: 25.1972, lng: 55.2744 },
+      },
+      {
+        time: "01:30 PM",
+        placeName: "Museum of the Future",
+        details: "Explore futuristic exhibitions along Sheikh Zayed Road.",
+        coordinates: { lat: 25.2192, lng: 55.2819 },
+      },
+      {
+        time: "05:30 PM",
+        placeName: "Palm Jumeirah & The Pointe",
+        details: "Sunset views over the Arabian Gulf and Atlantis skyline.",
+        coordinates: { lat: 25.1124, lng: 55.139 },
+      },
+      {
+        time: "08:00 PM",
+        placeName: "Dubai Marina Yacht Promenade",
+        details: "Evening waterfront dinner cruise and illuminated marina walk.",
+        coordinates: { lat: 25.0805, lng: 55.1403 },
+      },
+    ],
+  },
+  {
+    day: 2,
+    theme: "Old Dubai Heritage & Creek Route",
+    activities: [
+      {
+        time: "10:00 AM",
+        placeName: "Al Fahidi Historical Neighbourhood",
+        details: "Traditional wind-tower alleys, cultural cafes, and heritage galleries.",
+        coordinates: { lat: 25.2633, lng: 55.2972 },
+      },
+      {
+        time: "01:00 PM",
+        placeName: "Dubai Creek Abra Crossing & Gold Souk",
+        details: "Ride a traditional wooden boat across the creek to the historic souks.",
+        coordinates: { lat: 25.2697, lng: 55.2962 },
+      },
+      {
+        time: "05:00 PM",
+        placeName: "Dubai Frame & Zabeel Park",
+        details: "Panoramic glass bridge connecting Old and New Dubai.",
+        coordinates: { lat: 25.2355, lng: 55.3003 },
+      },
+    ],
+  },
+];
+
 export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDeleteTrip }) {
   const router = useRouter();
   const theme = useTheme();
   const { setTripData } = useContext(CreateTripContext);
+  const [liveRouteConfig, setLiveRouteConfig] = useState(null);
 
   const activeAccent = Colors.PRIMARY || "#0A7EA4";
 
@@ -177,6 +236,26 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (e) {}
+  };
+
+  const openTripLiveRoutes = (tripObj) => {
+    triggerHaptic();
+    const plan = tripObj?.aiTripPlan || tripObj?.tripData?.aiTripPlan || tripObj;
+    const days = Array.isArray(plan?.itinerary) && plan.itinerary.length > 0
+      ? plan.itinerary
+      : DEFAULT_LIVE_ROUTE_DAYS;
+    const dest =
+      plan?.destination ||
+      tripObj?.destination ||
+      tripObj?.toLocation?.name ||
+      tripObj?.locationInfo?.name ||
+      "Dubai, United Arab Emirates";
+
+    setLiveRouteConfig({
+      day: days[0],
+      allDays: days,
+      destination: dest,
+    });
   };
 
   const handleSelectDestination = (item) => {
@@ -218,47 +297,9 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
     }
     if (item.id === "routes") {
       if (userTrips && userTrips.length > 0) {
-        if (userTrips.length === 1) {
-          onSelectTrip && onSelectTrip(userTrips[0]);
-        } else {
-          Alert.alert(
-            "Live Multi-Stop Routes",
-            "Choose a trip to open its turn-by-turn Google Maps itinerary routes:",
-            [
-              ...userTrips.slice(0, 3).map((trip) => {
-                const dest =
-                  trip.aiTripPlan?.destination ||
-                  trip.tripData?.locationInfo?.name ||
-                  "My Trip";
-                return {
-                  text: `📍 ${dest.split(",")[0]}`,
-                  onPress: () => onSelectTrip && onSelectTrip(trip),
-                };
-              }),
-              {
-                text: "Explore Destinations",
-                onPress: () => router.push("/explore"),
-              },
-              { text: "Cancel", style: "cancel" },
-            ]
-          );
-        }
+        openTripLiveRoutes(userTrips[0]);
       } else {
-        Alert.alert(
-          "Live Multi-Stop Routes",
-          "Every AI trip generates interactive multi-stop Google Maps routes with driving and walking navigation for each day. Explore destinations or plan your first trip now!",
-          [
-            {
-              text: "Explore Destinations",
-              onPress: () => router.push("/explore"),
-            },
-            {
-              text: "Plan a Trip",
-              onPress: () => router.push("/create-trip/search-place"),
-            },
-            { text: "Cancel", style: "cancel" },
-          ]
-        );
+        openTripLiveRoutes(null);
       }
       return;
     }
@@ -319,18 +360,28 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                     <View style={{ position: "absolute", top: 10, left: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
                       <Text style={{ color: "#FFF", fontSize: 10, fontFamily: "Outfit-Bold" }}>{budget}</Text>
                     </View>
+                    <FavoriteHeartButton
+                      place={{
+                        name: destTitle,
+                        tag: budget,
+                        img: rawImg,
+                        desc: `${duration} itinerary in ${destTitle}`,
+                      }}
+                      size={14}
+                      style={{ position: "absolute", top: 10, right: onDeleteTrip ? 44 : 10, width: 28, height: 28, borderRadius: 14 }}
+                    />
                     {onDeleteTrip && (
                       <TouchableOpacity
                         onPress={(e) => {
                           e.stopPropagation();
                           onDeleteTrip(t);
                         }}
-                        style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(239,68,68,0.85)", alignItems: "center", justifyContent: "center" }}
+                        style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(239,68,68,0.85)", alignItems: "center", justifyContent: "center", zIndex: 20 }}
                       >
                         <Ionicons name="trash-outline" size={14} color="#FFF" />
                       </TouchableOpacity>
                     )}
-                    <View style={{ position: "absolute", bottom: 10, left: 12, right: 12 }}>
+                    <View style={{ position: "absolute", bottom: 10, left: 12, right: 12 }} pointerEvents="none">
                       <Text style={{ color: "#FFF", fontSize: 16, fontFamily: "Outfit-Bold" }} numberOfLines={1}>
                         {destTitle}
                       </Text>
@@ -340,8 +391,28 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                     </View>
                   </View>
                   <View style={{ padding: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <Text style={{ color: activeAccent, fontSize: 12, fontFamily: "Outfit-Bold" }}>Open Itinerary</Text>
-                    <Ionicons name="arrow-forward" size={15} color={activeAccent} />
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={{ color: activeAccent, fontSize: 12, fontFamily: "Outfit-Bold" }}>Open Itinerary</Text>
+                      <Ionicons name="arrow-forward" size={14} color={activeAccent} style={{ marginLeft: 4 }} />
+                    </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openTripLiveRoutes(t);
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: "rgba(139, 92, 246, 0.14)",
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="map" size={12} color="#8B5CF6" style={{ marginRight: 4 }} />
+                      <Text style={{ color: "#8B5CF6", fontSize: 11, fontFamily: "Outfit-Bold" }}>Live Route</Text>
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               );
@@ -588,6 +659,16 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
           <Text style={styles.inspireBtnText}>Chat AI</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Live Interactive Google Maps Route Modal */}
+      <DayRouteModal
+        visible={!!liveRouteConfig}
+        day={liveRouteConfig?.day}
+        allDays={liveRouteConfig?.allDays || []}
+        destination={liveRouteConfig?.destination}
+        onClose={() => setLiveRouteConfig(null)}
+        theme={theme}
+      />
     </View>
   );
 }

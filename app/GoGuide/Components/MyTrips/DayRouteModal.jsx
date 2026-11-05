@@ -30,16 +30,27 @@ function computeDistanceKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * c * 10) / 10;
 }
 
-export default function DayRouteModal({ visible, day, destination, onClose, theme }) {
+export default function DayRouteModal({
+  visible,
+  day,
+  allDays = [],
+  destination,
+  onClose,
+  theme,
+}) {
   const [selectedStopIdx, setSelectedStopIdx] = useState(0);
+  const [activeDayObj, setActiveDayObj] = useState(day || allDays?.[0] || null);
 
   useEffect(() => {
+    setActiveDayObj(day || allDays?.[0] || null);
     setSelectedStopIdx(0);
-  }, [day?.day, visible]);
+  }, [day, visible]);
 
-  if (!day) return null;
+  const currentDay = activeDayObj || day || allDays?.[0];
+  if (!currentDay) return null;
 
-  const activities = day.activities || [];
+  const activities = currentDay.activities || [];
+  const daysSelectorList = Array.isArray(allDays) && allDays.length > 1 ? allDays : [];
 
   const triggerHaptic = () => {
     try {
@@ -49,10 +60,24 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
     } catch (e) {}
   };
 
+  const openExternalUrl = (url) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      Linking.openURL(url);
+    }
+  };
+
   // Launch full multi-stop navigation in Google Maps
   const openFullDayRoute = () => {
     triggerHaptic();
-    if (activities.length === 0) return;
+    if (activities.length === 0) {
+      const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        destination || "Top Attractions"
+      )}`;
+      openExternalUrl(fallbackUrl);
+      return;
+    }
 
     const origin = encodeURIComponent(
       activities[0].placeName + " " + (destination || "")
@@ -71,7 +96,7 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
     }
 
     const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypointsParam}&travelmode=driving`;
-    Linking.openURL(routeUrl);
+    openExternalUrl(routeUrl);
   };
 
   // Open single stop directions
@@ -83,7 +108,7 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
     } else {
       query = encodeURIComponent(act.placeName + " " + (destination || ""));
     }
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
+    openExternalUrl(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
   };
 
   // Build 100% Free Keyless Google Maps Live Interactive Embed URL for the active stop or destination
@@ -118,14 +143,14 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
           <View style={{ flex: 1 }}>
             <View style={styles.badgeRow}>
               <View style={styles.dayPill}>
-                <Text style={styles.dayPillText}>Day {day.day}</Text>
+                <Text style={styles.dayPillText}>Day {currentDay.day}</Text>
               </View>
               <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
-                {activities.length} Stops Planned
+                {activities.length} Stops Planned {destination ? `• ${destination}` : ""}
               </Text>
             </View>
             <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-              {day.theme || "Daily Route Overview"}
+              {currentDay.theme || "Daily Route Overview"}
             </Text>
           </View>
 
@@ -138,6 +163,48 @@ export default function DayRouteModal({ visible, day, destination, onClose, them
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Day Switcher Pills when multiple days are available */}
+          {daysSelectorList.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 14 }}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {daysSelectorList.map((dItem, dIdx) => {
+                const isDayActive = String(currentDay.day) === String(dItem.day);
+                return (
+                  <TouchableOpacity
+                    key={dItem.day || dIdx}
+                    onPress={() => {
+                      triggerHaptic();
+                      setActiveDayObj(dItem);
+                      setSelectedStopIdx(0);
+                    }}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 16,
+                      backgroundColor: isDayActive ? Colors.PRIMARY : theme.card,
+                      borderWidth: 1,
+                      borderColor: isDayActive ? Colors.PRIMARY : theme.border,
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "Outfit-Bold",
+                        color: isDayActive ? "#FFFFFF" : theme.text,
+                      }}
+                    >
+                      Day {dItem.day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
           {/* Live Interactive Google Maps Embed on Web or Visual GPS Banner on Native */}
           {Platform.OS === "web" ? (
             <View style={styles.mapFrameWrapper}>

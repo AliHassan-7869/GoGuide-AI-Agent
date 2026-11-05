@@ -99,12 +99,13 @@ export async function toggleFavoritePlace(place) {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const favorites = raw ? JSON.parse(raw) : [];
 
-    const placeKey = String(place.id || place.name || place.title || Date.now());
+    const placeKey = String(place.id || place.name || place.title || Date.now()).trim();
+    const placeKeyLower = placeKey.toLowerCase();
     const existingIndex = favorites.findIndex(
       (f) =>
-        (f.id && String(f.id) === placeKey) ||
-        (f.name && String(f.name) === String(place.name)) ||
-        (f.title && String(f.title) === String(place.title))
+        (f.id && String(f.id).toLowerCase().trim() === placeKeyLower) ||
+        (f.name && String(f.name).toLowerCase().trim() === String(place.name || "").toLowerCase().trim()) ||
+        (f.title && String(f.title).toLowerCase().trim() === String(place.title || "").toLowerCase().trim())
     );
 
     let isNowFav = false;
@@ -121,8 +122,12 @@ export async function toggleFavoritePlace(place) {
         name: place.name || place.title || "Scenic Place",
         title: place.title || place.name || "Scenic Place",
         description: place.desc || place.description || "Top rated destination to explore",
-        image: place.image || place.photoRef || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop",
-        category: place.category || "Must Visit",
+        image:
+          place.image ||
+          place.img ||
+          place.photoRef ||
+          "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop",
+        category: place.category || place.tag || "Must Visit",
         rating: place.rating || "4.8",
         addedAt: new Date().toISOString(),
       };

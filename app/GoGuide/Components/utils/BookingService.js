@@ -118,39 +118,66 @@ export async function saveTripToBookings(tripData, authUser) {
     }
   }
 
-  // 5. Automatically ensure this trip is saved in My Trips (@goguide_user_trips and UserTrips)
+  // 5. Automatically ensure this trip is saved in My Trips (@goguide_user_trips and UserTrips) without duplicates
   try {
     const rawTrips = await AsyncStorage.getItem("@goguide_user_trips");
     const existingTrips = rawTrips ? JSON.parse(rawTrips) : [];
-    const tripId = tripData?.id || `trip_${Date.now()}`;
-    const tripRecord = {
-      id: tripId,
-      userEmail: userEmail,
-      tripData: tripData,
-      ...tripData,
-      createdAt: tripData?.createdAt || new Date().toISOString(),
-    };
+    const destNorm = destName.toLowerCase().trim();
+    let finalTripId = tripData?.id || `trip_${Date.now()}`;
 
-    const isAlreadySaved = existingTrips.some(
-      (t) => (t.id && t.id === tripId) || 
-             (t.aiTripPlan?.destination && t.aiTripPlan.destination === destName)
-    );
+    const isAlreadySaved = existingTrips.some((t) => {
+      const tDest = (
+        t?.aiTripPlan?.destination ||
+        t?.tripData?.aiTripPlan?.destination ||
+        t?.destination ||
+        t?.toLocation?.name ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+      return (t.id && String(t.id) === String(finalTripId)) || (destNorm && tDest === destNorm);
+    });
 
     if (!isAlreadySaved) {
-      const updatedTrips = [tripRecord, ...existingTrips];
-      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedTrips));
-
       if (authUser?.email) {
         try {
-          await addDoc(collection(db, "UserTrips"), {
+          const docRef = await addDoc(collection(db, "UserTrips"), {
             userEmail: authUser.email,
-            tripData: tripData,
+            tripData: { ...tripData, id: finalTripId },
             createdAt: new Date().toISOString(),
           });
+          if (docRef?.id) {
+            finalTripId = docRef.id;
+          }
         } catch (fbTripErr) {
           console.warn("Could not sync trip to Firestore:", fbTripErr);
         }
       }
+
+      const tripRecord = {
+        id: finalTripId,
+        userEmail: userEmail,
+        destination: destName,
+        tripData: { ...tripData, id: finalTripId },
+        ...tripData,
+        createdAt: tripData?.createdAt || new Date().toISOString(),
+      };
+
+      const updatedTrips = [
+        tripRecord,
+        ...existingTrips.filter((t) => {
+          const tDest = (
+            t?.aiTripPlan?.destination ||
+            t?.tripData?.aiTripPlan?.destination ||
+            t?.destination ||
+            ""
+          )
+            .toLowerCase()
+            .trim();
+          return String(t.id) !== String(finalTripId) && (!destNorm || tDest !== destNorm);
+        }),
+      ];
+      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedTrips));
     }
   } catch (tripErr) {
     console.warn("Could not ensure trip saved:", tripErr);

@@ -395,36 +395,53 @@ export default function SharedTripView() {
       const tripId = targetId || `trip_${Date.now()}`;
       const user = auth.currentUser;
       const email = user?.email || "traveler@goguide.com";
-      const recordToSave = {
-        id: tripId,
-        userEmail: email,
-        destination: tripPlan.destination,
-        tripData: { ...tripPlan, aiTripPlan: tripPlan },
-        aiTripPlan: tripPlan,
-        createdAt: new Date().toISOString(),
-      };
+      let finalTripId = tripId;
+      const createdAtIso = new Date().toISOString();
 
-      // 1. Cache as active trip
-      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(recordToSave));
-
-      // 2. Add to @goguide_user_trips (My Trips)
-      const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
-      const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
-      const updatedList = [recordToSave, ...existingTrips.filter((t) => t.id !== tripId)];
-      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
-
-      // 3. Sync to Firebase UserTrips if authenticated
+      // 1. Sync to Firebase UserTrips if authenticated first so local & cloud share the exact same ID
       if (user?.email) {
         try {
-          await addDoc(collection(db, "UserTrips"), {
+          const docRef = await addDoc(collection(db, "UserTrips"), {
             userEmail: user.email,
-            tripData: recordToSave.tripData,
-            createdAt: new Date().toISOString(),
+            tripData: { ...tripPlan, aiTripPlan: tripPlan },
+            createdAt: createdAtIso,
           });
+          if (docRef?.id) {
+            finalTripId = docRef.id;
+          }
         } catch (fbErr) {
           console.warn("Could not sync trip to Firebase:", fbErr);
         }
       }
+
+      const recordToSave = {
+        id: finalTripId,
+        userEmail: email,
+        destination: tripPlan.destination,
+        tripData: { ...tripPlan, id: finalTripId, aiTripPlan: tripPlan },
+        aiTripPlan: tripPlan,
+        createdAt: createdAtIso,
+      };
+
+      // 2. Cache as active trip
+      await AsyncStorage.setItem("@goguide_cached_trip", JSON.stringify(recordToSave));
+
+      // 3. Add to @goguide_user_trips (My Trips) deduplicating by both ID and destination name
+      const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
+      const existingTrips = storedTripsRaw ? JSON.parse(storedTripsRaw) : [];
+      const destNorm = String(tripPlan.destination || "").toLowerCase().trim();
+      const updatedList = [
+        recordToSave,
+        ...(Array.isArray(existingTrips) ? existingTrips : []).filter((t) => {
+          const tDest = String(
+            t?.aiTripPlan?.destination || t?.destination || t?.toLocation?.name || ""
+          )
+            .toLowerCase()
+            .trim();
+          return t.id !== finalTripId && t.id !== tripId && (!destNorm || tDest !== destNorm);
+        }),
+      ];
+      await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(updatedList));
 
       setIsSavedInTrips(true);
       setIsDraft(false);
@@ -615,7 +632,7 @@ export default function SharedTripView() {
         {/* Hero Destination Banner */}
         <View style={styles.heroWrap}>
           <Image source={{ uri: heroImage }} style={styles.heroImage} />
-          <View style={styles.heroGradient} />
+          <View style={styles.heroGradient} pointerEvents="none" />
           <FavoriteHeartButton
             place={{
               name: destination,
@@ -624,7 +641,7 @@ export default function SharedTripView() {
               desc: `${tripPlan?.duration || "Multi-Day"} curated itinerary in ${destination}`,
             }}
             size={18}
-            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19 }}
+            style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19, zIndex: 50 }}
           />
 
           <View style={styles.heroTextContent}>
