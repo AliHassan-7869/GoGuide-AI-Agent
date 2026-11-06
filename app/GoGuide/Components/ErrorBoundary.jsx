@@ -28,7 +28,7 @@ export class ErrorBoundary extends React.Component {
     // Production Telemetry: Log to Firestore AppErrors collection
     try {
       const errorReport = {
-        message: String(error?.message || error || "Unknown error"),
+        message: String(error?.message || error || "Unknown error").slice(0, 900),
         stack: String(error?.stack || "").slice(0, 1500),
         componentStack: String(errorInfo?.componentStack || "").slice(0, 1500),
         platform: Platform.OS,

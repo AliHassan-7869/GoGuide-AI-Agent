@@ -260,7 +260,7 @@ export default function SearchPlace() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header & Back Button */}

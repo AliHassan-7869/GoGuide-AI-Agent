@@ -498,7 +498,7 @@ export default function Preferences() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "ios" ? 54 : 40,
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row",

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "@/Components/constants/constants";
 import PolicyModal from "../../../Components/PolicyModal";
 import { auth } from "@/Configs/FirebaseConfig";
@@ -5,7 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View, Linking } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 export default function Signup() {
@@ -167,6 +168,11 @@ export default function Signup() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.card}>
         {/* Back */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -327,6 +333,7 @@ export default function Signup() {
         onClose={() => setPolicyModal({ visible: false, type: "terms" })}
       />
     </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

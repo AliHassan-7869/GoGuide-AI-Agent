@@ -16,4 +16,5 @@ services:
       - key: FIREBASE_PROJECT_ID
         value: goguideai
       - key: ALLOWED_ORIGINS
-        value: "*"
+        # Production web origin(s), comma-separated. Native apps don't send an Origin, so they are unaffected.
+        value: "https://dist-seven-tau-79.vercel.app"

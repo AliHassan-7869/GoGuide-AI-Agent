@@ -143,7 +143,7 @@ export default function HelpCenter() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       {/* Header */}
       <View
         style={[
@@ -630,7 +630,7 @@ export default function HelpCenter() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "ios" ? 54 : 40,
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row",

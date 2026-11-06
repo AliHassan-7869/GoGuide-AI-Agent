@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, FlatList, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
@@ -30,6 +30,17 @@ export default function AiAssistant() {
   const { tripData, userData } = useContext(CreateTripContext);
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
+
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKbHeight(e.endCoordinates?.height || 0);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const safeTopPadding = Platform.select({
     android: insets.top + 4,
@@ -414,7 +425,7 @@ export default function AiAssistant() {
 
       {/* Chat Thread */}
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, paddingBottom: Platform.OS === "android" ? kbHeight : 0 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
@@ -423,6 +434,8 @@ export default function AiAssistant() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessageItem}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />

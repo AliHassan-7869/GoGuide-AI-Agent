@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs } from "expo-router";
-import { useContext } from "react";
-import { Platform } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { useContext, useEffect, useRef } from "react";
+import { BackHandler, Platform, ToastAndroid } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../Components/constants/constants";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -10,6 +10,22 @@ export default function TabLayout() {
   const { preferences } = useContext(CreateTripContext);
   const insets = useSafeAreaInsets();
   const isDark = preferences?.darkMode;
+  const router = useRouter();
+  const lastBack = useRef(0);
+
+  // Android: back on a root tab needs a second press within 2s to exit (modals handle their own back first)
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (router.canGoBack()) return false; // let navigation / modals handle it
+      const now = Date.now();
+      if (now - lastBack.current < 2000) return false;
+      lastBack.current = now;
+      ToastAndroid.show("Press back again to exit", ToastAndroid.SHORT);
+      return true;
+    });
+    return () => sub.remove();
+  }, [router]);
 
   const bottomInset = Platform.select({
     ios: Math.max(insets.bottom, 20),

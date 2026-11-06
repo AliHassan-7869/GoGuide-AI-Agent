@@ -110,6 +110,31 @@ const FEED_FILTER_CHIPS = [
   { id: "history", label: "🏛️ History" },
 ];
 
+// Minimal offline itinerary used when the AI response cannot be parsed
+function buildOfflinePlan(destination, days, budget) {
+  const name = (destination || "Your Destination").split(",")[0].trim();
+  const n = Math.min(30, Math.max(1, parseInt(days, 10) || 3));
+  const itinerary = Array.from({ length: n }, (_, i) => ({
+    day: i + 1,
+    theme: i === 0 ? `Arrive & Explore ${name}` : `Discover ${name} - Day ${i + 1}`,
+    activities: [
+      { time: "09:30 AM", placeName: `${name} Old Town & Landmarks`, details: `Guided walk through the most iconic sights of ${name}.`, tickets: "Free" },
+      { time: "01:30 PM", placeName: `Local Cuisine in ${name}`, details: "Lunch at a well-reviewed local restaurant.", tickets: "Pay per dish" },
+      { time: "06:30 PM", placeName: `${name} Sunset Viewpoint`, details: "Evening stroll and photos at a popular viewpoint.", tickets: "Free" },
+    ],
+  }));
+  return {
+    destination: destination || name,
+    duration: `${n} Days`,
+    budget: budget || "Moderate",
+    traveler: "Explorer",
+    weatherBrief: "Check the local forecast before you travel.",
+    flights: { details: `Round-trip flights to ${name}`, price: "Varies" },
+    hotels: [],
+    itinerary,
+  };
+}
+
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();

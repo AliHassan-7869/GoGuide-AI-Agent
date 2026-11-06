@@ -438,6 +438,7 @@ export default function Profile() {
   const tier = getExplorerTier();
 
   // Unified Calm Luxury Brand Icon Styling (Theme-aware)
+  const titleColor = theme.isDark ? theme.text : Colors.PRIMARY;
   const brandIconColor = theme.isDark ? "#38BDF8" : Colors.PRIMARY;
   const brandIconBg = theme.isDark ? "rgba(56, 189, 248, 0.12)" : "rgba(10, 126, 164, 0.08)";
   const brandBorderColor = theme.isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(10, 126, 164, 0.14)";
@@ -782,9 +783,9 @@ export default function Profile() {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="arrow-back" size={22} color={theme.text} />
+                <Ionicons name="arrow-back" size={22} color={titleColor} />
               </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
+              <Text style={[styles.modalTitle, { color: titleColor, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
                 My Trips
               </Text>
               <View style={[styles.modalBadge, { backgroundColor: brandIconBg, marginLeft: 8 }]}>
@@ -798,7 +799,7 @@ export default function Profile() {
               style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
               onPress={() => setShowSavedTripsModal(false)}
             >
-              <Ionicons name="close" size={20} color={theme.text} />
+              <Ionicons name="close" size={20} color={titleColor} />
             </TouchableOpacity>
           </View>
 
@@ -880,7 +881,7 @@ export default function Profile() {
                   <Ionicons name={tier.icon} size={20} color={tier.color} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: theme.text }}>
+                  <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: titleColor }}>
                     {tier.title} ({tier.level})
                   </Text>
                   <Text style={{ fontSize: 12, fontFamily: "Outfit-Regular", color: theme.subtext, marginTop: 2 }}>
@@ -895,7 +896,7 @@ export default function Profile() {
             {savedTripsList.length === 0 ? (
               <View style={styles.modalEmptyWrap}>
                 <Ionicons name="airplane-outline" size={54} color={theme.subtext} />
-                <Text style={[styles.modalEmptyTitle, { color: theme.text }]}>No Saved Trips Yet</Text>
+                <Text style={[styles.modalEmptyTitle, { color: titleColor }]}>No Saved Trips Yet</Text>
                 <Text style={[styles.modalEmptySub, { color: theme.subtext }]}>
                   Your generated itineraries will appear here with full offline access.
                 </Text>
@@ -933,7 +934,7 @@ export default function Profile() {
                     <Image source={{ uri: photo }} style={styles.tripItemImg} />
                     <View style={styles.tripItemBody}>
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <Text style={[styles.tripItemTitle, { color: theme.text }]} numberOfLines={1}>
+                        <Text style={[styles.tripItemTitle, { color: titleColor }]} numberOfLines={1}>
                           {dest}
                         </Text>
                         <TouchableOpacity
@@ -994,9 +995,9 @@ export default function Profile() {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="arrow-back" size={22} color={theme.text} />
+                <Ionicons name="arrow-back" size={22} color={titleColor} />
               </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
+              <Text style={[styles.modalTitle, { color: titleColor, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
                 Favourites
               </Text>
               <View style={[styles.modalBadge, { backgroundColor: "rgba(10, 126, 164, 0.12)", marginLeft: 8 }]}>
@@ -1009,7 +1010,7 @@ export default function Profile() {
               style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
               onPress={() => setShowFavoritesModal(false)}
             >
-              <Ionicons name="close" size={20} color={theme.text} />
+              <Ionicons name="close" size={20} color={titleColor} />
             </TouchableOpacity>
           </View>
 
@@ -1017,7 +1018,7 @@ export default function Profile() {
             {favoritePlacesList.length === 0 ? (
               <View style={styles.modalEmptyWrap}>
                 <Ionicons name="heart-dislike-outline" size={54} color={theme.subtext} />
-                <Text style={[styles.modalEmptyTitle, { color: theme.text }]}>No Favorite Places Yet</Text>
+                <Text style={[styles.modalEmptyTitle, { color: titleColor }]}>No Favorite Places Yet</Text>
                 <Text style={[styles.modalEmptySub, { color: theme.subtext }]}>
                   Browse destinations, beaches & mountains to save them to your wishlist.
                 </Text>
@@ -1041,7 +1042,7 @@ export default function Profile() {
                   <Image source={{ uri: place.image }} style={styles.tripItemImg} />
                   <View style={styles.tripItemBody}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Text style={[styles.tripItemTitle, { color: theme.text }]} numberOfLines={1}>
+                      <Text style={[styles.tripItemTitle, { color: titleColor }]} numberOfLines={1}>
                         {place.name || place.title}
                       </Text>
                       <TouchableOpacity
@@ -1098,7 +1099,7 @@ export default function Profile() {
                           router.push("/explore");
                         }}
                       >
-                        <Text style={[styles.openTripBtnText, { color: theme.text }]}>Explore</Text>
+                        <Text style={[styles.openTripBtnText, { color: titleColor }]}>Explore</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

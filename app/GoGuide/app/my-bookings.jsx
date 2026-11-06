@@ -162,7 +162,7 @@ export default function MyBookings() {
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 12 },
+          { paddingTop: Math.max(insets.top, 0) + 4 },
           {
             backgroundColor: theme.header,
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
@@ -173,14 +173,14 @@ export default function MyBookings() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={theme.isDark ? theme.text : activeAccent}
+            color={activeAccent}
           />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text
             style={[
               styles.headerTitle,
-              { color: theme.isDark ? theme.text : activeAccent },
+              { color: activeAccent },
             ]}
           >
             My Bookings
@@ -513,15 +513,15 @@ export default function MyBookings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "ios" ? 54 : 40,
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingBottom: 14,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
     borderBottomWidth: 1,
-    gap: 12,
+    gap: 8,
   },
   backButton: {
     width: 40,

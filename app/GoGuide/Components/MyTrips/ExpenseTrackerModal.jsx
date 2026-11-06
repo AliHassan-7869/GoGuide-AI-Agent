@@ -237,7 +237,7 @@ export default function ExpenseTrackerModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
           <View>
