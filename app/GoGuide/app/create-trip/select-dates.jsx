@@ -2,16 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import {
-  Dimensions,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -19,6 +10,7 @@ import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Lightweight, cross-platform calendar component (eliminates date-fns web bundler bug)
@@ -447,6 +439,7 @@ export default function SelectDates() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}
@@ -464,7 +457,7 @@ export default function SelectDates() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -748,6 +741,7 @@ export default function SelectDates() {
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

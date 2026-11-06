@@ -1,19 +1,11 @@
 import React from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 import { downloadItineraryPDF } from "../utils/PdfDownloadService";
 
+import { TouchableOpacity } from "../ui/Touchable";
 export default function PrintableItineraryModal({
   visible,
   plan,
@@ -54,7 +46,7 @@ export default function PrintableItineraryModal({
   const flightPrice = typeof flights === "object" ? flights?.price : null;
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"

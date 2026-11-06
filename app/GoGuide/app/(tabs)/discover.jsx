@@ -1,16 +1,4 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  Platform,
-  Modal,
-  ActivityIndicator,
-  StatusBar
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import React, { useContext, useState, useRef, useEffect } from "react";
@@ -31,6 +19,7 @@ import { toggleFavoritePlace, getFavoritePlaces, subscribeToFavorites } from "..
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
   const [currentUri, setCurrentUri] = useState(() => sanitizeImageUrl(sourceUri, fallbackUri));
@@ -128,7 +117,7 @@ export default function Discover() {
   const isDark = preferences?.darkMode;
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    android: insets.top + 8,
     ios: Math.max(insets.top, 44),
     default: 16,
   });
@@ -780,17 +769,17 @@ export default function Discover() {
             ];
 
             return (
-              <View style={{ marginTop: 10 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <View style={{ marginTop: 12, padding: 12, borderRadius: 16, borderWidth: 1, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: isDark ? "#3B3054" : "#DDD6FE" }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 4 }}>
                   <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: themeStyles.subTextColor }}>
                     DEPARTURE DATE:
                   </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#8B5CF6" }}>
+                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#8B5CF6", flexShrink: 1 }}>
                     🛫 {fmtShort(depObj)} ➔ 🛬 {fmtShort(retObj)}
                   </Text>
                 </View>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
                   {datePresets.map((dp) => {
                     const isSel = selectedDatePreset === dp.id;
                     return (
@@ -804,7 +793,6 @@ export default function Discover() {
                           paddingHorizontal: 10,
                           paddingVertical: 6,
                           borderRadius: 14,
-                          marginRight: 7,
                           borderWidth: 1,
                           backgroundColor: isSel ? "#8B5CF6" : isDark ? "#251F3A" : "#FFFFFF",
                           borderColor: isSel ? "#8B5CF6" : isDark ? "#3B3054" : "#DDD6FE",
@@ -823,7 +811,7 @@ export default function Discover() {
                       </TouchableOpacity>
                     );
                   })}
-                </ScrollView>
+                </View>
 
                 {selectedDatePreset === "custom" && (
                   <View
@@ -860,7 +848,11 @@ export default function Discover() {
           })()}
 
           {/* Quick-Vibe Prompt Cards */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vibeScroll}>
+          <View style={{ marginTop: 12, padding: 12, borderRadius: 16, borderWidth: 1, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: isDark ? "#3B3054" : "#DDD6FE" }}>
+          <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: themeStyles.subTextColor, marginBottom: 8 }}>
+            QUICK TRIP IDEAS:
+          </Text>
+          <View style={styles.vibeScroll}>
             {QUICK_AI_VIBES.map((vibe) => (
               <TouchableOpacity
                 key={vibe.id}
@@ -871,11 +863,12 @@ export default function Discover() {
                 <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
                   <Ionicons name={vibe.icon} size={15} color={vibe.color} />
                 </View>
-                <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={1}>{vibe.title}</Text>
-                <Text style={[styles.vibeCardTag, { color: vibe.color }]}>{vibe.tag}</Text>
+                <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={2}>{vibe.title}</Text>
+                <Text style={[styles.vibeCardTag, { color: vibe.color }]} numberOfLines={2}>{vibe.tag}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
+          </View>
         </View>
 
         {/* Regular Search Bar */}
@@ -1126,7 +1119,7 @@ export default function Discover() {
       </ScrollView>
 
       {/* 🔮 LIVE AI THINKING STREAM MODAL */}
-      <Modal visible={aiLoading} transparent={true} animationType="fade">
+      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => {}}>
         <View style={styles.aiModalOverlay}>
           <View style={[styles.aiModalContent, { backgroundColor: isDark ? "#1E1833" : "#FFFFFF" }]}>
             <View style={styles.aiPulseCircle}>
@@ -1183,7 +1176,7 @@ export default function Discover() {
 
       {/* Error Alert Modal if generation fails */}
       {aiError && (
-        <Modal visible={!!aiError} transparent={true} animationType="fade">
+        <Modal statusBarTranslucent visible={!!aiError} transparent={true} animationType="fade" onRequestClose={() => setAiError(null)}>
           <View style={styles.aiModalOverlay}>
             <View style={[styles.aiModalContent, { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" }]}>
               <Ionicons name="alert-circle-outline" size={36} color="#EF4444" />
@@ -1260,13 +1253,13 @@ const styles = StyleSheet.create({
   },
   aiSendBtnText: { color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold", marginLeft: 4 },
 
-  vibeScroll: { flexDirection: "row" },
+  vibeScroll: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10 },
   vibeCard: {
     borderRadius: 14,
     padding: 10,
     borderWidth: 1,
-    marginRight: 10,
-    width: 155,
+    width: "48%",
+    minWidth: 0,
   },
   vibeIconCircle: { width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center", marginBottom: 6 },
   vibeCardTitle: { fontSize: 13, fontFamily: "Outfit-Bold", marginBottom: 2 },

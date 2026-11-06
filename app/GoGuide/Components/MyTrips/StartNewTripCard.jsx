@@ -3,22 +3,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import {
-  Alert,
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/constants";
 import { useTheme } from "../constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../FavoriteHeartButton";
 import DayRouteModal from "./DayRouteModal";
 
+import { TouchableOpacity } from "../ui/Touchable";
 const { width } = Dimensions.get("window");
 
 // Curated Verified HD Destination Cards (1200px)

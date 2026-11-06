@@ -26,7 +26,8 @@
       "package": "com.arrehman.AiTravel_agent",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "platforms": [
       "ios",

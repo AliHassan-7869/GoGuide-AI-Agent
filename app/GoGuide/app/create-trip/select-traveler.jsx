@@ -2,14 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
-import {
-  FlatList,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -18,6 +11,7 @@ import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function SelectTraveler() {
   const router = useRouter();
   const theme = useTheme();

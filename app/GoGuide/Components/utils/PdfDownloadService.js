@@ -1,4 +1,5 @@
 import { Platform, Alert } from "react-native";
+import { shareLocalFile } from "./fileDownloader";
 
 /**
  * Robust, cross-platform jsPDF resolver:
@@ -881,7 +882,6 @@ export async function downloadItineraryPDF(plan, destinationName) {
     if (Platform.OS !== "web") {
       try {
         const Print = require("expo-print");
-        const Sharing = require("expo-sharing");
         const html = buildPrintableHtml(normalizedData);
 
         const { uri } = await Print.printToFileAsync({
@@ -889,18 +889,19 @@ export async function downloadItineraryPDF(plan, destinationName) {
           base64: false,
         });
 
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable && uri) {
-          await Sharing.shareAsync(uri, {
-            UTI: ".pdf",
-            mimeType: "application/pdf",
-            dialogTitle: `Save ${normalizedData.destination} Itinerary PDF`,
-          });
-          return true;
-        }
+        const shared = await shareLocalFile(uri, {
+          mimeType: "application/pdf",
+          dialogTitle: `Save ${normalizedData.destination} Itinerary PDF`,
+        });
+        if (shared.ok) return true;
       } catch (nativeErr) {
         console.warn("[PDF] Native mobile export notice:", nativeErr?.message);
       }
+    }
+
+    if (Platform.OS !== "web") {
+      Alert.alert("Notice", "Could not save the PDF on this device. Please try again.");
+      return false;
     }
 
     // 2. Web Browser: jsPDF Vector Generation + Direct Browser File Download

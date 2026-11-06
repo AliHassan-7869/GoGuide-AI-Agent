@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   getFavoritePlaces,
@@ -7,6 +7,7 @@ import {
   toggleFavoritePlace,
 } from "./utils/FavoriteService";
 
+import { TouchableOpacity } from "./ui/Touchable";
 export default function FavoriteHeartButton({
   item,
   place,

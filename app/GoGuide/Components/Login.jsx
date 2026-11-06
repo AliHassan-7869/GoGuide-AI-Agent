@@ -1,18 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Image,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Image, Platform, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 
+import { TouchableOpacity } from "./ui/Touchable";
 export default function Login() {
   const router = useRouter();
   const { height, width } = Dimensions.get("window");

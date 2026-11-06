@@ -1,16 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  StatusBar,
-} from 'react-native';
+import { openExternalUrl } from "../Components/utils/openExternalUrl";
+import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
@@ -21,6 +11,7 @@ import { CreateTripContext } from '../context/CreateTripContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../Configs/FirebaseConfig';
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 const QUICK_CITIES = [
   { name: "Tokyo", country: "Japan", lat: 35.6764, lng: 139.65 },
   { name: "Dubai", country: "UAE", lat: 25.2048, lng: 55.2708 },
@@ -49,7 +40,7 @@ export default function LocationPage() {
   const { userData, setUserData, uid } = useContext(CreateTripContext);
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    android: insets.top + 8,
     ios: Math.max(insets.top, 44),
     default: 16,
   });
@@ -297,7 +288,7 @@ export default function LocationPage() {
                   const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                     activeLocation.name
                   )}`;
-                  if (typeof window !== "undefined") window.open(url, "_blank");
+                  openExternalUrl(url);
                 }}
               >
                 <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
@@ -321,6 +312,33 @@ export default function LocationPage() {
               loading="lazy"
             />
           </View>
+        )}
+
+        {Platform.OS !== "web" && activeLocation?.name && (
+          <TouchableOpacity
+            onPress={() =>
+              openExternalUrl(
+                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeLocation.name)}`
+              )
+            }
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 48,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: theme.border,
+              backgroundColor: theme.card,
+              marginBottom: 22,
+              paddingHorizontal: 14,
+            }}
+          >
+            <Ionicons name="map" size={18} color={Colors.PRIMARY} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: Colors.PRIMARY, flexShrink: 1 }}>
+              Open {activeLocation.name.split(",")[0]} in Maps
+            </Text>
+          </TouchableOpacity>
         )}
 
         {/* Popular Travel Hubs Quick Chips */}

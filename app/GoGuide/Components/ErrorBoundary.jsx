@@ -1,19 +1,11 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, StatusBar, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../Configs/FirebaseConfig";
 
+import { TouchableOpacity } from "./ui/Touchable";
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);

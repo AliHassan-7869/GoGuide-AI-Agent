@@ -1,17 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Linking,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -34,6 +23,7 @@ import {
   convertAmount,
 } from "../Components/constants/Currency";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 // Curated default luxury itinerary if ID is preview or not found
 const DEMO_TRIP = {
   destination: "Dubai, United Arab Emirates",
@@ -128,6 +118,7 @@ const DEMO_TRIP = {
 };
 
 export default function SharedTripView() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
@@ -566,7 +557,7 @@ export default function SharedTripView() {
   return (
     <View style={styles.outerContainer}>
       {/* Top Navbar */}
-      <View style={styles.navbar}>
+      <View style={[styles.navbar, { paddingTop: Platform.OS === "web" ? 14 : insets.top + 8 }]}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
             style={styles.backNavBtn}

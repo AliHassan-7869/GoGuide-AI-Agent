@@ -1,18 +1,10 @@
 import React from "react";
-import {
-  Dimensions,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "./constants/constants";
 import { useTheme } from "./constants/theme";
 
+import { TouchableOpacity } from "./ui/Touchable";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function PolicyModal({ visible, onClose, type = "terms" }) {

@@ -2,17 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useRef, useState } from "react";
-import {
-  FlatList,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -21,6 +11,7 @@ import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const POPULAR_DESTINATIONS = [
   {
     name: "Tokyo",
@@ -269,6 +260,7 @@ export default function SearchPlace() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header & Back Button */}
@@ -455,6 +447,7 @@ export default function SearchPlace() {
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

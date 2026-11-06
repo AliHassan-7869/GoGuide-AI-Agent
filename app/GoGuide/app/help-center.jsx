@@ -1,24 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import React, { useContext, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 const CATEGORIES = ["All", "AI Planner", "Budget & Trips", "Account & Offline"];
 
 const FAQS = [
@@ -75,6 +66,7 @@ const TICKET_CATEGORIES = [
 ];
 
 export default function HelpCenter() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { userData } = useContext(CreateTripContext);
@@ -151,10 +143,12 @@ export default function HelpCenter() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Header */}
       <View
         style={[
           styles.header,
+          { paddingTop: insets.top + 12 },
           {
             backgroundColor: theme.header,
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
@@ -188,7 +182,7 @@ export default function HelpCenter() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Support Channels Banner */}
         <View style={styles.channelsContainer}>
           {/* Channel 1: AI Copilot */}
@@ -459,7 +453,7 @@ export default function HelpCenter() {
       </ScrollView>
 
       {/* Support Ticket Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
@@ -511,7 +505,7 @@ export default function HelpCenter() {
                 </Text>
               </View>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {/* Category Picker */}
                 <Text
                   style={[
@@ -628,6 +622,7 @@ export default function HelpCenter() {
           </View>
         </View>
       </Modal>
+      </KeyboardAvoidingView>
     </View>
   );
 }

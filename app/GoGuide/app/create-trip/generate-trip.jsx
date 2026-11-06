@@ -1,14 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import {
-  Animated,
-  Dimensions,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -25,6 +16,7 @@ import { scheduleTripCountdown, sendLocalNotification } from "../../Components/u
 import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const { width } = Dimensions.get("window");
 
 const GENERATION_STEPS = [

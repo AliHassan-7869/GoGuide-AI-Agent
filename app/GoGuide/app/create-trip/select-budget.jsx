@@ -2,14 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -23,6 +16,7 @@ import {
   getDailyBudgetTiers,
 } from "../../Components/constants/Currency";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function SelectBudget() {
   const router = useRouter();
   const theme = useTheme();

@@ -1,17 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
@@ -23,6 +13,7 @@ import { model, generationConfig } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 // Distinct category colors for visual distinction
 const getCategoryBadgeStyle = (category, isDark) => {
   switch (category) {

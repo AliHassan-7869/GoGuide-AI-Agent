@@ -8,21 +8,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Linking,
-} from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
 
+import { TouchableOpacity } from "../../../Components/ui/Touchable";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -225,7 +213,7 @@ export default function SignIn() {
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -352,7 +340,7 @@ export default function SignIn() {
       </KeyboardAvoidingView>
 
       {/* 2FA Verification Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={show2FaModal}
         transparent={true}
         animationType="fade"

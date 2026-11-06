@@ -3,17 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../Configs/FirebaseConfig";
 import { sendEmailVerification } from "firebase/auth";
@@ -24,6 +14,7 @@ import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ReviewTrip() {

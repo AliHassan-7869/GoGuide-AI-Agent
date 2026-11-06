@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Platform, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Platform, ScrollView, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useContext, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -13,6 +13,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FavoriteHeartButton from '../Components/FavoriteHeartButton';
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 const isKnownCategory = (id) => DESTINATION_CATEGORIES.some((c) => c.id === id);
 
 function DestinationImage({ uri, style }) {
@@ -34,7 +35,7 @@ export default function Explore() {
   const isDark = preferences?.darkMode;
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    android: insets.top + 8,
     ios: Math.max(insets.top, 44),
     default: 16,
   });

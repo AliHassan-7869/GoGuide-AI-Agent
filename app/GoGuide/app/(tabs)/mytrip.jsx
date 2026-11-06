@@ -1,20 +1,7 @@
 import { Stack, useRouter } from "expo-router";
+import { openExternalUrl } from "../../Components/utils/openExternalUrl";
 import { useContext, useEffect, useState, useRef } from "react";
-import { 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  Image, 
-  Linking, 
-  Share,
-  Platform,
-  Animated,
-  Modal,
-  Alert,
-  StatusBar
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
@@ -52,6 +39,7 @@ import {
   sanitizeImageUrl,
 } from "../../Components/constants/Destinations";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 // High quality curated hotel fallbacks (Verified HD 1200px)
 const HOTEL_IMAGES = [
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
@@ -88,7 +76,7 @@ export default function MyTrip() {
   const plan = normalizeTrip(tripData?.aiTripPlan || tripData);
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    android: insets.top + 8,
     ios: Math.max(insets.top, 44),
     default: 16,
   });
@@ -648,11 +636,7 @@ export default function MyTrip() {
     }
 
     const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}&travelmode=driving`;
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.open(routeUrl, "_blank", "noopener,noreferrer");
-    } else {
-      Linking.openURL(routeUrl);
-    }
+    openExternalUrl(routeUrl);
   };
 
   // 4. Direct Turn-by-Turn Navigation for individual place
@@ -665,11 +649,7 @@ export default function MyTrip() {
       dest = encodeURIComponent(placeName + " " + (plan?.destination || ""));
     }
     const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.open(dirUrl, "_blank", "noopener,noreferrer");
-    } else {
-      Linking.openURL(dirUrl);
-    }
+    openExternalUrl(dirUrl);
   };
 
   const openInMaps = (placeName, coordinates) => {
@@ -680,11 +660,7 @@ export default function MyTrip() {
     } else {
       url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName + " " + (plan?.destination || ""))}`;
     }
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      Linking.openURL(url);
-    }
+    openExternalUrl(url);
   };
 
   const openBookingCom = (hotelName) => {
@@ -692,11 +668,7 @@ export default function MyTrip() {
     const dest = plan?.destination || tripData?.destination || "";
     const query = encodeURIComponent(`${hotelName} ${dest}`.trim());
     const bookingUrl = `https://www.booking.com/searchresults.html?ss=${query}`;
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.open(bookingUrl, "_blank", "noopener,noreferrer");
-    } else {
-      Linking.openURL(bookingUrl);
-    }
+    openExternalUrl(bookingUrl);
   };
 
   // Synchronize trip modifications across Active State, Local Storage, and Cloud Firestore
@@ -1893,7 +1865,7 @@ export default function MyTrip() {
       </ScrollView>
 
       {/* Printable / Formatted Itinerary Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={showExportModal}
         animationType="slide"
         presentationStyle="pageSheet"

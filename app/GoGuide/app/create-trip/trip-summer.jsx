@@ -2,16 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext } from "react";
-import {
-  Dimensions,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../../Components/constants/constants";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
@@ -22,6 +13,7 @@ import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const { width, height } = Dimensions.get("window");
 
 export default function TripSummer() {

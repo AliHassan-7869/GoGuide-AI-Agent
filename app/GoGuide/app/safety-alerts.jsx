@@ -1,11 +1,13 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../Components/constants/constants';
 import { CreateTripContext } from '../context/CreateTripContext';
 import { fetchDestinationSafety } from '../Configs/AiModel';
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 // Fallback Standard Data for Safety Alerts
 const safetyMockData = [
   {
@@ -41,6 +43,7 @@ const safetyMockData = [
 ];
 
 export default function SafetyAlerts() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { preferences, tripData } = useContext(CreateTripContext);
   const isDark = preferences?.darkMode;
@@ -123,7 +126,7 @@ export default function SafetyAlerts() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Custom Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
@@ -188,7 +191,7 @@ export default function SafetyAlerts() {
         </View>
 
         {/* Emergency Contacts Modal */}
-        <Modal
+        <Modal statusBarTranslucent
           animationType="fade"
           transparent={true}
           visible={emergencyVisible}

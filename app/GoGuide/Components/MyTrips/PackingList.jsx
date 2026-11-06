@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../constants/constants';
 import { useTheme } from '../constants/theme';
 
+import { TouchableOpacity } from "../ui/Touchable";
 export default function PackingList({ items }) {
   const router = useRouter();
   const theme = useTheme();

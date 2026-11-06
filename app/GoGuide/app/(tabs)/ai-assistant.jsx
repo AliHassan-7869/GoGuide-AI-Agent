@@ -2,20 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Animated, FlatList, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
@@ -23,6 +10,7 @@ import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 const CHAT_STORAGE_KEY = "goguide_ai_copilot_chat_v1";
 
 const QUICK_CHIPS = [
@@ -44,7 +32,7 @@ export default function AiAssistant() {
   const handledPromptRef = useRef(null);
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 4,
+    android: insets.top + 4,
     ios: Math.max(insets.top, 44),
     default: 16,
   });

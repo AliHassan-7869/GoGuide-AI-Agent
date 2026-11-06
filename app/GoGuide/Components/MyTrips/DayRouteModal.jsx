@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { openExternalUrl as openUrl } from "../utils/openExternalUrl";
+import { Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../constants/constants";
 
+import { TouchableOpacity } from "../ui/Touchable";
 // Haversine formula to compute distance between coordinates in km
 function computeDistanceKm(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
@@ -61,11 +55,7 @@ export default function DayRouteModal({
   };
 
   const openExternalUrl = (url) => {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      Linking.openURL(url);
-    }
+    openUrl(url);
   };
 
   // Launch full multi-stop navigation in Google Maps
@@ -131,7 +121,7 @@ export default function DayRouteModal({
   )}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"

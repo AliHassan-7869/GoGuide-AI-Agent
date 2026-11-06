@@ -1,20 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-  Linking,
-  Modal,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, View, Linking, Modal } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
@@ -29,11 +17,13 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import { getDestinationImage } from "../../Components/constants/Destinations";
 import { getFavoritePlaces, subscribeToFavorites, toggleFavoritePlace } from "../../Components/utils/FavoriteService";
 
+import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function Profile() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { tripData, setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [stats, setStats] = useState({
     trips: 0,
@@ -776,13 +766,13 @@ export default function Profile() {
       </ScrollView>
 
       {/* 1. MY TRIPS & HISTORY MODAL */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={showSavedTripsModal}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSavedTripsModal(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           {/* Modal Header: Clean, Responsive with Back Button */}
           <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
@@ -985,17 +975,17 @@ export default function Profile() {
               })
             )}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* 2. FAVORITE PLACES MODAL */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={showFavoritesModal}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setShowFavoritesModal(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.bg }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
               <TouchableOpacity
@@ -1116,7 +1106,7 @@ export default function Profile() {
               ))
             )}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
           {/* Same-page Policy / Terms Modal */}
       <PolicyModal

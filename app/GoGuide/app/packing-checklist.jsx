@@ -3,26 +3,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Share,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { CreateTripContext } from "../context/CreateTripContext";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 const STORAGE_PREFIX = "@goguide_packing_list_v1_";
 
 const CATEGORIES = [
@@ -72,7 +59,7 @@ export default function PackingChecklist() {
   const { tripData } = useContext(CreateTripContext);
 
   const safeTopPadding = Platform.select({
-    android: Math.max(insets.top, StatusBar.currentHeight || 28) + 8,
+    android: insets.top + 8,
     ios: Math.max(insets.top, 44),
     default: 16,
   });
@@ -749,7 +736,7 @@ export default function PackingChecklist() {
       />
 
       {/* Add Custom Item Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={modalVisible}
         transparent
         animationType="slide"
@@ -836,7 +823,7 @@ export default function PackingChecklist() {
       </Modal>
 
       {/* Recommended Essentials Selection Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={recommendModalVisible}
         transparent
         animationType="slide"
@@ -899,7 +886,7 @@ export default function PackingChecklist() {
             </ScrollView>
 
             {/* List of recommended items */}
-            <ScrollView style={styles.recListScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={styles.recListScroll} showsVerticalScrollIndicator={false}>
               {DEFAULT_PACKING_ITEMS.filter(
                 (item) => recCategoryFilter === "all" || item.category === recCategoryFilter
               ).map((rec) => {

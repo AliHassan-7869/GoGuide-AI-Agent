@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -22,6 +12,7 @@ import {
   detectCurrencyFromLocation,
 } from "../constants/Currency";
 
+import { TouchableOpacity } from "../ui/Touchable";
 const EXPENSE_CATEGORIES = [
   { id: "Food", label: "Dining", icon: "restaurant-outline", color: "#F59E0B" },
   { id: "Transit", label: "Transport", icon: "car-outline", color: "#0284C7" },
@@ -239,13 +230,14 @@ export default function ExpenseTrackerModal({
   };
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
           <View>
@@ -262,7 +254,7 @@ export default function ExpenseTrackerModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* 💱 Live Multi-Currency Switcher Bar */}
           <View style={{ marginBottom: 14 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -720,6 +712,7 @@ export default function ExpenseTrackerModal({
             })
           )}
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

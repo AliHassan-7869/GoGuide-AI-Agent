@@ -1,27 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Linking,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 const STATUS_TABS = ["Upcoming", "Completed", "Cancelled"];
 const CATEGORY_FILTERS = ["All", "Hotels", "Flights", "Activities"];
 
@@ -71,6 +61,7 @@ const SAMPLE_BOOKINGS = [
 ];
 
 export default function MyBookings() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { userData, preferences } = useContext(CreateTripContext);
@@ -171,6 +162,7 @@ export default function MyBookings() {
       <View
         style={[
           styles.header,
+          { paddingTop: insets.top + 12 },
           {
             backgroundColor: theme.header,
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
@@ -452,7 +444,7 @@ export default function MyBookings() {
       </ScrollView>
 
       {/* Digital Pass / QR Voucher Modal */}
-      <Modal
+      <Modal statusBarTranslucent
         visible={isPassModalVisible}
         transparent={true}
         animationType="fade"

@@ -1,20 +1,10 @@
 import React, { useState } from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  KeyboardAvoidingView,
-} from "react-native";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 
+import { TouchableOpacity } from "../ui/Touchable";
 const TIME_SLOTS = ["Morning", "Afternoon", "Evening", "Night"];
 
 const PRESETS = [
@@ -80,14 +70,14 @@ export default function AddActivityModal({
   };
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       transparent={true}
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalOverlay}
       >
         <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -104,7 +94,7 @@ export default function AddActivityModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
             {/* Quick Presets */}
             <Text style={[styles.sectionLabel, { color: theme.subtext }]}>Quick Category</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsRow}>

@@ -1,30 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
+import { downloadFile } from "../Components/utils/fileDownloader";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 export default function EditProfile() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { userData, setUserData, uid, preferences } = useContext(CreateTripContext);
@@ -234,20 +225,15 @@ export default function EditProfile() {
 
       const jsonString = JSON.stringify(exportPayload, null, 2);
 
+      const result = await downloadFile({
+        fileName: `goguide_travel_data_${Date.now()}.json`,
+        data: jsonString,
+        mimeType: "application/json",
+        dialogTitle: "Save My GoGuide Travel Data",
+      });
+      if (!result.ok) throw result.error || new Error("Export failed");
       if (Platform.OS === "web") {
-        const blob = new Blob([jsonString], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `goguide_travel_data_${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
         Alert.alert("Data Exported", "Your travel archive has been downloaded as JSON.");
-      } else {
-        await Share.share({
-          title: "My GoGuide Travel Data",
-          message: jsonString,
-        });
       }
     } catch (e) {
       console.error("Export error:", e);
@@ -330,10 +316,12 @@ export default function EditProfile() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.isDark ? "#0C0C12" : "#F8FAFC" }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Header */}
       <View
         style={[
           styles.header,
+          { paddingTop: insets.top + 12 },
           {
             backgroundColor: theme.isDark ? "#14141F" : "#FFFFFF",
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
@@ -367,7 +355,7 @@ export default function EditProfile() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -742,6 +730,7 @@ export default function EditProfile() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

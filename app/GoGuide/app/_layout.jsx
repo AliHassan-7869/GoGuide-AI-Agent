@@ -7,6 +7,10 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";
 import ErrorBoundary from "../Components/ErrorBoundary";
+import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+installAndroidTextDefaults();
 
 function AppContent() {
   const context = useContext(CreateTripContext);
@@ -110,6 +114,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError && Platform.OS !== "web") return <View />;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider style={{ flex: 1 }}>
       <ErrorBoundary>
         <CreateTripProvider>
@@ -117,6 +122,7 @@ export default function RootLayout() {
         </CreateTripProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

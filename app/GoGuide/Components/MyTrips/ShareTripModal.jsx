@@ -1,21 +1,12 @@
 import React, { useState } from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Modal, Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../Configs/FirebaseConfig";
 import { Colors } from "../constants/constants";
 
+import { TouchableOpacity } from "../ui/Touchable";
 export default function ShareTripModal({
   visible,
   tripId,
@@ -101,7 +92,7 @@ export default function ShareTripModal({
   };
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"

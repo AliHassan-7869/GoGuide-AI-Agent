@@ -1,22 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { CreateTripContext } from "../context/CreateTripContext";
 
+import { TouchableOpacity } from "../Components/ui/Touchable";
 export default function Preferences() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { preferences, setPreferences } = useContext(CreateTripContext);
   const theme = useTheme();
@@ -72,6 +66,7 @@ export default function Preferences() {
       <View
         style={[
           styles.header,
+          { paddingTop: insets.top + 12 },
           {
             backgroundColor: theme.header,
             borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
@@ -161,6 +156,8 @@ export default function Preferences() {
                     activeOpacity={0.75}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
                       style={[
                         styles.segmentText,
                         { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
@@ -215,6 +212,8 @@ export default function Preferences() {
                     activeOpacity={0.75}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
                       style={[
                         styles.segmentText,
                         { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
@@ -270,6 +269,8 @@ export default function Preferences() {
                     activeOpacity={0.75}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
                       style={[
                         styles.segmentText,
                         { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
@@ -524,7 +525,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollContent: {
-    paddingHorizontal: 18,
+    flexGrow: 1,
+    paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 40,
   },
@@ -537,6 +539,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   card: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 16,
@@ -562,18 +567,22 @@ const styles = StyleSheet.create({
   },
   segmentedRow: {
     flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
+    gap: 6,
   },
   segmentPill: {
-    paddingHorizontal: 14,
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 4,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   segmentText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
+    textAlign: "center",
   },
   divider: {
     height: StyleSheet.hairlineWidth,

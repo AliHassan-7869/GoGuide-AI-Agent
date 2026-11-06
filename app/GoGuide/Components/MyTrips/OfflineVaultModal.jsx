@@ -1,19 +1,10 @@
 import React from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Linking,
-} from "react-native";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View, Linking } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 
+import { TouchableOpacity } from "../ui/Touchable";
 // Country emergency numbers lookup
 const EMERGENCY_LOOKUP = {
   japan: { police: "110", ambulance: "119", touristHelp: "050-3816-2787" },
@@ -74,7 +65,7 @@ export default function OfflineVaultModal({
   };
 
   return (
-    <Modal
+    <Modal statusBarTranslucent
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
