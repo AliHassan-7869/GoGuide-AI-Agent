@@ -61,14 +61,17 @@ export default function ExpenseTrackerModal({
   const [inputCurrency, setInputCurrency] = useState(destCurrency || currency || "USD");
 
   useEffect(() => {
-    if (visible) {
-      if (initialDay) {
-        setExpenseDay(initialDay);
-        setShowAddForm(true);
-      }
-      if (destCurrency) {
-        setInputCurrency(destCurrency);
-      }
+    if (visible && (initialDay || destCurrency)) {
+      const timer = setTimeout(() => {
+        if (initialDay) {
+          setExpenseDay(initialDay);
+          setShowAddForm(true);
+        }
+        if (destCurrency) {
+          setInputCurrency(destCurrency);
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [visible, initialDay, destCurrency]);
 
@@ -237,7 +240,7 @@ export default function ExpenseTrackerModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
           <View>
@@ -645,7 +648,7 @@ export default function ExpenseTrackerModal({
             <View style={[styles.emptyBox, { backgroundColor: theme.card }]}>
               <Ionicons name="receipt-outline" size={36} color={theme.subtext} />
               <Text style={[styles.emptyBoxText, { color: theme.subtext }]}>
-                No expenses logged yet. Tap "Log New Expense" above to track your spending!
+                No expenses logged yet. Tap &ldquo;Log New Expense&rdquo; above to track your spending!
               </Text>
             </View>
           ) : (

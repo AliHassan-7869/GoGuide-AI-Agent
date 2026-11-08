@@ -151,7 +151,7 @@ export default function PackingList({ items }) {
           activeOpacity={0.8}
         >
           <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-          <Text style={styles.confirmBtnText}>All Packed! Let's Go</Text>
+          <Text style={styles.confirmBtnText}>All Packed! Let&apos;s Go</Text>
         </TouchableOpacity>
       )}
     </View>

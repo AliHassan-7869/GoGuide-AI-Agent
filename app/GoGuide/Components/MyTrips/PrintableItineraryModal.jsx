@@ -13,9 +13,9 @@ export default function PrintableItineraryModal({
   onClose,
   theme,
 }) {
-  if (!plan) return null;
-
   const [downloading, setDownloading] = React.useState(false);
+
+  if (!plan) return null;
 
   const triggerHaptic = () => {
     try {

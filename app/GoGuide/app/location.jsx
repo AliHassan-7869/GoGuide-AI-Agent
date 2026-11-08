@@ -58,14 +58,6 @@ export default function LocationPage() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const timeoutRef = useRef(null);
 
-  useEffect(() => {
-    const lat = activeLocation.coordinates?.lat || activeLocation.lat;
-    const lng = activeLocation.coordinates?.lng || activeLocation.lng;
-    if (lat && lng) {
-      fetchWeather(lat, lng);
-    }
-  }, []);
-
   const triggerHaptic = () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -86,6 +78,21 @@ export default function LocationPage() {
       setWeatherLoading(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    const lat = activeLocation.coordinates?.lat || activeLocation.lat;
+    const lng = activeLocation.coordinates?.lng || activeLocation.lng;
+    if (lat && lng) {
+      const timer = setTimeout(() => {
+        if (isMounted) fetchWeather(lat, lng);
+      }, 0);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
+    }
+  }, []);
 
   const handleSelectQuickCity = (city) => {
     triggerHaptic();

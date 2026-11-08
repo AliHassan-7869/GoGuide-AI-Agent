@@ -36,9 +36,12 @@ export default function DayRouteModal({
   const [activeDayObj, setActiveDayObj] = useState(day || allDays?.[0] || null);
 
   useEffect(() => {
-    setActiveDayObj(day || allDays?.[0] || null);
-    setSelectedStopIdx(0);
-  }, [day, visible]);
+    const timer = setTimeout(() => {
+      setActiveDayObj(day || allDays?.[0] || null);
+      setSelectedStopIdx(0);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [day, visible, allDays]);
 
   const currentDay = activeDayObj || day || allDays?.[0];
   if (!currentDay) return null;

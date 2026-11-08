@@ -153,10 +153,6 @@ export default function Profile() {
     });
   }, [userData?.email]);
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
   // Refresh trips & stats and automatically re-open modal when returning via Back button
   useFocusEffect(
     useCallback(() => {

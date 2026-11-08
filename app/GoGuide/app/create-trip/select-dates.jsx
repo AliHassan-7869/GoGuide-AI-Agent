@@ -11,7 +11,12 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const getTomorrow = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d;
+};
 
 // Lightweight, cross-platform calendar component (eliminates date-fns web bundler bug)
 function CustomCalendarView({
@@ -225,12 +230,19 @@ export default function SelectDates() {
   const [manualDaysInput, setManualDaysInput] = useState(String(initialDays));
   const [isManualActive, setIsManualActive] = useState(false);
 
-  const [startDate, setStartDate] = useState(
-    tripData?.startDate ? new Date(tripData.startDate) : null
-  );
-  const [endDate, setEndDate] = useState(
-    tripData?.endDate ? new Date(tripData.endDate) : null
-  );
+  const [startDate, setStartDate] = useState(() => {
+    if (tripData?.startDate) return new Date(tripData.startDate);
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (tripData?.endDate) return new Date(tripData.endDate);
+    const s = tripData?.startDate ? new Date(tripData.startDate) : getTomorrow();
+    const e = new Date(s);
+    e.setDate(s.getDate() + (initialDays - 1));
+    return e;
+  });
   const [selectedBlockId, setSelectedBlockId] = useState(null);
 
   const activeAccent = Colors.PRIMARY || "#0A7EA4";
@@ -268,7 +280,7 @@ export default function SelectDates() {
     setManualDaysInput(String(validDays));
     setSelectedBlockId(null);
 
-    const baseStart = startDate || new Date(Date.now() + 24 * 60 * 60 * 1000); // default to tomorrow
+    const baseStart = startDate || getTomorrow(); // default to tomorrow
     const newEnd = calculateEndDateFromDays(baseStart, validDays);
     setStartDate(baseStart);
     setEndDate(newEnd);
@@ -290,7 +302,7 @@ export default function SelectDates() {
     if (!isNaN(parsed) && parsed > 0) {
       const clamped = Math.min(30, parsed);
       setSelectedDuration(clamped);
-      const baseStart = startDate || new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const baseStart = startDate || getTomorrow();
       setStartDate(baseStart);
       setEndDate(calculateEndDateFromDays(baseStart, clamped));
       setSelectedBlockId(null);
@@ -411,20 +423,10 @@ export default function SelectDates() {
     }
   };
 
-  // Ensure default startDate & endDate on mount if not set
-  useEffect(() => {
-    if (!startDate || !endDate) {
-      const defaultStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const defaultEnd = calculateEndDateFromDays(defaultStart, selectedDuration || 5);
-      setStartDate(defaultStart);
-      setEndDate(defaultEnd);
-    }
-  }, []);
-
   const onDateSelectionContinue = () => {
     triggerHaptic();
     const finalDays = selectedDuration || 5;
-    const finalStart = startDate || new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const finalStart = startDate || getTomorrow();
     const finalEnd = endDate || calculateEndDateFromDays(finalStart, finalDays);
 
     setTripData((prev) => ({
@@ -439,7 +441,7 @@ export default function SelectDates() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}

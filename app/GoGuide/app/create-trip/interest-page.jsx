@@ -65,7 +65,7 @@ const getCategoryBadgeStyle = (category, isDark) => {
 };
 
 const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -180,6 +180,7 @@ export default function YourInterest() {
   const theme = useTheme();
 
   const { tripData, setTripData } = useContext(CreateTripContext);
+  const destinationName = tripData?.toLocation?.name?.split(",")[0] || "your destination";
 
   const [placesList, setPlacesList] = useState(() =>
     getSmartDestinationInterests(tripData?.toLocation?.name)
@@ -382,12 +383,6 @@ export default function YourInterest() {
   };
 
   useEffect(() => {
-    if (tripData?.toLocation?.name) {
-      GetDynamicInterests();
-    }
-  }, [tripData?.toLocation?.name]);
-
-  useEffect(() => {
     return () => {
       if (retryTimerRef.current) clearInterval(retryTimerRef.current);
     };
@@ -511,6 +506,12 @@ export default function YourInterest() {
     }
   };
 
+  useEffect(() => {
+    if (tripData?.toLocation?.name) {
+      GetDynamicInterests();
+    }
+  }, [tripData?.toLocation?.name]);
+
   // Compute dynamic category recommendations based on what actually exists for this destination
   const availableCategories = useMemo(() => {
     const counts = {};
@@ -586,8 +587,6 @@ export default function YourInterest() {
       router.push("/create-trip/select-dates");
     }
   };
-
-  const destinationName = tripData?.toLocation?.name?.split(",")[0] || "your destination";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>

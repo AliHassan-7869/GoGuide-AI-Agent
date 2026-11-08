@@ -310,14 +310,14 @@ export default function SignIn() {
 
             {/* Terms of Service & Privacy Legal Disclaimer */}
             <Text style={styles.legalDisclaimer}>
-              By signing in, you agree to GoGuide's{" "}
+              By signing in, you agree to GoGuide&apos;s{" "}
               <Text
                 style={styles.legalLink}
                 onPress={() => setPolicyModal({ visible: true, type: "terms" })}
               >
                 Terms of Service
               </Text>{" "}
-              &{" "}
+              &amp;{" "}
               <Text
                 style={styles.legalLink}
                 onPress={() => setPolicyModal({ visible: true, type: "privacy" })}

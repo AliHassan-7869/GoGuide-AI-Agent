@@ -22,20 +22,15 @@ import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
-  const [currentUri, setCurrentUri] = useState(() => sanitizeImageUrl(sourceUri, fallbackUri));
-
-  useEffect(() => {
-    setCurrentUri(sanitizeImageUrl(sourceUri, fallbackUri));
-  }, [sourceUri, fallbackUri]);
+  const [hasError, setHasError] = useState(false);
+  const currentUri = hasError ? fallbackUri : (sourceUri ? sanitizeImageUrl(sourceUri, fallbackUri) : fallbackUri);
 
   return (
     <Image
       source={{ uri: currentUri }}
       style={style}
       onError={() => {
-        if (currentUri !== fallbackUri) {
-          setCurrentUri(fallbackUri);
-        }
+        if (!hasError) setHasError(true);
       }}
     />
   );

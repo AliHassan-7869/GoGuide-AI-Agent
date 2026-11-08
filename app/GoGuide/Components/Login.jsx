@@ -1,17 +1,17 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Image, Platform, StyleSheet, Text, View } from "react-native";
-import { Colors } from "../Components/constants/constants";
+import { useEffect, useMemo } from 'react';
+import { Animated, Image, Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Colors } from "./constants/constants";
 
 import { TouchableOpacity } from "./ui/Touchable";
 export default function Login() {
   const router = useRouter();
-  const { height, width } = Dimensions.get("window");
+  const { height, width } = useWindowDimensions();
 
   // Animation values for a premium entrance effect
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const slideAnim = useMemo(() => new Animated.Value(50), []);
 
   useEffect(() => {
     Animated.parallel([

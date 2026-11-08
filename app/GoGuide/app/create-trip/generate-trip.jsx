@@ -1,11 +1,11 @@
 import { Stack, useRouter } from "expo-router";
-import { Animated, Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import PlanIcon from "../images/svg";
 
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { AI_PROMPT } from "../../Components/constants/Option";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { auth, db } from "../../Configs/FirebaseConfig";
@@ -17,8 +17,6 @@ import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
-const { width } = Dimensions.get("window");
-
 const GENERATION_STEPS = [
   { text: "Scanning flights & local logistics...", icon: "airplane-outline" },
   { text: "Finding top boutique stays & hotels...", icon: "business-outline" },
@@ -39,10 +37,10 @@ export default function GenerateTrip() {
   const hasGenerated = useRef(false);
 
   // Animations
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const radarScale = useRef(new Animated.Value(0.85)).current;
-  const radarOpacity = useRef(new Animated.Value(0.65)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useMemo(() => new Animated.Value(0), []);
+  const radarScale = useMemo(() => new Animated.Value(0.85), []);
+  const radarOpacity = useMemo(() => new Animated.Value(0.65), []);
+  const progressAnim = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     // Hover floating loop
@@ -91,13 +89,6 @@ export default function GenerateTrip() {
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (tripData && !hasGenerated.current) {
-      hasGenerated.current = true;
-      GenerateAiTrip();
-    }
-  }, [tripData]);
 
   // Curated, realistic itinerary generator when server is unreachable or offline
   const buildOfflinePlan = (destination, days, budget, interests) => {
@@ -428,6 +419,13 @@ export default function GenerateTrip() {
       });
     }
   };
+
+  useEffect(() => {
+    if (tripData && !hasGenerated.current) {
+      hasGenerated.current = true;
+      GenerateAiTrip();
+    }
+  }, [tripData]);
 
   const handleUseOfflinePlan = () => {
     try {

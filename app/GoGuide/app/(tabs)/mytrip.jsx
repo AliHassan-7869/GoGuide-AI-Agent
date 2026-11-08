@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { openExternalUrl } from "../../Components/utils/openExternalUrl";
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -49,20 +49,15 @@ const HOTEL_IMAGES = [
 ];
 
 function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
-  const [imgSrc, setImgSrc] = useState(() => sanitizeImageUrl(uri, fallbackUri));
-
-  useEffect(() => {
-    setImgSrc(sanitizeImageUrl(uri, fallbackUri));
-  }, [uri, fallbackUri]);
+  const [hasError, setHasError] = useState(false);
+  const imgSrc = hasError ? fallbackUri : (uri ? sanitizeImageUrl(uri, fallbackUri) : fallbackUri);
 
   return (
     <Image
       source={{ uri: imgSrc }}
       style={style}
       onError={() => {
-        if (imgSrc !== fallbackUri) {
-          setImgSrc(fallbackUri);
-        }
+        if (!hasError) setHasError(true);
       }}
     />
   );
@@ -101,11 +96,11 @@ export default function MyTrip() {
   const [showHubView, setShowHubView] = useState(false);
 
   // Smooth Shimmer pulse animation for skeleton loading
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+  const pulseAnim = useMemo(() => new Animated.Value(0.3), []);
 
   // Slide & Fade animation for multi-trip carousel
-  const carouselSlideAnim = useRef(new Animated.Value(-20)).current;
-  const carouselFadeAnim = useRef(new Animated.Value(0)).current;
+  const carouselSlideAnim = useMemo(() => new Animated.Value(-20), []);
+  const carouselFadeAnim = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     const dest = plan?.destination || tripData?.destination || tripData?.toLocation?.name;
@@ -268,11 +263,6 @@ export default function MyTrip() {
     ).start();
   }, [loading]);
 
-  // Load trips from local storage and Firestore
-  useEffect(() => {
-    GetMyTrips();
-  }, [auth.currentUser]);
-
   // Save to AsyncStorage whenever tripData updates with an AI plan
   useEffect(() => {
     if (tripData?.aiTripPlan) {
@@ -353,6 +343,14 @@ export default function MyTrip() {
       setLoading(false);
     }
   };
+
+  // Load trips from local storage and Firestore
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      GetMyTrips();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [auth.currentUser]);
 
   const handleSelectTrip = (selectedTrip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

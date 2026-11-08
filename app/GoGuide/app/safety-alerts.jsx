@@ -88,8 +88,11 @@ export default function SafetyAlerts() {
   };
 
   useEffect(() => {
-    fetchWeather();
-    loadAiAlerts();
+    const timer = setTimeout(() => {
+      fetchWeather();
+      loadAiAlerts();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [tripData]);
 
   // Realistic/Standard mock data for emergency contacts

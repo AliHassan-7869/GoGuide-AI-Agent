@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
@@ -31,15 +31,12 @@ export default function AiAssistant() {
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
 
-  const [kbHeight, setKbHeight] = useState(0);
   useEffect(() => {
-    if (Platform.OS !== "android") return;
-    const show = Keyboard.addListener("keyboardDidShow", (e) => {
-      setKbHeight(e.endCoordinates?.height || 0);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    const eventName = Platform.OS === "android" ? "keyboardDidShow" : "keyboardWillShow";
+    const sub = Keyboard.addListener(eventName, () => {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     });
-    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    return () => sub.remove();
   }, []);
 
   const safeTopPadding = Platform.select({
@@ -70,10 +67,10 @@ export default function AiAssistant() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Pulsing orb & 3-dot typing wave animation
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const dot1Anim = useRef(new Animated.Value(0)).current;
-  const dot2Anim = useRef(new Animated.Value(0)).current;
-  const dot3Anim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useMemo(() => new Animated.Value(1), []);
+  const dot1Anim = useMemo(() => new Animated.Value(0), []);
+  const dot2Anim = useMemo(() => new Animated.Value(0), []);
+  const dot3Anim = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     if (isLoading) {
@@ -151,16 +148,6 @@ export default function AiAssistant() {
     })();
   }, []);
 
-  // Handle incoming prompt from recommendations or other screens
-  useEffect(() => {
-    if (prompt && handledPromptRef.current !== prompt) {
-      handledPromptRef.current = prompt;
-      setTimeout(() => {
-        handleSend(String(prompt));
-      }, 500);
-    }
-  }, [prompt]);
-
   // Save chat history
   const persistMessages = async (newMsgs) => {
     try {
@@ -234,6 +221,16 @@ export default function AiAssistant() {
       }, 150);
     }
   };
+
+  // Handle incoming prompt from recommendations or other screens
+  useEffect(() => {
+    if (prompt && handledPromptRef.current !== prompt) {
+      handledPromptRef.current = prompt;
+      setTimeout(() => {
+        handleSend(String(prompt));
+      }, 500);
+    }
+  }, [prompt]);
 
   const handleClearChat = async () => {
     const reset = [
@@ -425,7 +422,7 @@ export default function AiAssistant() {
 
       {/* Chat Thread */}
       <KeyboardAvoidingView
-        style={{ flex: 1, paddingBottom: Platform.OS === "android" ? kbHeight : 0 }}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >

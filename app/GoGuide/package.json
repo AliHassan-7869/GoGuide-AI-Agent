@@ -1,7 +1,7 @@
 {
   "name": "ai-travel_agent",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "start": "npx expo start --go",
     "start:tunnel": "npx expo start --go --tunnel",

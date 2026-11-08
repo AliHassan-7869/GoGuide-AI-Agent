@@ -2,8 +2,8 @@ import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html
 
 // Root HTML template for Expo Router Web Static Export
 export default function Root({ children }) {
-  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } =
-    typeof useServerDocumentContext === "function" ? useServerDocumentContext() : {};
+  const docContext = useServerDocumentContext();
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = docContext || {};
 
   return (
     <html lang="en" {...htmlAttributes}>

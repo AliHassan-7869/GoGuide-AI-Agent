@@ -14,7 +14,6 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
-const { width, height } = Dimensions.get("window");
 
 export default function TripSummer() {
   const router = useRouter();
@@ -22,18 +21,11 @@ export default function TripSummer() {
   const { tripData, setTripData } = useContext(CreateTripContext);
 
   const destination = tripData?.toLocation?.name || "Tokyo, Japan";
-  const initialImage = tripData?.toLocationImage
+  const rawImageUri = tripData?.toLocationImage
     ? sanitizeImageUrl(tripData.toLocationImage)
     : getDestinationImage(destination);
-  const [imageUri, setImageUri] = React.useState(initialImage);
-
-  React.useEffect(() => {
-    setImageUri(
-      tripData?.toLocationImage
-        ? sanitizeImageUrl(tripData.toLocationImage)
-        : getDestinationImage(destination)
-    );
-  }, [tripData?.toLocationImage, destination]);
+  const [imgFailed, setImgFailed] = React.useState(false);
+  const imageUri = imgFailed ? DEFAULT_HD_TRAVEL_IMAGE : rawImageUri;
 
   const rating = tripData?.toLocationRating || "4.9";
   const activeAccent = Colors.PRIMARY || "#0F172A";
@@ -124,7 +116,7 @@ export default function TripSummer() {
           <Image
             source={{ uri: imageUri }}
             style={styles.image}
-            onError={() => setImageUri(DEFAULT_HD_TRAVEL_IMAGE)}
+            onError={() => setImgFailed(true)}
           />
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFF" />
@@ -238,8 +230,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   imageContainer: {
-    width: width,
-    height: height * 0.44,
+    width: "100%",
+    height: 320,
   },
   image: {
     width: "100%",

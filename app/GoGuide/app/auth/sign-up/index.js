@@ -288,12 +288,12 @@ export default function Signup() {
             {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFF" />}
           </TouchableOpacity>
           <Text style={styles.termsText}>
-            I agree to GoGuide's{" "}
+            I agree to GoGuide&apos;s{" "}
             <Text
               style={styles.termsLink}
               onPress={() => setPolicyModal({ visible: true, type: "terms" })}
             >
-              Terms & Conditions
+              Terms &amp; Conditions
             </Text>{" "}
             and{" "}
             <Text

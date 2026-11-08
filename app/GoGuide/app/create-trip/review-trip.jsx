@@ -15,7 +15,6 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ReviewTrip() {
   const { tripData, setTripData } = useContext(CreateTripContext);

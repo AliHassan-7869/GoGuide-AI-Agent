@@ -77,7 +77,7 @@ export default function AddActivityModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior="padding"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalOverlay}
       >
         <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
