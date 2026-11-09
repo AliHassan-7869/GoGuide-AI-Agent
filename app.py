@@ -29,6 +29,10 @@ from travel_essentials import (
     get_emergency_and_health,
     get_currency_and_payments,
 )
+try:
+    from orchestrator import execute_trip_orchestration
+except Exception as _e:
+    execute_trip_orchestration = None
 
 logger = logging.getLogger("goguide")
 
@@ -339,6 +343,8 @@ class TravelRequest(BaseModel):
     destination: str = Field(min_length=2, max_length=100)
     days: int = Field(ge=1, le=30)
     budget: str = Field(min_length=1, max_length=50)
+    origin: str | None = Field(default="Current Location", max_length=100)
+    traveler: str | None = Field(default="Solo", max_length=50)
     interests: str | None = Field(default=None, max_length=500)
     categories: str | None = Field(default=None, max_length=300)
 
@@ -652,6 +658,40 @@ def run_deep_plan_background(job_id: str, payload: dict):
     budget = payload.get("budget", "Moderate")
     interests = payload.get("interests", "")
     categories = payload.get("categories", "")
+    origin = payload.get("origin", "Current Location")
+    traveler = payload.get("traveler", "Solo")
+
+    # Stack 5: LangGraph Stateful Multi-Agent Orchestration
+    if execute_trip_orchestration:
+        try:
+            logger.info("Executing Stack 5 LangGraph Orchestrator for deep plan %s (%s)", job_id, destination)
+            raw_interests = f"{interests or ''},{categories or ''}".strip(',')
+            interest_items = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()]
+            orchestrated_plan = execute_trip_orchestration(
+                origin=origin,
+                destination=destination,
+                days=days,
+                budget_tier=budget,
+                traveler_type=traveler,
+                interests=interest_items or ["Sightseeing", "Local Food", "Culture"],
+            )
+            with _DEEP_LOCK:
+                _DEEP_JOBS[job_id] = {
+                    "status": "ready",
+                    "created_at": _DEEP_JOBS.get(job_id, {}).get("created_at", time.time()),
+                    "data": {
+                        "destination": destination,
+                        "days": days,
+                        "budget": budget,
+                        "plan": orchestrated_plan,
+                        "isDeepPlan": True,
+                        "orchestrated": True,
+                    }
+                }
+            logger.info("Deep plan job %s completed via LangGraph Orchestrator for %s", job_id, destination)
+            return
+        except Exception as e:
+            logger.warning("LangGraph orchestrator failed for deep plan %s: %s; falling back to direct synthesis", job_id, e)
 
     extra_instructions = []
     if categories:
@@ -813,6 +853,8 @@ def create_deep_plan(request: TravelRequest, background_tasks: BackgroundTasks, 
         "destination": dest_clean,
         "days": request.days,
         "budget": sanitize_input(request.budget, 50),
+        "origin": sanitize_input(request.origin or "Current Location", 100),
+        "traveler": sanitize_input(request.traveler or "Solo", 50),
         "interests": sanitize_input(request.interests, 500),
         "categories": sanitize_input(request.categories, 300),
     }
@@ -864,6 +906,57 @@ def get_deep_plan_status(job_id: str, client_id: str = Depends(require_client)):
                 "detail": job.get("error", "Deep plan generation failed")
             }
         )
+
+
+# -------------------- POST /plan/orchestrate (Stack 5 Master Orchestrator) --------------------
+@app.post("/plan/orchestrate")
+def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(require_client)):
+    """
+    Stack 5 Master Travel Orchestrator endpoint:
+    Powered by LangGraph (Stateful Multi-Agent Supervisor Pattern), TypeSafe AI Jev (Sub-200ms Noul Confidence Gating),
+    and Local Curated Grounding.
+    """
+    for field_name, field_val in [
+        ("destination", request.destination),
+        ("interests", request.interests),
+        ("categories", request.categories),
+    ]:
+        if check_for_injection(field_val):
+            logger.warning("Prompt injection detected in /plan/orchestrate %s", field_name)
+            raise HTTPException(status_code=400, detail="Invalid request content detected")
+
+    destination = sanitize_input(request.destination, 100)
+    budget = sanitize_input(request.budget, 50)
+    origin = sanitize_input(request.origin or "Current Location", 100)
+    traveler = sanitize_input(request.traveler or "Solo", 50)
+    raw_interests = f"{request.interests or ''},{request.categories or ''}".strip(',')
+    interests_list = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()] or ["Sightseeing", "Culture"]
+
+    if execute_trip_orchestration:
+        try:
+            logger.info("Executing Stack 5 LangGraph orchestration for %s (%s days)", destination, request.days)
+            orchestrated_plan = execute_trip_orchestration(
+                origin=origin,
+                destination=destination,
+                days=request.days,
+                budget_tier=budget,
+                traveler_type=traveler,
+                interests=interests_list,
+            )
+            return {
+                "status": "success",
+                "data": {
+                    "destination": destination,
+                    "days": request.days,
+                    "budget": budget,
+                    "plan": orchestrated_plan,
+                    "isOrchestrated": True,
+                }
+            }
+        except Exception as e:
+            logger.exception("LangGraph orchestration failed: %s, falling back to standard plan", e)
+
+    return generate_plan(request, client_id)
 
 
 # -------------------- GET /tools/destination-info (100% Free Travel Info) --------------------

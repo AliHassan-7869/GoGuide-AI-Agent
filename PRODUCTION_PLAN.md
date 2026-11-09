@@ -39,6 +39,9 @@ Last updated: 2026-11-04
 | 27 | Live Dual-Currency PKR Auto-Conversion box in In-Trip Expense Tracker | `35e29ec` |
 | 28 | Expanded Verified Destination Catalog to 65 HD Destinations across 5 travel categories | `35e29ec` |
 | 29 | Comprehensive Mobile Viewport (360px-430px) & Web Static Export verification (36/36 routes clean) | `b07d314` |
+| 30 | EAS Android Release Build #2 (v1.0.1) & custom adaptive travel app icon generation (512x512 / 1024x1024) | `8c3b237` |
+| 31 | Android Keyboard Gap Elimination: Fixed double padding resize bug in AI Assistant and modal forms | `staging` |
+| 32 | **Stack 5 Multi-Agent Orchestration**: LangGraph Stateful Supervisor + TypeSafe AI Jev System One Decision Engine (`orchestrator.py`, `jev_evaluator.py`, `POST /plan/orchestrate`) | `staging` |
 
 ---
 

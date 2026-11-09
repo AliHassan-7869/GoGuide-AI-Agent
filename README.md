@@ -3,59 +3,69 @@
 [![Expo SDK](https://img.shields.io/badge/Expo-SDK%2058-black?style=for-the-badge&logo=expo)](https://expo.dev/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.84-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent%20System-orange?style=for-the-badge)](https://crewai.com)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Stateful%20Supervisor-blue?style=for-the-badge)](https://langchain-ai.github.io/langgraph/)
+[![TypeSafe AI Jev](https://img.shields.io/badge/TypeSafe%20AI%20Jev-System%20One%20Confidence-purple?style=for-the-badge)](https://github.com/typesafe-ai)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.0%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> **GoGuide AI** is an enterprise-grade, offline-first mobile & web travel companion powered by a consolidated **4-Agent CrewAI** pipeline, **Google Gemini 2.5 Flash & Groq Llama 3.3**, 100% Free-Tier optimizations, Origin-to-Destination Dual Currency conversion, and full account security (Email 2FA). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
+> **GoGuide AI** is an enterprise-grade, offline-first mobile & web travel companion powered by **Stack 5 Orchestration**: a stateful **LangGraph** Multi-Agent Supervisor, **TypeSafe AI Jev** sub-200ms `Noul` confidence scoring & self-healing budget loops, local curated factual grounding (0 hallucination), **Google Gemini 2.0 Flash / DeepSeek**, Origin-to-Destination Dual Currency conversion, and full account security (Email 2FA). It generates personalized day-by-day travel itineraries, flight and hotel recommendations, live destination safety alerts, multi-stop Google Maps routes, and 1-click calendar sync.
 
 ---
 
-## 🏛️ System Architecture
+## 🏛️ System Architecture (Stack 5 Master Orchestrator)
 
 ```mermaid
 graph TD
-    User([📱 Mobile Traveler])
+    User([📱 Mobile Traveler / Web])
     
-    subgraph Frontend ["React Native Client (Expo SDK 57)"]
-        UI["Glassmorphism UI\nShimmer Skeleton Loading"]
+    subgraph Frontend ["React Native Client (Expo SDK 58, React 19)"]
+        UI["Glassmorphism UI\nInteractive Route Maps & Budget Tracker"]
         OfflineCache[("⚡ Local AsyncStorage\nFlight Mode Cache")]
-        NativeSync["Native Integrations\n• Google / Apple Calendar\n• Share Sheet / PDF\n• Google Maps Waypoints"]
+        NativeSync["Native Integrations\n• Google / Apple Calendar\n• PDF Export\n• Multi-Stop Google Maps"]
+        Normalizer["TripNormalizer.js\nResilient Multi-Layer JSON Parser"]
     end
 
-    subgraph Backend ["FastAPI Microservice (Python 3.12)"]
-        API["REST Endpoints\n/plan & /generate-trip"]
-        RateLimit["Rate Limiting & Auth Guard"]
-        Orchestrator["Agent Orchestration Engine"]
+    subgraph Backend ["FastAPI Gateway (Python 3.12, app.py)"]
+        API["REST Endpoints\n/plan  /plan/orchestrate  /plan-deep  /chat"]
+        RateLimit["Rate Limiting & Auth Guard (2FA OTP)"]
+        PlanCache[("24-Hour Plan Cache\n(200ms Fast Retrieval)")]
     end
 
-    subgraph MultiAgentSystem ["CrewAI Multi-Agent Pipeline"]
-        A1["City Expert Agent"]
-        A2["Hotel Scout Agent"]
-        A3["Route & Transport Agent"]
-        A4["Activity & Itinerary Agent"]
-        A5["Food & Cultural Guide"]
-        A6["Safety & Scam Advisor"]
-        A7["Budget Optimization Agent"]
-        A8["Weather & Packing Agent"]
+    subgraph LangGraphSupervisor ["Stack 5: LangGraph Multi-Agent Graph (orchestrator.py)"]
+        GroundingNode["Grounding Node\nCurated Destinations & Essentials"]
+        FlightNode["Flight Worker Node"]
+        HotelNode["Hotel Worker Node"]
+        ItineraryNode["Itinerary Worker Node"]
+        JevAudit{"TypeSafe AI Jev Audit\n(jev_evaluator.py)\nSub-200ms Noul Confidence"}
+        BudgetLoop["Self-Healing Budget Loop\n(Automated Rate Readjustment)"]
+        CompilerNode["Compiler Node\n(Output conforming strictly to GoGuide Mobile Contract)"]
     end
 
-    subgraph ExternalServices ["External Cloud Services"]
-        Gemini["Google Gemini 3.8 Flash LLM"]
+    subgraph ExternalServices ["External Cloud & Knowledge Providers"]
+        Gemini["Google Gemini 2.0 Flash"]
+        DeepSeek["DeepSeek Flash Fallback"]
         Firestore[("Firebase Cloud Firestore")]
-        GoogleMaps["Google Maps Navigation API"]
+        OSM["OpenStreetMap / Nominatim"]
     end
 
     User <--> UI
     UI <-->|0ms Load / Airplane Mode| OfflineCache
     UI --> NativeSync
-    NativeSync --> GoogleMaps
+    NativeSync --> OSM
 
     UI <-->|HTTPS / REST| API
-    API --> RateLimit --> Orchestrator
-    Orchestrator --> MultiAgentSystem
-    MultiAgentSystem <--> Gemini
+    API --> RateLimit --> PlanCache
+    PlanCache --> LangGraphSupervisor
+
+    GroundingNode --> FlightNode --> HotelNode --> ItineraryNode --> JevAudit
+    JevAudit -- "Noul < 0.85 (Over Budget)" --> BudgetLoop
+    BudgetLoop --> JevAudit
+    JevAudit -- "Noul >= 0.85 (Approved)" --> CompilerNode
+    CompilerNode --> API --> Normalizer --> UI
+    
+    LangGraphSupervisor <--> Gemini
+    Gemini -.Fallback.-> DeepSeek
     UI <-->|Sync Trips| Firestore
 ```
 
@@ -68,7 +78,18 @@ graph TD
 - **Airplane Mode Ready**: Full access to daily timelines, flight tickets, hotel contact numbers, and packing checklists without active Wi-Fi or cellular connections.
 - **Visual Status Badging**: Live `⚡ Offline Ready` translucent badge and top-header sync pill.
 
-### 🤖 2. Consolidated 4-Agent Autonomous Pipeline (60-70% Token Reduction)
+### 🧠 2. Stack 5: LangGraph Multi-Agent Orchestrator & TypeSafe AI Jev Decision Engine
+- **LangGraph Stateful Supervisor (`orchestrator.py`)**: Replaces linear agent execution with a cyclical state graph (`TripState`) coordinating:
+  1. **Grounding Node**: Injects verified coordinates, curated hotels, and local guidelines from `curated_destinations.py` and `travel_essentials.py` (0 hallucinations).
+  2. **Flight Worker**: Generates realistic flight corridors, transit times, and airline options.
+  3. **Hotel Worker**: Selects accommodations matching the user's specific budget tier.
+  4. **Itinerary Worker**: Schedules morning, afternoon, and evening attractions with coordinates.
+  5. **TypeSafe AI Jev Audit Node (`jev_evaluator.py`)**: Evaluates budget feasibility in <200ms using non-autoregressive decision modeling, calculating a calibrated `Noul` confidence score ($0.0 - 1.0$).
+  6. **Self-Healing Budget Loop**: Automatically adjusts hotel choices if the total cost exceeds the requested budget tier, looping back to Jev for verification before client delivery.
+  7. **Compiler Node**: Emits structured JSON strictly formatted for `TripNormalizer.js`.
+- **Zero-Downtime Fallback**: Jev includes an embedded mathematical fallback evaluator if `JEV_API_KEY` is not present, ensuring 100% uptime with zero external dependencies.
+
+### 🤖 3. Consolidated 4-Agent Autonomous Pipeline (Showcase / Streamlit)
 - Rather than running 10 separate chat contexts that multiply LLM tokens, GoGuide consolidates the workflow into **4 expert agents** with specialized dynamic tools:
   1. **Destination & Culture Specialist (`destination_agent`)**: Analyzes seasonal events, cultural customs, culinary traditions, and attraction gems.
   2. **Budget & Logistics Scout (`budget_transport_agent`)**: Structures accommodation options, flight corridors, airport transit, and dynamic tier pricing.

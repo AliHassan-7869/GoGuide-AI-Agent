@@ -1,12 +1,7 @@
 streamlit
 python-dotenv
-crewai
-crewai[tools]
-crewai[litellm]
-crewai[google-genai]
-google-genai
-langchain
-langchain_community
+langgraph>=0.2.0
+langchain-core>=0.3.0
 duckduckgo-search
 fastapi
 uvicorn

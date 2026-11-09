@@ -6,62 +6,78 @@ How GoGuide is built and how a request flows through it.
 
 ## 1. Overview
 
-GoGuide is an AI travel planner. It has three parts:
+GoGuide is an AI travel planner. It has four core pillars:
 
-| Part | Tech | Folder |
+| Part | Tech | Folder / Module |
 |---|---|---|
-| Mobile app | React Native, Expo, Expo Router | `app/GoGuide/` |
-| Backend API | Python, FastAPI | `app.py` |
-| Cloud services | Firebase Auth, Firestore, Gemini, DeepSeek, OpenStreetMap, Open-Meteo | external |
+| Mobile app | React Native, Expo SDK 58, Expo Router, React 19 | `app/GoGuide/` |
+| Backend API | Python 3.12, FastAPI, BackgroundTasks | `app.py` |
+| AI Orchestration & Evaluation (Stack 5) | **LangGraph** (Stateful Multi-Agent Supervisor) + **TypeSafe AI Jev** (Sub-200ms Noul Confidence Decision Engine) | `orchestrator.py`, `jev_evaluator.py` |
+| Cloud services | Firebase Auth, Firestore, Google Gemini 2.0 Flash / DeepSeek, OpenStreetMap, Open-Meteo | External |
 
-There is also a showcase/expert planner (`streamlit.py`) that runs 4 consolidated CrewAI agents (`destination_agent`, `budget_transport_agent`, `safety_prep_agent`, `planner_expert`) merged from 10 to reduce token usage by 60-70%. It is separate from the mobile app and the API.
+In addition to direct LLM synthesis, GoGuide utilizes a **Stack 5 Master Multi-Agent Architecture**:
+- **LangGraph Master Orchestrator (`orchestrator.py`)**: Stateful cyclical graph that coordinates factual grounding, flight corridors, hotel options, daily itinerary creation, and self-healing budget loops.
+- **TypeSafe AI Jev System One Engine (`jev_evaluator.py`)**: Sub-200ms calibrated `Noul` confidence scoring that enforces strict budget limits without wasting secondary LLM tokens, with zero-downtime mathematical fallback.
+- **Local Curated Grounding (`curated_destinations.py` & `travel_essentials.py`)**: Zero-token factual verification preventing hallucinated venues and coordinates.
 
 ---
 
 ## 2. System diagram
 
 ```mermaid
-flowchart LR
-    subgraph Phone["Mobile app (Expo)"]
-        UI[Screens]
+flowchart TD
+    subgraph Client["Mobile App (Expo SDK 58) & Web (Vercel)"]
+        UI[Screens / CreateTripWizard]
         AI[Configs/AiModel.js]
         FB[Configs/FirebaseConfig.js]
-        Cache[(AsyncStorage<br/>offline trip)]
+        Cache[(AsyncStorage: Offline Flight-Mode)]
     end
 
-    subgraph Backend["Backend (FastAPI, app.py)"]
-        Auth["Auth: Firebase Token (Email Verified) / API key"]
+    subgraph Backend["Backend Gateway (FastAPI, app.py)"]
+        Auth["Auth: Firebase Token / API Key"]
         TwoFA["2FA Email OTP (/auth/*)"]
-        RL[Rate limit per user]
-        Curated["Curated Dest Cache (0 Tokens)"]
-        EP["/plan  /plan-deep  /chat  /generate  /tools/*"]
-        Fallback[Provider fallback]
+        RL["In-Memory Rate Limiter"]
+        PlanCache[("24-Hour Plan Cache")]
+        EP["Endpoints: /plan  /plan/orchestrate  /plan-deep  /chat"]
     end
 
-    subgraph Firebase
-        FAuth[Firebase Auth]
-        FS[(Firestore)]
+    subgraph Stack5["Stack 5: LangGraph Multi-Agent Orchestrator"]
+        Grounding["1. Grounding Node\n(curated_destinations.py)"]
+        FlightWorker["2. Flight Worker Node"]
+        HotelWorker["3. Hotel Worker Node"]
+        ItineraryWorker["4. Itinerary Worker Node"]
+        JevAudit{"5. TypeSafe AI Jev Audit\n(Noul Confidence Scoring)"}
+        BudgetHeal["6. Self-Healing Budget Rebalancer\n(Readjust Hotel Tier)"]
+        Compiler["7. Normalizer & Compiler Node\n(Output strictly for TripNormalizer.js)"]
     end
 
-    Gemini1[Gemini 3.8 Flash]
-    Gemini2[Gemini backup model]
-    DS[DeepSeek]
-    OSM[Nominatim / Overpass<br/>OpenStreetMap]
-    Meteo[Open-Meteo weather]
+    subgraph Cloud["Cloud & AI Providers"]
+        Gemini[Google Gemini 2.0 Flash]
+        DS[DeepSeek Flash Fallback]
+        FS[(Firebase Firestore)]
+        OSM[OpenStreetMap / Nominatim]
+    end
 
     UI --> AI
     UI --> FB
     UI --> Cache
     UI --> OSM
-    UI --> Meteo
-    FB --> FAuth
     FB --> FS
-    AI -- "HTTPS + Firebase ID token" --> Auth
-    Auth --> RL --> EP --> Fallback
-    Fallback --> Gemini1
-    Fallback -.if down.-> Gemini2
-    Fallback -.if down.-> DS
-    Auth -. verify token .-> FAuth
+
+    AI -- "HTTPS + Firebase ID Token" --> Auth
+    Auth --> RL --> PlanCache
+    PlanCache -- Cache Miss --> EP
+
+    EP -->|/plan/orchestrate or /plan-deep| Grounding
+    Grounding --> FlightWorker --> HotelWorker --> ItineraryWorker --> JevAudit
+    
+    JevAudit -- "Noul < 0.85 (Over Budget)" --> BudgetHeal
+    BudgetHeal --> JevAudit
+    JevAudit -- "Approved (Noul >= 0.85)" --> Compiler
+    Compiler --> EP
+
+    EP -->|/plan direct| Gemini
+    Gemini -.Fallback.-> DS
 ```
 
 Key rule: the app holds **no AI keys**. Only the backend talks to Gemini and DeepSeek.
@@ -205,8 +221,12 @@ All incoming and cached trip plans pass through `normalizeTrip(raw)`:
 | GET | `/` | anyone | "API running" message |
 | GET | `/health` | uptime checks | `{"status": "ok"}` |
 | POST | `/plan` | Generate trip, Quick AI trip | Full trip plan as JSON with customized `interests` & `categories` (hotels, day by day itinerary) |
+| POST | `/plan/orchestrate` | Stack 5 Multi-Agent Client | **LangGraph Master Orchestration** with TypeSafe AI Jev confidence gating and self-healing budget loops |
+| POST | `/plan-deep` | Async deep planning | Asynchronous background synthesis running LangGraph Orchestrator or Deep Plan engine |
+| GET | `/plan-deep/{job_id}` | Async pollers | Polls background job status until `ready` |
 | POST | `/chat` | AI Copilot | Chat reply using the last 6 messages and the active trip |
 | POST | `/generate` | Interests (no coordinates), Safety alerts | General prompt, JSON output |
+| GET | `/tools/destination-info` | Trip essentials | Zero-token travel essentials (visas, events, safety hotlines, currency) |
 
 ### 4.2 Request pipeline
 
@@ -255,11 +275,74 @@ flowchart TD
 |---|---|---|
 | `GEMINI_API_KEY` | none | Gemini access |
 | `DEEPSEEK_API_KEY` | none | Fallback provider |
+| `JEV_API_KEY` | none | Optional TypeSafe AI Jev decision API key (automatic zero-downtime mathematical fallback active when omitted) |
 | `API_KEY` | none | Server to server key |
 | `FIREBASE_PROJECT_ID` | `goguideai` | Token audience |
-| `GEMINI_MODELS` | `gemini-3.8-flash,gemini-2.5-flash` | Model order |
+| `GEMINI_MODELS` | `gemini-2.0-flash,gemini-1.5-flash` | Model order |
 | `RATE_LIMIT_PER_HOUR` | `30` | Per user limit |
 | `ALLOWED_ORIGINS` | `*` | CORS |
+
+---
+
+### 4.5 Stack 5 Multi-Agent Orchestration (`orchestrator.py` & `jev_evaluator.py`)
+
+GoGuide uses **Stack 5** for stateful, validated multi-agent travel planning:
+
+#### 1. Architecture Components
+- **Orchestration Layer (`langgraph>=0.2.0`)**: Replaces brittle linear agent pipelines with a deterministic state graph (`StateGraph(TripState)`) featuring cyclical feedback and conditional branching.
+- **Decision Engine (`TypeSafe AI Jev`)**: A sub-200ms non-autoregressive decision model returning calibrated **Noul confidence** ($[0.0, 1.0]$) and typed criteria verdicts. When `JEV_API_KEY` is not present, the engine automatically falls back to an exact mathematical budget/pace evaluation without breaking the pipeline.
+- **Knowledge Grounding Layer**: Uses `curated_destinations.py` (34KB verified landmarks, hotel tiers, and coordinates) and `travel_essentials.py` to ground the LLM prior to generation, eliminating fabricated places.
+- **Generative Synthesis**: Google Gemini 2.0 Flash with DeepSeek fallback for conversational nuance.
+
+#### 2. Graph Workflow & Node Sequence
+```mermaid
+flowchart TD
+    Start([START]) --> Grounding[grounding_node\nVerified coordinates, curated landmarks & essentials]
+    Grounding --> Flights[flight_worker_node\nAirline corridor, flight duration, realistic ticket price]
+    Flights --> Hotels[hotel_worker_node\nAccommodations matched to requested budget tier]
+    Hotels --> Itinerary[itinerary_worker_node\nChronological morning/afternoon/evening schedule]
+    Itinerary --> JevAudit{jev_audit_node\nTypeSafe AI Jev System One\nBudget & Pace Confidence}
+    
+    JevAudit -- "is_approved == False\n(Total Cost > Budget Ceiling)" --> Rebalance[budget_rebalancer_node\nSelf-Healing Loop: adjusts nightly rate]
+    Rebalance --> JevAudit
+    
+    JevAudit -- "is_approved == True\n(Noul Confidence >= 0.85)" --> Compiler[compiler_node\nCompile strict contract for TripNormalizer.js]
+    Compiler --> EndNode([END])
+```
+
+#### 3. TripState Schema
+```python
+class TripState(TypedDict, total=False):
+    origin: str
+    destination: str
+    days: int
+    budget_tier: str
+    traveler_type: str
+    interests: List[str]
+    user_email: Optional[str]
+    grounded_destination: Optional[Dict[str, Any]]
+    essentials: Optional[Dict[str, Any]]
+    flights: Optional[Dict[str, Any]]
+    hotels: Optional[List[Dict[str, Any]]]
+    itinerary: Optional[List[Dict[str, Any]]]
+    total_cost: float
+    jev_audit: Optional[Dict[str, Any]]
+    iterations: int
+    is_approved: bool
+    final_plan: Optional[Dict[str, Any]]
+```
+
+#### 4. Quality Audit Response Contract
+Every orchestrated plan delivers a transparent `qualityAudit` object alongside the travel schedule:
+```json
+"qualityAudit": {
+  "orchestrator": "LangGraph Stateful Supervisor v5",
+  "decisionEngine": "TypeSafe AI Jev (System One)",
+  "noulConfidence": 0.894,
+  "reasoning": "Optimal budget alignment and daily pacing.",
+  "selfHealedLoops": 2
+}
+```
 
 ---
 
