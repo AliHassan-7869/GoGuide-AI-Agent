@@ -289,9 +289,9 @@ export default function YourInterest() {
   };
 
   const fetchOverpassInterests = async ({ lat, lng }) => {
-    const radius = 12000;
+    const radius = 8000; // Optimized 8km radius for high density and rapid response
     const query = `
-      [out:json][timeout:5];
+      [out:json][timeout:3];
       (
         nwr(around:${radius},${lat},${lng})[tourism~"^(attraction|museum|viewpoint)$"];
         nwr(around:${radius},${lat},${lng})[historic];
@@ -303,22 +303,32 @@ export default function YourInterest() {
       out center 35;
     `.trim();
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    // Parallel Racing over 3 fast global Overpass mirrors with individual 2.8s timeouts
+    const OVERPASS_MIRRORS = [
+      "https://overpass-api.de/api/interpreter",
+      "https://lz4.overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+    ];
 
-    let res;
-    try {
-      res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    if (!res.ok) throw new Error(`Overpass error ${res.status}`);
-    const data = await res.json();
+    const fetchFromMirror = async (mirrorUrl) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2800);
+      try {
+        const res = await fetch(mirrorUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Mirror ${mirrorUrl} error ${res.status}`);
+        return await res.json();
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    // Fastest responding mirror wins immediately
+    const data = await Promise.any(OVERPASS_MIRRORS.map(fetchFromMirror));
     const elements = Array.isArray(data?.elements) ? data.elements : [];
 
     let hasRail = false;
@@ -469,20 +479,32 @@ export default function YourInterest() {
         }
       }
 
-      // Fallback: Gemini prompt
+      // Fallback: Gemini prompt via resilient backend /generate call with timeout
       const FINAL_PROMPT = INTEREST_PROMPT.replace("{{location}}", locationName);
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: FINAL_PROMPT }] }],
-        generationConfig,
-      });
+      let parsedResponse = null;
 
-      const response = await result.response.text();
-      let cleanResponse = response.trim();
-      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) cleanResponse = jsonMatch[0];
+      try {
+        const result = await Promise.race([
+          model.generateContent({
+            contents: [{ role: "user", parts: [{ text: FINAL_PROMPT }] }],
+            generationConfig,
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4500))
+        ]);
 
-      if (cleanResponse) {
-        const parsedResponse = JSON.parse(cleanResponse);
+        const response = await result.response.text();
+        let cleanResponse = response.trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) cleanResponse = jsonMatch[0];
+
+        if (cleanResponse) {
+          parsedResponse = JSON.parse(cleanResponse);
+        }
+      } catch (genErr) {
+        console.log("[DEBUG] Fallback AI interest attempt note:", genErr.message);
+      }
+
+      if (parsedResponse) {
         if (Array.isArray(parsedResponse.interests) && parsedResponse.interests.length > 0) {
           setPlacesList(parsedResponse.interests);
         }
