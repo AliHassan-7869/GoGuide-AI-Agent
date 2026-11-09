@@ -15,8 +15,59 @@ const EMERGENCY_LOOKUP = {
   pakistan: { police: "15", ambulance: "1122", touristHelp: "1422" },
   uk: { police: "999", ambulance: "999", touristHelp: "111" },
   usa: { police: "911", ambulance: "911", touristHelp: "911" },
+  turkey: { police: "155", ambulance: "112", touristHelp: "179" },
+  spain: { police: "112", ambulance: "061", touristHelp: "902-102-112" },
   default: { police: "112", ambulance: "112", touristHelp: "112" },
 };
+
+// Essential Offline Emergency & Travel Phrases
+const OFFLINE_PHRASES = {
+  japan: [
+    { en: "Where is the hospital?", local: "Byouin wa doko desu ka?", pron: "Byo-een wah doh-koh dess kah" },
+    { en: "Please help me!", local: "Tasukete kudasai!", pron: "Tah-soo-keh-teh koo-dah-sigh" },
+    { en: "How much is this?", local: "Kore wa ikura desu ka?", pron: "Koh-reh wah ee-koo-rah dess kah" },
+    { en: "Where is the station?", local: "Eki wa doko desu ka?", pron: "Eh-kee wah doh-koh dess kah" },
+    { en: "Thank you very much", local: "Arigatou gozaimasu", pron: "Ah-ree-gah-toh goh-zeye-moss" },
+  ],
+  france: [
+    { en: "Where is the hospital?", local: "Où est l'hôpital ?", pron: "Oo ay low-pee-tahl" },
+    { en: "Please help me!", local: "Aidez-moi s'il vous plaît !", pron: "Ay-day mwah seel voo play" },
+    { en: "How much is this?", local: "Combien ça coûte ?", pron: "Kom-byan sah koot" },
+    { en: "Where is the station?", local: "Où est la gare ?", pron: "Oo ay lah gahr" },
+    { en: "Thank you very much", local: "Merci beaucoup", pron: "Mair-see boh-koo" },
+  ],
+  turkey: [
+    { en: "Where is the hospital?", local: "Hastane nerede?", pron: "Hahs-tah-neh neh-reh-deh" },
+    { en: "Please help me!", local: "Lütfen yardım edin!", pron: "Loot-fen yahr-duhm eh-din" },
+    { en: "How much is this?", local: "Bu ne kadar?", pron: "Boo neh kah-dahr" },
+    { en: "Where is the station?", local: "İstasyon nerede?", pron: "Ees-tahs-yohn neh-reh-deh" },
+    { en: "Thank you very much", local: "Çok teşekkür ederim", pron: "Chok teh-shek-koor eh-deh-reem" },
+  ],
+  uae: [
+    { en: "Where is the hospital?", local: "Ayna al-mustashfa?", pron: "Eye-nah al-moos-tash-fah" },
+    { en: "Please help me!", local: "Saa'idni min fadlik!", pron: "Sah-id-nee min fad-lik" },
+    { en: "How much is this?", local: "Bikam haadha?", pron: "Bih-kam hah-thah" },
+    { en: "Where is the metro/taxi?", local: "Ayna al-metro / taxi?", pron: "Eye-nah al-metro / taxi" },
+    { en: "Thank you very much", local: "Shukran jazeelan", pron: "Shook-ran jah-zee-lan" },
+  ],
+  default: [
+    { en: "Where is the hospital?", local: "Where is the nearest hospital / clinic?", pron: "Universal medical help" },
+    { en: "Please help me!", local: "Please help me, it is an emergency!", pron: "Universal emergency help" },
+    { en: "How much is this?", local: "How much does this cost?", pron: "Currency / pricing" },
+    { en: "Where is the station?", local: "Where is the train / metro station?", pron: "Navigation" },
+    { en: "Thank you very much", local: "Thank you very much!", pron: "Polite gratitude" },
+  ],
+};
+
+function getOfflinePhrases(destination = "") {
+  const lower = (destination || "").toLowerCase();
+  for (const key of Object.keys(OFFLINE_PHRASES)) {
+    if (key !== "default" && lower.includes(key)) {
+      return OFFLINE_PHRASES[key];
+    }
+  }
+  return OFFLINE_PHRASES.default;
+}
 
 function getEmergencyNumbers(destination = "") {
   const lower = (destination || "").toLowerCase();
@@ -44,6 +95,7 @@ export default function OfflineVaultModal({
   };
 
   const emergency = getEmergencyNumbers(destination);
+  const phrases = getOfflinePhrases(destination);
 
   const handleCopy = (text, label) => {
     triggerHaptic();
@@ -213,6 +265,32 @@ export default function OfflineVaultModal({
               </Text>
             </View>
           </View>
+
+          {/* Essential Offline Phrases */}
+          <Text style={[styles.sectionHeading, { color: theme.text, marginTop: 24 }]}>
+            🗣️ Essential Local Phrases (Tap to Copy)
+          </Text>
+
+          <View style={[styles.tipsCard, { backgroundColor: theme.card, borderColor: theme.border, padding: 12 }]}>
+            {phrases.map((item, pIdx) => (
+              <TouchableOpacity
+                key={pIdx}
+                onPress={() => handleCopy(`${item.local} (${item.en})`, item.en)}
+                style={[
+                  styles.phraseRow,
+                  pIdx < phrases.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border + "40", paddingBottom: 10, marginBottom: 10 }
+                ]}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.phraseEnglish, { color: theme.subtext }]}>{item.en}</Text>
+                  <Text style={[styles.phraseLocal, { color: theme.text }]}>{item.local}</Text>
+                  <Text style={[styles.phrasePron, { color: Colors.PRIMARY }]}>🔊 {item.pron}</Text>
+                </View>
+                <Ionicons name="copy-outline" size={16} color={theme.subtext} style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </ScrollView>
       </View>
     </Modal>
@@ -351,5 +429,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Outfit-Regular",
     lineHeight: 18,
+  },
+  phraseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  phraseEnglish: {
+    fontSize: 11,
+    fontFamily: "Outfit-Medium",
+    marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  phraseLocal: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
+    marginBottom: 2,
+  },
+  phrasePron: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
   },
 });

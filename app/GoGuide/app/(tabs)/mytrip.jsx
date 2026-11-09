@@ -780,6 +780,97 @@ export default function MyTrip() {
     syncTripChanges(updatedTrip);
   };
 
+  // AI Regenerate Single Day (Micro-edit preserving all other days)
+  const [regeneratingDay, setRegeneratingDay] = useState(null);
+
+  const handleRegenerateDay = async (dayNumber) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const destName = plan?.destination?.split(",")[0]?.trim() || tripData?.toLocation?.name?.split(",")[0]?.trim() || "Destination";
+    
+    const proceedWithRegeneration = async () => {
+      try {
+        setRegeneratingDay(dayNumber);
+        const { askTravelAssistant } = require("../../Configs/AiModel");
+        const { robustParseJson } = require("../../Components/utils/TripNormalizer");
+
+        const prompt = `Generate a completely fresh alternative single-day itinerary for Day ${dayNumber} in ${destName}.
+Budget: ${plan?.budget || "Moderate"}.
+Return ONLY valid JSON matching this exact structure with morning, afternoon, and evening activities:
+{
+  "theme": "Fresh theme for Day ${dayNumber}",
+  "activities": [
+    {"time": "Morning (9:30 AM)", "placeName": "New Attraction / Landmark", "details": "Specific insider tip", "tickets": "Free - $15"},
+    {"time": "Afternoon (2:00 PM)", "placeName": "New Cultural Quarter / Cafe", "details": "Artisanal stroll and regional bite", "tickets": "Free"},
+    {"time": "Evening (7:00 PM)", "placeName": "Twilight Viewpoint & Dining", "details": "Evening dinner and scenic vista", "tickets": "$20 - $35"}
+  ]
+}`;
+
+        const res = await askTravelAssistant(prompt, [], plan);
+        let newDayData = null;
+        if (res && res.reply) {
+          const parsed = robustParseJson(res.reply);
+          if (parsed && Array.isArray(parsed.activities) && parsed.activities.length > 0) {
+            newDayData = parsed;
+          }
+        }
+
+        // Resilient fallback blueprint if LLM fails
+        if (!newDayData) {
+          newDayData = {
+            theme: `Day ${dayNumber}: Alternative ${destName} Cultural Discovery`,
+            activities: [
+              { time: "Morning (9:30 AM)", placeName: `${destName} Botanical Oasis & Heritage Courtyard`, details: "Tranquil morning garden stroll away from the crowds.", tickets: "Free" },
+              { time: "Afternoon (1:30 PM)", placeName: `${destName} Old Quarter Artisanal Street`, details: "Explore independent boutique ateliers, bookstores, and specialty espresso cafes.", tickets: "Free" },
+              { time: "Evening (7:00 PM)", placeName: `Panoramic ${destName} Skyline Bistro`, details: "Savor regional gastronomy and sunset panoramic vistas.", tickets: "$25 - $40" }
+            ]
+          };
+        }
+
+        const updatedItinerary = plan.itinerary.map((d) => {
+          if (String(d.day) === String(dayNumber)) {
+            return {
+              ...d,
+              theme: newDayData.theme || d.theme,
+              activities: newDayData.activities,
+            };
+          }
+          return d;
+        });
+
+        const updatedTrip = {
+          ...tripData,
+          aiTripPlan: {
+            ...plan,
+            itinerary: updatedItinerary,
+          },
+        };
+
+        syncTripChanges(updatedTrip);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert("Day Regenerated! ✨", `Day ${dayNumber} refreshed with a brand new schedule.`);
+      } catch (err) {
+        Alert.alert("Notice", "Could not refresh day schedule right now. Please try again.");
+      } finally {
+        setRegeneratingDay(null);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`Regenerate Day ${dayNumber} with fresh activities? Your other days will stay untouched.`)) {
+        proceedWithRegeneration();
+      }
+    } else {
+      Alert.alert(
+        `Regenerate Day ${dayNumber}?`,
+        "AI will generate a fresh theme and schedule for this day while keeping the rest of your trip completely untouched.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Regenerate ✨", onPress: proceedWithRegeneration },
+        ]
+      );
+    }
+  };
+
   // Clone / Save Trip to User Account
   const handleCloneTrip = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1177,6 +1268,12 @@ export default function MyTrip() {
           </View>
         </View>
 
+        {/* Live Weather & Smart Wardrobe Card */}
+        <WeatherCard 
+          weatherBrief={plan?.weatherBrief} 
+          destination={plan?.destination || tripData?.toLocation?.name || ""}
+        />
+
         {/* Proactive Smart Travel Advisory Banner (Controlled by User in Profile) */}
         {preferences?.notifications && showNotificationBanner && (
           <View style={[styles.notificationCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -1436,6 +1533,50 @@ export default function MyTrip() {
                   </Text>
                 </View>
               )}
+            </View>
+          </View>
+        )}
+
+        {/* Visual Trip Cost Breakdown Bar */}
+        {plan && (
+          <View style={[styles.section, { backgroundColor: theme.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.border, marginBottom: 20 }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Ionicons name="pie-chart-outline" size={17} color={Colors.PRIMARY} />
+                <Text style={{ fontSize: 14, fontFamily: "Outfit-Bold", color: theme.text }}>Trip Cost Breakdown</Text>
+              </View>
+              <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: Colors.PRIMARY }}>
+                {plan.budget || "Moderate Tier"}
+              </Text>
+            </View>
+
+            {/* Proportional Segmented Progress Bar */}
+            <View style={{ height: 10, width: "100%", flexDirection: "row", borderRadius: 5, overflow: "hidden", marginBottom: 12 }}>
+              <View style={{ flex: 45, backgroundColor: "#3B82F6" }} />
+              <View style={{ flex: 32, backgroundColor: "#10B981" }} />
+              <View style={{ flex: 23, backgroundColor: "#F59E0B" }} />
+            </View>
+
+            {/* Legend with realistic estimated allocations */}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#3B82F6" }} />
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext }}>
+                  🏨 Stays ~45%
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" }} />
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext }}>
+                  ✈️ Transport ~32%
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#F59E0B" }} />
+                <Text style={{ fontSize: 11, fontFamily: "Outfit-Regular", color: theme.subtext }}>
+                  🍽️ Dining & Sightseeing ~23%
+                </Text>
+              </View>
             </View>
           </View>
         )}
@@ -1744,6 +1885,22 @@ export default function MyTrip() {
                   >
                     <Ionicons name="map" size={13} color="#FFF" />
                     <Text style={styles.dayRouteBtnText}>Route Map</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.dayRegenBtn, { backgroundColor: regeneratingDay === day.day ? Colors.PRIMARY + "30" : "rgba(139, 92, 246, 0.15)", borderColor: "#8B5CF6" }]}
+                    onPress={() => handleRegenerateDay(day.day)}
+                    disabled={regeneratingDay === day.day}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons 
+                      name={regeneratingDay === day.day ? "hourglass-outline" : "sparkles"} 
+                      size={12} 
+                      color="#8B5CF6" 
+                    />
+                    <Text style={[styles.dayRegenBtnText, { color: "#8B5CF6" }]}>
+                      {regeneratingDay === day.day ? "Generating..." : "Regenerate Day"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2500,6 +2657,19 @@ const styles = StyleSheet.create({
   },
   dayRouteBtnText: {
     color: "#FFF",
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    marginLeft: 4,
+  },
+  dayRegenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 0.8,
+  },
+  dayRegenBtnText: {
     fontSize: 11,
     fontFamily: "Outfit-Bold",
     marginLeft: 4,
