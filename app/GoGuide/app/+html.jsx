@@ -100,31 +100,13 @@ export default function Root({ children }) {
             word-break: break-word;
             min-width: 0;
           }
-          /* Auth/text fields: the text colour must not depend on system dark mode,
-             Android WebView force-dark, or browser/Google autofill styling. */
+          /* Auth & form inputs: allow React Native styles to govern color and theme */
           input, textarea {
-            color: #111827 !important;
-            -webkit-text-fill-color: #111827 !important;
-            caret-color: #111827 !important;
-            background-color: #FFFFFF;
-            color-scheme: light;
+            outline: none;
+            border: none;
           }
           input::placeholder, textarea::placeholder {
-            color: #6B7280 !important;
-            -webkit-text-fill-color: #6B7280 !important;
-            opacity: 1;
-          }
-          input:-webkit-autofill,
-          input:-webkit-autofill:hover,
-          input:-webkit-autofill:focus,
-          input:-webkit-autofill:active,
-          textarea:-webkit-autofill,
-          textarea:-webkit-autofill:focus {
-            -webkit-text-fill-color: #111827 !important;
-            caret-color: #111827 !important;
-            -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-            box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-            transition: background-color 9999s ease-out 0s;
+            opacity: 0.7;
           }
         ` }} />
         {headNodes}

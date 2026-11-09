@@ -144,11 +144,92 @@ const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
   );
 };
 
+// Curated iconic landmarks for major destinations (0ms instant render)
+const CITY_SPECIFIC_HIGHLIGHTS = {
+  istanbul: [
+    { id: 'ist-1', name: '🕌 Hagia Sophia Grand Mosque', description: 'Legendary 6th-century Byzantine masterpiece & cultural symbol', category: 'History' },
+    { id: 'ist-2', name: '🏛️ Topkapi Palace & Imperial Harem', description: 'Historic residence of Ottoman Sultans overlooking the Bosphorus', category: 'History' },
+    { id: 'ist-3', name: '🕌 The Blue Mosque (Sultanahmet)', description: 'Six majestic minarets & stunning blue Iznik tiles', category: 'History' },
+    { id: 'ist-4', name: '🛍️ Grand Bazaar & Spice Market', description: 'World-famous covered market with 4,000+ vibrant shops & spices', category: 'Shopping' },
+    { id: 'ist-5', name: '🗼 Galata Tower & Bosphorus Views', description: 'Iconic medieval stone tower with 360° panoramas over Istanbul', category: 'Viewpoint' },
+    { id: 'ist-6', name: '🌊 Bosphorus Sunset Cruise', description: 'Picturesque sailing between Europe & Asia along the historic strait', category: 'Nature' },
+    { id: 'ist-7', name: '🍴 Authentic Ottoman Kebabs & Meze', description: 'Taste legendary Iskender, kebabs & fresh grilled mezes', category: 'Food' },
+    { id: 'ist-8', name: '☕ Historic Turkish Coffee & Baklava', description: 'Slow-brewed sand coffee paired with flaky pistachio baklava', category: 'Food' },
+  ],
+  dubai: [
+    { id: 'dxb-1', name: '🏙️ Burj Khalifa & Sky Deck', description: 'World’s tallest tower with stunning 360° Arabian Gulf views', category: 'Viewpoint' },
+    { id: 'dxb-2', name: '🏜️ Arabian Desert Safari & Dunes', description: 'Thrilling dune bashing, camel trek & sunset Bedouin camp', category: 'Nature' },
+    { id: 'dxb-3', name: '🛍️ The Dubai Mall & Dancing Fountain', description: 'Mega shopping destination with mesmerizing light & water shows', category: 'Shopping' },
+    { id: 'dxb-4', name: '🏖️ Jumeirah Beach & Palm Promenade', description: 'White sands and turquoise shores overlooking Atlantis', category: 'Beaches' },
+    { id: 'dxb-5', name: '🏛️ Museum of the Future', description: 'Architectural wonder showcasing futuristic innovations', category: 'History' },
+    { id: 'dxb-6', name: '🍴 Arabian Dining & Street Shawarma', description: 'Authentic Emirati delicacies, shawarmas & luxury dining', category: 'Food' },
+  ],
+  paris: [
+    { id: 'par-1', name: '🗼 Eiffel Tower & Champ de Mars', description: 'Iconic iron lattice tower with panoramic views over Paris', category: 'Viewpoint' },
+    { id: 'par-2', name: '🏛️ The Louvre Museum & Glass Pyramid', description: 'Home of the Mona Lisa, Venus de Milo & world treasures', category: 'History' },
+    { id: 'par-3', name: '⛪ Notre-Dame Cathedral & Seine Island', description: 'Gothic masterpiece on the Île de la Cité', category: 'History' },
+    { id: 'par-4', name: '🛍️ Champs-Élysées & Arc de Triomphe', description: 'Prestigious avenue lined with luxury boutiques & cafes', category: 'Shopping' },
+    { id: 'par-5', name: '☕ Authentic Parisian Bistro & Pastries', description: 'Classic cafe terrace, fresh croissants & artisanal coffee', category: 'Food' },
+    { id: 'par-6', name: '🎨 Montmartre & Sacré-Cœur Basilica', description: 'Bohemian artist hilltop with breathtaking city skyline', category: 'Viewpoint' },
+  ],
+  tokyo: [
+    { id: 'tyo-1', name: '🗼 Tokyo Tower & Shibuya Sky', description: 'Futuristic observation decks with panoramic city views', category: 'Viewpoint' },
+    { id: 'tyo-2', name: '⛩️ Senso-ji Temple & Asakusa', description: 'Tokyo’s oldest Buddhist temple and traditional street shops', category: 'History' },
+    { id: 'tyo-3', name: '🚶 Shibuya Crossing & Hachiko', description: 'World’s busiest pedestrian crossing & vibrant neon district', category: 'Attraction' },
+    { id: 'tyo-4', name: '🍣 Tsukiji Outer Market & Omakase Sushi', description: 'World-renowned fresh seafood, wagyu skewers & matcha', category: 'Food' },
+    { id: 'tyo-5', name: '🌳 Shinjuku Gyoen National Garden', description: 'Tranquil Japanese gardens, cherry blossoms & ponds', category: 'Nature' },
+    { id: 'tyo-6', name: '🛍️ Akihabara & Ginza Shopping', description: 'High-tech electronics, anime culture & luxury retail', category: 'Shopping' },
+  ],
+  rome: [
+    { id: 'rom-1', name: '🏛️ The Colosseum & Roman Forum', description: 'Ancient amphitheater & heart of the Roman Empire', category: 'History' },
+    { id: 'rom-2', name: '⛲ Trevi Fountain & Spanish Steps', description: 'Baroque masterpiece fountain and elegant landmark steps', category: 'Attraction' },
+    { id: 'rom-3', name: '⛪ Vatican City & St. Peter’s Basilica', description: 'Sistine Chapel, Michelangelo frescoes & sacred architecture', category: 'History' },
+    { id: 'rom-4', name: '🏛️ The Pantheon & Piazza Navona', description: 'Ancient dome with central oculus & vibrant street artists', category: 'History' },
+    { id: 'rom-5', name: '🍝 Authentic Trastevere Pasta & Gelato', description: 'Handmade carbonara, cacio e pepe & artisanal gelato', category: 'Food' },
+  ],
+  london: [
+    { id: 'lon-1', name: '🕰️ Big Ben & Palace of Westminster', description: 'Iconic neo-Gothic clock tower & Houses of Parliament', category: 'History' },
+    { id: 'lon-2', name: '🎡 The London Eye & River Thames', description: 'Giant observation wheel with skyline views across London', category: 'Viewpoint' },
+    { id: 'lon-3', name: '🏛️ The British Museum', description: 'World-famous museum of human history, art and Rosetta Stone', category: 'History' },
+    { id: 'lon-4', name: '🏰 Tower of London & Tower Bridge', description: 'Historic fortress holding the dazzling Crown Jewels', category: 'History' },
+    { id: 'lon-5', name: '🌳 Hyde Park & Kensington Gardens', description: 'Sprawling royal parklands and serene boating lakes', category: 'Nature' },
+    { id: 'lon-6', name: '🍴 Borough Market Gourmet Food', description: 'Historic food market with artisan cheese, pastries & street food', category: 'Food' },
+  ],
+};
+
+const KNOWN_CITY_COORDINATES = {
+  istanbul: { lat: 41.0082, lng: 28.9784 },
+  dubai: { lat: 25.2048, lng: 55.2708 },
+  tokyo: { lat: 35.6762, lng: 139.6503 },
+  rome: { lat: 41.9028, lng: 12.4964 },
+  paris: { lat: 48.8566, lng: 2.3522 },
+  london: { lat: 51.5074, lng: -0.1278 },
+  bali: { lat: -8.4095, lng: 115.1889 },
+  cairo: { lat: 30.0444, lng: 31.2357 },
+  lahore: { lat: 31.5204, lng: 74.3587 },
+  karachi: { lat: 24.8607, lng: 67.0011 },
+  islamabad: { lat: 33.6844, lng: 73.0479 },
+  bangkok: { lat: 13.7563, lng: 100.5018 },
+  singapore: { lat: 1.3521, lng: 103.8198 },
+  barcelona: { lat: 41.3879, lng: 2.1699 },
+  amsterdam: { lat: 52.3676, lng: 4.9041 },
+  newyork: { lat: 40.7128, lng: -74.0060 },
+  "new york": { lat: 40.7128, lng: -74.0060 },
+};
+
 // Curated highlights tailored to destination geography (0ms instant initial render)
 const getSmartDestinationInterests = (dest = "") => {
   const d = (dest || "").toLowerCase();
+
+  // If destination matches a specific top city, return authentic real landmarks immediately
+  for (const [cityName, cityHighlights] of Object.entries(CITY_SPECIFIC_HIGHLIGHTS)) {
+    if (d.includes(cityName)) {
+      return cityHighlights;
+    }
+  }
+
   const isBeach = /beach|coast|island|bali|maldives|phuket|miami|cancun|hawaii|goa|santorini|bahamas|krabi/i.test(d);
-  const isHistoric = /rome|paris|cairo|athens|kyoto|lahore|london|istanbul|delhi|florence|beijing|agra/i.test(d);
+  const isHistoric = /rome|paris|cairo|athens|kyoto|lahore|london|delhi|florence|beijing|agra/i.test(d);
   const isMountain = /alps|mountain|hike|swiss|banff|aspen|manali|nepal|queenstown|murree|swat/i.test(d);
 
   return [
@@ -187,7 +268,9 @@ export default function YourInterest() {
   );
   const [transportList, setTransportList] = useState(DEFAULT_TRANSPORTS);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
-  const [selectedTransport, setSelectedTransport] = useState(null);
+  const [selectedTransport, setSelectedTransport] = useState(
+    tripData?.transport || DEFAULT_TRANSPORTS[0]?.id || "taxi"
+  );
   const [activeCategory, setActiveCategory] = useState("all");
   const [loadingInterests, setLoadingInterests] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -459,9 +542,35 @@ export default function YourInterest() {
         }
       } catch (e) {}
 
-      // Try OpenStreetMap / Overpass with fast 3.5s timeout
-      const lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
-      const lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
+      // Try OpenStreetMap / Overpass with fast multi-mirror race
+      let lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
+      let lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
+
+      // Fast coordinate resolver if coordinates were not attached
+      if (lat == null || lng == null) {
+        const destKey = destinationName.toLowerCase().trim();
+        for (const [key, coords] of Object.entries(KNOWN_CITY_COORDINATES)) {
+          if (destKey.includes(key)) {
+            lat = coords.lat;
+            lng = coords.lng;
+            break;
+          }
+        }
+      }
+
+      if (lat == null || lng == null) {
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locationName)}`
+          );
+          const geoData = await geoRes.json();
+          if (Array.isArray(geoData) && geoData[0]) {
+            lat = Number(geoData[0].lat);
+            lng = Number(geoData[0].lon);
+          }
+        } catch (e) {}
+      }
+
       if (lat != null && lng != null) {
         try {
           const osm = await fetchOverpassInterests({ lat, lng });
@@ -587,12 +696,13 @@ export default function YourInterest() {
 
   const handleContinue = () => {
     triggerHaptic();
-    if (selectedPlaces.length > 0 && selectedTransport) {
+    if (selectedPlaces.length > 0) {
+      const finalTransport = selectedTransport || transportList[0]?.id || "taxi";
       const selectedInterestItems = placesList.filter((p) =>
         selectedPlaces.includes(p.id)
       );
       const selectedTransportItem =
-        transportList.find((t) => t.id === selectedTransport) || null;
+        transportList.find((t) => t.id === finalTransport) || transportList[0] || null;
 
       const chosenCategories = Array.from(
         new Set(selectedInterestItems.map((i) => i.category).filter(Boolean))
@@ -601,7 +711,7 @@ export default function YourInterest() {
       setTripData((prev) => ({
         ...prev,
         interests: selectedPlaces,
-        transport: selectedTransport,
+        transport: finalTransport,
         interestsDetails: selectedInterestItems,
         transportDetails: selectedTransportItem,
         selectedCategories: chosenCategories,
@@ -854,10 +964,10 @@ export default function YourInterest() {
           activeOpacity={0.9}
           style={[
             styles.button,
-            !(selectedPlaces.length > 0 && selectedTransport) && styles.buttonDisabled,
+            selectedPlaces.length === 0 && styles.buttonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={!(selectedPlaces.length > 0 && selectedTransport)}
+          disabled={selectedPlaces.length === 0}
         >
           <Text style={styles.buttonText}>
             {selectedPlaces.length > 0

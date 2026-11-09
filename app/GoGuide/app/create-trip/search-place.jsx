@@ -18,42 +18,49 @@ const POPULAR_DESTINATIONS = [
     query: "Tokyo, Japan",
     emoji: "🗼",
     image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 35.6762, lng: 139.6503 },
   },
   {
     name: "Dubai",
     query: "Dubai, United Arab Emirates",
     emoji: "🏜️",
     image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 25.2048, lng: 55.2708 },
   },
   {
     name: "Bali",
     query: "Bali, Indonesia",
     emoji: "🏖️",
     image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: -8.4095, lng: 115.1889 },
   },
   {
     name: "Rome",
     query: "Rome, Italy",
     emoji: "🏛️",
     image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 41.9028, lng: 12.4964 },
   },
   {
     name: "Istanbul",
     query: "Istanbul, Turkey",
     emoji: "🕌",
     image: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 41.0082, lng: 28.9784 },
   },
   {
     name: "Paris",
     query: "Paris, France",
     emoji: "🗼",
     image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 48.8566, lng: 2.3522 },
   },
   {
     name: "London",
     query: "London, United Kingdom",
     emoji: "🇬🇧",
     image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=240&auto=format&fit=crop",
+    coordinates: { lat: 51.5074, lng: -0.1278 },
   },
 ];
 
@@ -151,6 +158,7 @@ export default function SearchPlace() {
       ...prev,
       toLocation: {
         name: dest.query,
+        coordinates: dest.coordinates || null,
       },
       toLocationImage: destinationImage,
     }));
@@ -240,6 +248,14 @@ export default function SearchPlace() {
     const destinationImage =
       tripData?.toLocationImage || getDestinationImage(cleanTo);
 
+    // Fallback coordinates resolver for top destinations if user typed directly
+    const matchedDest = POPULAR_DESTINATIONS.find(
+      (d) =>
+        d.query.toLowerCase() === cleanTo.toLowerCase() ||
+        d.name.toLowerCase() === cleanTo.toLowerCase() ||
+        cleanTo.toLowerCase().includes(d.name.toLowerCase())
+    );
+
     setTripData((prev) => ({
       ...prev,
       fromLocation:
@@ -247,9 +263,12 @@ export default function SearchPlace() {
           ? prev.fromLocation
           : { name: cleanFrom, coordinates: null },
       toLocation:
-        prev?.toLocation?.name === cleanTo
+        prev?.toLocation?.name === cleanTo && prev?.toLocation?.coordinates
           ? prev.toLocation
-          : { name: cleanTo, coordinates: null },
+          : {
+              name: cleanTo,
+              coordinates: prev?.toLocation?.coordinates || matchedDest?.coordinates || null,
+            },
       locationInfo: {
         ...(prev?.locationInfo || {}),
         name: cleanTo,
@@ -309,11 +328,12 @@ export default function SearchPlace() {
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DEPARTURE CITY</Text>
               <TextInput
                 placeholder="Where are you starting from?"
-                placeholderTextColor={theme.subtext}
+                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
                 value={fromQuery}
                 onFocus={() => setActiveField("from")}
                 onChangeText={(text) => searchPlace(text, "from")}
-                style={[styles.textInput, { color: theme.text }]}
+                selectionColor={activeAccent}
+                style={[styles.textInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
               />
             </View>
             <TouchableOpacity
@@ -350,11 +370,12 @@ export default function SearchPlace() {
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DESTINATION</Text>
               <TextInput
                 placeholder="Where to? (e.g. Dubai, Tokyo, Rome)"
-                placeholderTextColor={theme.subtext}
+                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
                 value={toQuery}
                 onFocus={() => setActiveField("to")}
                 onChangeText={(text) => searchPlace(text, "to")}
-                style={[styles.textInput, { color: theme.text }]}
+                selectionColor={activeAccent}
+                style={[styles.textInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
               />
             </View>
           </View>

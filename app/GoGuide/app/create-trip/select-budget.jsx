@@ -407,10 +407,11 @@ export default function SelectBudget() {
             </TouchableOpacity>
 
             <TextInput
-              style={[styles.amountInput, { color: theme.text }]}
+              style={[styles.amountInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
               placeholder="e.g. 150000"
               placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
               keyboardType="numeric"
+              selectionColor={activeAccent}
               value={customAmount}
               onChangeText={handleCustomAmountChange}
               onFocus={() => {

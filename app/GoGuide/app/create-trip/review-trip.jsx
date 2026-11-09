@@ -212,7 +212,9 @@ export default function ReviewTrip() {
               </Text>
             </View>
             <View style={styles.vipTag}>
-              <Text style={styles.vipTagText}>{budgetTier.toUpperCase()} CLASS</Text>
+              <Text style={styles.vipTagText}>
+                {tripData?.isCustomBudget ? "CUSTOM TIER" : `${budgetTier.toUpperCase()} CLASS`}
+              </Text>
             </View>
           </View>
 
@@ -392,7 +394,7 @@ export default function ReviewTrip() {
                 ]}
               >
                 <Text style={[styles.budgetTierPillText, { color: activeAccent }]}>
-                  {budgetTier.toUpperCase()}
+                  {tripData?.isCustomBudget ? "CUSTOM TARGET" : budgetTier.toUpperCase()}
                 </Text>
                 <Ionicons name="pencil" size={10} color={activeAccent} style={{ marginLeft: 4 }} />
               </TouchableOpacity>

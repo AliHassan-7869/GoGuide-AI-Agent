@@ -605,9 +605,10 @@ export default function SelectDates() {
                 onChangeText={handleManualDaysChange}
                 keyboardType="number-pad"
                 maxLength={2}
-                style={[styles.manualTextInput, { color: theme.text }]}
+                selectionColor="#F59E0B"
+                style={[styles.manualTextInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
                 placeholder="5"
-                placeholderTextColor={theme.subtext}
+                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
               />
               <Text style={[styles.manualDaysSuffix, { color: theme.subtext }]}>DAYS</Text>
             </View>
