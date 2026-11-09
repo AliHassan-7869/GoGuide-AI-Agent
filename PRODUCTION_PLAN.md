@@ -209,6 +209,38 @@ Plus one time: **$25** for Play Store.
 | Redis cache (later) | Same request served without calling AI |
 | DeepSeek prepaid wallet | Only spends what I load |
 
+### 3.7 Hosting strategy: Render now, Google Cloud Run later
+
+**Now (testing and small launch): stay on Render free.**
+
+| Step | Action |
+|---|---|
+| 1 | Keep `.github/workflows/keep-alive.yml` (pings `/health` every 14 min) |
+| 2 | Add a free UptimeRobot monitor on `/health` (5 min interval) as backup, because GitHub cron can run late |
+| 3 | Use only one free Render service (750 hours per month is about one service running 24/7) |
+| 4 | Show a "server is waking up" loading message in the app for the first request |
+
+**Later (when users grow): move to Google Cloud Run.**
+
+| Item | Plan |
+|---|---|
+| Trigger to move | Render free limits are hit, cold starts hurt users, or traffic grows steadily |
+| Why Cloud Run | Scales to zero, cold start of a few seconds instead of ~50 seconds, free monthly quota (check current Google pricing) |
+| Billing | Needs a billing account (card). No hard spend cap, so set Budget alerts and keep the Gemini spend cap |
+| Packaging | Write a `Dockerfile` for `app.py` (uvicorn, `requirements-render.txt` incl. `langgraph`) |
+| Deploy | `gcloud run deploy goguide-api --source . --region <region> --max-instances 1` |
+
+**Must fix before moving (in-memory state breaks when instances stop or multiply):**
+
+| In-memory data in `app.py` | Problem on Cloud Run | Fix |
+|---|---|---|
+| `_DEEP_JOBS` (`/plan-deep` jobs) | Lost on idle, or polled on a different instance | Store jobs in Firestore or Redis |
+| `_OTP_STORE` (2FA codes) | Code lost between requests | Store in Firestore with expiry |
+| `_request_log` (rate limit) | Resets per instance | Redis or Firestore counters |
+| `_PLAN_CACHE` | Cache misses only, not critical | Redis later |
+
+Until these are moved, run with `--max-instances 1`.
+
 ---
 
 ## 4. Environment variables
