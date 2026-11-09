@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View, TextInput } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -52,6 +52,11 @@ export default function SelectBudget() {
   const destCurrency = detectCurrencyFromLocation(destination);
   const destCurrencyInfo = CURRENCY_RATES[destCurrency] || CURRENCY_RATES.USD;
 
+  // Selected Currency for Custom Budget (Default: User Home Currency)
+  const [customCurrency, setCustomCurrency] = useState(tripData?.customBudgetCurrency || homeCurrency);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const selectedCurrencyInfo = CURRENCY_RATES[customCurrency] || CURRENCY_RATES.USD;
+
   const exchangeRate =
     destCurrencyInfo.rate > 0
       ? (homeCurrencyInfo.rate / destCurrencyInfo.rate).toFixed(2)
@@ -66,15 +71,26 @@ export default function SelectBudget() {
     setSelectedBudget(val);
   };
 
-  const handleCustomAmountChange = (text) => {
+  const handleCustomAmountChange = (text, currencyOverride) => {
     // Keep only numbers
     const cleaned = text.replace(/[^0-9]/g, "");
     setCustomAmount(cleaned);
+    const curr = currencyOverride || customCurrency;
+    const currInfo = CURRENCY_RATES[curr] || homeCurrencyInfo;
     if (cleaned && Number(cleaned) > 0) {
       setIsCustomMode(true);
-      setSelectedBudget(`Custom: ${homeCurrencyInfo.symbol || ""}${Number(cleaned).toLocaleString()} ${homeCurrency}`);
+      setSelectedBudget(`Custom: ${currInfo.symbol || ""}${Number(cleaned).toLocaleString()} ${curr}`);
     } else {
       setSelectedBudget(null);
+    }
+  };
+
+  const handleSelectCurrency = (code) => {
+    triggerHaptic();
+    setCustomCurrency(code);
+    setShowCurrencyModal(false);
+    if (customAmount && Number(customAmount) > 0) {
+      handleCustomAmountChange(customAmount, code);
     }
   };
 
@@ -87,7 +103,7 @@ export default function SelectBudget() {
 
     if (isCustomMode && customAmount && Number(customAmount) > 0) {
       numericCustom = Number(customAmount);
-      finalBudgetString = `Custom: ${homeCurrencyInfo.symbol || ""}${numericCustom.toLocaleString()} ${homeCurrency}`;
+      finalBudgetString = `Custom: ${selectedCurrencyInfo.symbol || ""}${numericCustom.toLocaleString()} ${customCurrency}`;
     }
 
     setTripData((prev) => ({
@@ -95,7 +111,7 @@ export default function SelectBudget() {
       budget: finalBudgetString,
       isCustomBudget: Boolean(isCustomMode && numericCustom),
       customBudgetAmount: numericCustom,
-      customBudgetCurrency: homeCurrency,
+      customBudgetCurrency: customCurrency,
       destinationCurrency: destCurrency,
       homeCurrency: homeCurrency,
     }));
@@ -323,15 +339,73 @@ export default function SelectBudget() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.customCardTitle, { color: theme.text }]}>Custom Total Budget</Text>
               <Text style={[styles.customCardSubtitle, { color: theme.subtext }]}>
-                Specify your exact target spend in {homeCurrencyInfo.name} ({homeCurrency})
+                Specify your exact target spend in any currency
               </Text>
             </View>
           </View>
 
+          {/* QUICK TOGGLE BUTTONS: HOME vs DESTINATION vs SELECTOR */}
+          <View style={styles.quickCurrencyRow}>
+            <TouchableOpacity
+              onPress={() => handleSelectCurrency(homeCurrency)}
+              style={[
+                styles.quickCurrencyBtn,
+                customCurrency === homeCurrency
+                  ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
+                  : { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.quickCurrencyText, { color: customCurrency === homeCurrency ? activeAccent : theme.text }]}>
+                Home ({homeCurrency})
+              </Text>
+            </TouchableOpacity>
+
+            {destCurrency !== homeCurrency && (
+              <TouchableOpacity
+                onPress={() => handleSelectCurrency(destCurrency)}
+                style={[
+                  styles.quickCurrencyBtn,
+                  customCurrency === destCurrency
+                    ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
+                    : { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.quickCurrencyText, { color: customCurrency === destCurrency ? activeAccent : theme.text }]}>
+                  Dest ({destCurrency})
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={() => {
+                triggerHaptic();
+                setShowCurrencyModal(true);
+              }}
+              style={[styles.quickCurrencyBtn, { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.quickCurrencyText, { color: theme.text }]}>
+                More ▾
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={[styles.inputWrapper, { backgroundColor: theme.isDark ? "#1E293B" : "#F8FAFC", borderColor: isCustomMode ? activeAccent : theme.border }]}>
-            <Text style={[styles.currencyPrefix, { color: isCustomMode ? activeAccent : theme.subtext }]}>
-              {homeCurrencyInfo.symbol || homeCurrency}
-            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                triggerHaptic();
+                setShowCurrencyModal(true);
+              }}
+              style={[styles.currencySelectorPill, { backgroundColor: isCustomMode ? activeAccent + "18" : (theme.isDark ? "#334155" : "#E2E8F0") }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.currencySelectorText, { color: isCustomMode ? activeAccent : theme.text }]}>
+                {customCurrency} ▾
+              </Text>
+            </TouchableOpacity>
+
             <TextInput
               style={[styles.amountInput, { color: theme.text }]}
               placeholder="e.g. 150000"
@@ -343,7 +417,7 @@ export default function SelectBudget() {
                 triggerHaptic();
                 if (customAmount && Number(customAmount) > 0) {
                   setIsCustomMode(true);
-                  setSelectedBudget(`Custom: ${homeCurrencyInfo.symbol || ""}${Number(customAmount).toLocaleString()} ${homeCurrency}`);
+                  setSelectedBudget(`Custom: ${selectedCurrencyInfo.symbol || ""}${Number(customAmount).toLocaleString()} ${customCurrency}`);
                 }
               }}
             />
@@ -362,13 +436,21 @@ export default function SelectBudget() {
             ) : null}
           </View>
 
-          {/* DYNAMIC PER-DAY BREAKDOWN PILL */}
+          {/* DYNAMIC PER-DAY BREAKDOWN PILL & AUTO-CONVERSION */}
           {customAmount && Number(customAmount) > 0 ? (
             <View style={[styles.customEstimatePill, { backgroundColor: theme.isDark ? "rgba(10, 126, 164, 0.15)" : "rgba(10, 126, 164, 0.08)", borderColor: activeAccent + "40" }]}>
               <Ionicons name="calculator-outline" size={15} color={activeAccent} style={{ marginRight: 6 }} />
-              <Text style={[styles.customEstimateText, { color: activeAccent }]}>
-                ≈ {homeCurrencyInfo.symbol}{Math.round(Number(customAmount) / Math.max(1, totalDays)).toLocaleString()} / day for {totalDays} days
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.customEstimateText, { color: activeAccent }]}>
+                  ≈ {selectedCurrencyInfo.symbol}{Math.round(Number(customAmount) / Math.max(1, totalDays)).toLocaleString()} / day for {totalDays} days
+                </Text>
+                {/* Cross-currency auto-conversion hint */}
+                {customCurrency !== destCurrency && destCurrencyInfo && selectedCurrencyInfo.rate > 0 && (
+                  <Text style={[styles.customEstimateSubText, { color: theme.subtext }]}>
+                    ≈ {destCurrencyInfo.symbol}{Math.round((Number(customAmount) / selectedCurrencyInfo.rate) * destCurrencyInfo.rate).toLocaleString()} {destCurrency} total in {destCity}
+                  </Text>
+                )}
+              </View>
             </View>
           ) : (
             <Text style={[styles.customHintText, { color: theme.subtext }]}>
@@ -401,6 +483,58 @@ export default function SelectBudget() {
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
+
+      {/* CURRENCY SELECTION MODAL */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Select Currency</Text>
+              <TouchableOpacity
+                onPress={() => setShowCurrencyModal(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={Object.values(CURRENCY_RATES)}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => {
+                const isItemSel = customCurrency === item.code;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.currencyRow,
+                      { borderBottomColor: theme.border + "40" },
+                      isItemSel && { backgroundColor: activeAccent + "15" },
+                    ]}
+                    onPress={() => handleSelectCurrency(item.code)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.currencyRowCode, { color: isItemSel ? activeAccent : theme.text }]}>
+                        {item.code} ({item.symbol})
+                      </Text>
+                      <Text style={[styles.currencyRowName, { color: theme.subtext }]}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    {isItemSel && <Ionicons name="checkmark-circle" size={20} color={activeAccent} />}
+                  </TouchableOpacity>
+                );
+              }}
+              style={{ maxHeight: 380 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -651,5 +785,77 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Regular",
     lineHeight: 16,
     marginTop: 2,
+  },
+  customEstimateSubText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+  },
+  quickCurrencyRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  quickCurrencyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quickCurrencyText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+  },
+  currencySelectorPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  currencySelectorText: {
+    fontSize: 13,
+    fontFamily: "Outfit-Bold",
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "65%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+  },
+  currencyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+  },
+  currencyRowCode: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+  },
+  currencyRowName: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 1,
   },
 });
