@@ -1161,6 +1161,19 @@ export default function MyTrip() {
               </TouchableOpacity>
             </View>
             <Text style={styles.heroDestTitle}>{plan.destination}</Text>
+            {plan?.qualityAudit?.noulConfidence != null && (
+              <View
+                style={[
+                  styles.glassBadge,
+                  { alignSelf: "flex-start", marginTop: 8, backgroundColor: "rgba(16, 185, 129, 0.45)", borderColor: "#6EE7B7", borderWidth: 0.8 },
+                ]}
+              >
+                <Ionicons name="shield-checkmark" size={12} color="#D1FAE5" />
+                <Text style={[styles.glassBadgeText, { color: "#D1FAE5", fontFamily: "Outfit-Bold" }]}>
+                  AI Verified · {Math.round(plan.qualityAudit.noulConfidence * 100)}%
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 

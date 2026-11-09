@@ -662,7 +662,9 @@ def run_deep_plan_background(job_id: str, payload: dict):
     traveler = payload.get("traveler", "Solo")
 
     # Stack 5: LangGraph Stateful Multi-Agent Orchestration
-    if execute_trip_orchestration:
+    # Only use the grounded orchestrator for destinations we have verified data for;
+    # otherwise Gemini produces a richer plan than the procedural fallback.
+    if execute_trip_orchestration and get_curated_plan(destination, days, budget):
         try:
             logger.info("Executing Stack 5 LangGraph Orchestrator for deep plan %s (%s)", job_id, destination)
             raw_interests = f"{interests or ''},{categories or ''}".strip(',')
@@ -932,7 +934,7 @@ def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(
     raw_interests = f"{request.interests or ''},{request.categories or ''}".strip(',')
     interests_list = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()] or ["Sightseeing", "Culture"]
 
-    if execute_trip_orchestration:
+    if execute_trip_orchestration and get_curated_plan(destination, request.days, budget):
         try:
             logger.info("Executing Stack 5 LangGraph orchestration for %s (%s days)", destination, request.days)
             orchestrated_plan = execute_trip_orchestration(

@@ -18,11 +18,11 @@ import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 const GENERATION_STEPS = [
+  { text: "Grounding with verified destination data...", icon: "shield-checkmark-outline" },
   { text: "Scanning flights & local logistics...", icon: "airplane-outline" },
   { text: "Finding top boutique stays & hotels...", icon: "business-outline" },
   { text: "Designing day-by-day sightseeing plan...", icon: "calendar-outline" },
-  { text: "Curating authentic dining & cafes...", icon: "restaurant-outline" },
-  { text: "Polishing your personalized master plan...", icon: "sparkles-outline" },
+  { text: "Verifying budget & pacing confidence...", icon: "checkmark-done-outline" },
 ];
 
 export default function GenerateTrip() {
@@ -41,6 +41,13 @@ export default function GenerateTrip() {
   const radarScale = useMemo(() => new Animated.Value(0.85), []);
   const radarOpacity = useMemo(() => new Animated.Value(0.65), []);
   const progressAnim = useMemo(() => new Animated.Value(0), []);
+  const stepFade = useMemo(() => new Animated.Value(1), []);
+
+  // Light fade-in whenever the progress step changes
+  useEffect(() => {
+    stepFade.setValue(0.2);
+    Animated.timing(stepFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+  }, [currentStepIndex, stepFade]);
 
   useEffect(() => {
     // Hover floating loop
@@ -489,7 +496,7 @@ export default function GenerateTrip() {
         </View>
 
         {/* Dynamic Animated Status Step Pill */}
-        <View style={[styles.stepBox, { backgroundColor: isDark ? "#242432" : "#F0F9FF", borderColor: isDark ? "#38384C" : "#BAE6FD" }]}>
+        <Animated.View style={[styles.stepBox, { opacity: stepFade, backgroundColor: isDark ? "#242432" : "#F0F9FF", borderColor: isDark ? "#38384C" : "#BAE6FD" }]}>
           <Ionicons
             name={currentStep.icon}
             size={16}
@@ -497,7 +504,7 @@ export default function GenerateTrip() {
             style={{ marginRight: 8 }}
           />
           <Text style={[styles.stepText, { color: Colors.PRIMARY }]}>{currentStep.text}</Text>
-        </View>
+        </Animated.View>
 
         {/* Animated Progress Bar */}
         <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : "#E2E8F0" }]}>
@@ -518,7 +525,7 @@ export default function GenerateTrip() {
         <View style={[styles.tipBox, { backgroundColor: isDark ? "rgba(10, 126, 164, 0.08)" : "rgba(10, 126, 164, 0.05)", borderColor: isDark ? "rgba(10, 126, 164, 0.2)" : "rgba(10, 126, 164, 0.12)" }]}>
           <Ionicons name="sparkles" size={14} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
           <Text style={[styles.tip, { color: theme.subtext }]}>
-            Gemini AI is structuring your morning-to-night itinerary, verified stays, and local routes.
+            Structuring your morning-to-night itinerary with verified stays and local routes.
           </Text>
         </View>
 
