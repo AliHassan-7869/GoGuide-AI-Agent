@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { openExternalUrl } from "../../Components/utils/openExternalUrl";
+import { directionsUrl, placeUrl, routeUrl } from "../../Components/utils/mapsLinks";
 import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -613,52 +614,22 @@ export default function MyTrip() {
     }
   };
 
-  // 3. Interactive Multi-Stop Day Route in Maps
+  // 3. Interactive Multi-Stop Day Route in Maps (exact coordinates when known)
   const openDayRouteInMaps = (dayObj) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const acts = dayObj?.activities || [];
-    if (!acts || acts.length === 0) return;
-
-    if (acts.length === 1) {
-      openInMaps(acts[0].placeName, acts[0].coordinates);
-      return;
-    }
-
-    const origin = encodeURIComponent(acts[0].placeName + " " + (plan?.destination || ""));
-    const destination = encodeURIComponent(acts[acts.length - 1].placeName + " " + (plan?.destination || ""));
-
-    let waypointsParam = "";
-    if (acts.length > 2) {
-      const waypoints = acts.slice(1, -1).map(a => a.placeName + " " + (plan?.destination || "")).join("|");
-      waypointsParam = `&waypoints=${encodeURIComponent(waypoints)}`;
-    }
-
-    const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}&travelmode=driving`;
-    openExternalUrl(routeUrl);
+    const url = routeUrl(dayObj?.activities || [], plan?.destination);
+    if (url) openExternalUrl(url);
   };
 
-  // 4. Direct Turn-by-Turn Navigation for individual place
-  const getDirectDirections = (placeName, coordinates) => {
+  // 4. Direct Turn-by-Turn Navigation for an activity or hotel item
+  const getDirectDirections = (item) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    let dest = "";
-    if (coordinates?.lat && coordinates?.lng && coordinates.lat !== 0) {
-      dest = `${coordinates.lat},${coordinates.lng}`;
-    } else {
-      dest = encodeURIComponent(placeName + " " + (plan?.destination || ""));
-    }
-    const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-    openExternalUrl(dirUrl);
+    openExternalUrl(directionsUrl(item, plan?.destination));
   };
 
-  const openInMaps = (placeName, coordinates) => {
+  const openInMaps = (item) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    let url = "";
-    if (coordinates?.lat && coordinates?.lng && coordinates.lat !== 0) {
-      url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
-    } else {
-      url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName + " " + (plan?.destination || ""))}`;
-    }
-    openExternalUrl(url);
+    openExternalUrl(placeUrl(item, plan?.destination));
   };
 
   const openBookingCom = (hotelName) => {
@@ -1514,7 +1485,7 @@ export default function MyTrip() {
                     <View style={styles.hotelButtonRow}>
                       <TouchableOpacity 
                         style={styles.hotelMapBtn}
-                        onPress={() => openInMaps(hotel.name, hotel.coordinates)}
+                        onPress={() => openInMaps(hotel)}
                       >
                         <Ionicons name="location-outline" size={14} color={Colors.PRIMARY} />
                         <Text style={styles.hotelMapBtnText}>Map</Text>
@@ -1522,7 +1493,7 @@ export default function MyTrip() {
 
                       <TouchableOpacity 
                         style={[styles.hotelMapBtn, { backgroundColor: "rgba(16, 185, 129, 0.12)", marginLeft: 8 }]}
-                        onPress={() => getDirectDirections(hotel.name, hotel.coordinates)}
+                        onPress={() => getDirectDirections(hotel)}
                       >
                         <Ionicons name="navigate-outline" size={14} color="#10B981" />
                         <Text style={[styles.hotelMapBtnText, { color: "#10B981" }]}>Directions</Text>
@@ -1811,14 +1782,14 @@ export default function MyTrip() {
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                           <TouchableOpacity 
                             style={styles.mapQuickBtn}
-                            onPress={() => openInMaps(act.placeName, act.coordinates)}
+                            onPress={() => openInMaps(act)}
                           >
                             <Ionicons name="location" size={13} color={Colors.PRIMARY} />
                             <Text style={styles.mapQuickText}>Map</Text>
                           </TouchableOpacity>
                           <TouchableOpacity 
                             style={[styles.mapQuickBtn, { marginLeft: 6 }]}
-                            onPress={() => getDirectDirections(act.placeName, act.coordinates)}
+                            onPress={() => getDirectDirections(act)}
                           >
                             <Ionicons name="navigate" size={13} color="#10B981" />
                             <Text style={[styles.mapQuickText, { color: "#10B981" }]}>Directions</Text>

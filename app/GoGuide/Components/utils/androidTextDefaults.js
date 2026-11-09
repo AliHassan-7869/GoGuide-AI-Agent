@@ -42,7 +42,8 @@ export function installAndroidTextDefaults() {
   if (installed) return;
   installed = true;
   try {
-    patch(Text, Platform.OS === "android" ? { includeFontPadding: false } : null);
+    // flexShrink:1 lets long titles/labels wrap inside rows instead of bleeding past the screen edge
+    patch(Text, Platform.OS === "android" ? { includeFontPadding: false, flexShrink: 1 } : { flexShrink: 1 });
     patchTextInput();
   } catch (e) {
     console.warn("[androidTextDefaults] skipped:", e?.message);

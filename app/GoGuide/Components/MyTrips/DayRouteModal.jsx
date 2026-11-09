@@ -6,6 +6,7 @@ import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../constants/constants";
+import { coordsOf, directionsUrl, routeUrl } from "../utils/mapsLinks";
 
 import { TouchableOpacity } from "../ui/Touchable";
 // Haversine formula to compute distance between coordinates in km
@@ -72,52 +73,23 @@ export default function DayRouteModal({
       return;
     }
 
-    const origin = encodeURIComponent(
-      activities[0].placeName + " " + (destination || "")
-    );
-    const dest = encodeURIComponent(
-      activities[activities.length - 1].placeName + " " + (destination || "")
-    );
-
-    let waypointsParam = "";
-    if (activities.length > 2) {
-      const waypoints = activities
-        .slice(1, -1)
-        .map((a) => a.placeName + " " + (destination || ""))
-        .join("|");
-      waypointsParam = `&waypoints=${encodeURIComponent(waypoints)}`;
-    }
-
-    const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypointsParam}&travelmode=driving`;
-    openExternalUrl(routeUrl);
+    openExternalUrl(routeUrl(activities, destination));
   };
 
   // Open single stop directions
   const openSingleStop = (act) => {
     triggerHaptic();
-    let query = "";
-    if (act.coordinates?.lat && act.coordinates?.lng && act.coordinates.lat !== 0) {
-      query = `${act.coordinates.lat},${act.coordinates.lng}`;
-    } else {
-      query = encodeURIComponent(act.placeName + " " + (destination || ""));
-    }
-    openExternalUrl(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
+    openExternalUrl(directionsUrl(act, destination));
   };
 
   // Build 100% Free Keyless Google Maps Live Interactive Embed URL for the active stop or destination
   const activeStop = activities[selectedStopIdx] || activities[0];
   let googleMapQuery = destination || "Tourist Attractions";
   if (activeStop) {
-    if (
-      activeStop.coordinates?.lat &&
-      activeStop.coordinates?.lng &&
-      activeStop.coordinates.lat !== 0 &&
-      activeStop.coordinates.lng !== 0
-    ) {
-      googleMapQuery = `${activeStop.coordinates.lat},${activeStop.coordinates.lng}`;
-    } else {
-      googleMapQuery = `${activeStop.placeName} ${destination || ""}`.trim();
-    }
+    const c = coordsOf(activeStop);
+    googleMapQuery = c
+      ? `${c.lat},${c.lng}`
+      : `${activeStop.placeName} ${destination || ""}`.trim();
   }
   const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
     googleMapQuery

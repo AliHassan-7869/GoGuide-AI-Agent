@@ -17,6 +17,7 @@ import { fetchDestinationEssentials } from "../Configs/AiModel";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../Components/utils/FlightEngine";
 import { normalizeTrip } from "../Components/utils/TripNormalizer";
+import { directionsUrl, placeUrl } from "../Components/utils/mapsLinks";
 import {
   detectCurrencyFromLocation,
   getCurrencySymbol,
@@ -331,11 +332,14 @@ export default function SharedTripView() {
     Linking.openURL(`https://www.booking.com/searchresults.html?ss=${query}`);
   };
 
-  const openInMaps = (placeName) => {
+  const openInMaps = (item) => {
     triggerHaptic();
-    const dest = tripPlan?.destination || "";
-    const query = encodeURIComponent(`${placeName} ${dest}`.trim());
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+    Linking.openURL(placeUrl(item, tripPlan?.destination));
+  };
+
+  const openDirections = (item) => {
+    triggerHaptic();
+    Linking.openURL(directionsUrl(item, tripPlan?.destination));
   };
 
   const handleCopyLink = () => {
@@ -873,7 +877,7 @@ export default function SharedTripView() {
 
                     <TouchableOpacity
                       style={styles.hotelMapBtn}
-                      onPress={() => openInMaps(hotel.name)}
+                      onPress={() => openInMaps(hotel)}
                       activeOpacity={0.8}
                     >
                       <Ionicons name="location-outline" size={13} color={Colors.PRIMARY} />
@@ -1131,7 +1135,7 @@ export default function SharedTripView() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" }}>
                       <TouchableOpacity
                         style={styles.actMapBtn}
-                        onPress={() => openInMaps(act.placeName)}
+                        onPress={() => openDirections(act)}
                         activeOpacity={0.8}
                       >
                         <Ionicons name="navigate-outline" size={12} color={Colors.PRIMARY} />

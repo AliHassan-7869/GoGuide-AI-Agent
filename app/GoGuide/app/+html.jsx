@@ -59,6 +59,9 @@ export default function Root({ children }) {
         <style dangerouslySetInnerHTML={{ __html: `
           html, body, #root {
             width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            box-sizing: border-box;
             height: 100%;
             height: 100dvh;
             max-height: 100dvh;
@@ -74,6 +77,9 @@ export default function Root({ children }) {
           }
           #root {
             display: flex;
+            max-width: 100vw;
+            overflow-x: hidden;
+            box-sizing: border-box;
             flex-direction: column;
             flex: 1;
             height: 100%;
@@ -86,7 +92,39 @@ export default function Root({ children }) {
           }
           body {
             overflow-wrap: break-word;
-            word-break: normal;
+            word-break: break-word;
+          }
+          /* Titles, labels, buttons and route descriptions must wrap, never bleed off-screen */
+          #root div, #root span, #root p, #root h1, #root h2, #root h3, #root a, #root button {
+            overflow-wrap: break-word;
+            word-break: break-word;
+            min-width: 0;
+          }
+          /* Auth/text fields: the text colour must not depend on system dark mode,
+             Android WebView force-dark, or browser/Google autofill styling. */
+          input, textarea {
+            color: #111827 !important;
+            -webkit-text-fill-color: #111827 !important;
+            caret-color: #111827 !important;
+            background-color: #FFFFFF;
+            color-scheme: light;
+          }
+          input::placeholder, textarea::placeholder {
+            color: #6B7280 !important;
+            -webkit-text-fill-color: #6B7280 !important;
+            opacity: 1;
+          }
+          input:-webkit-autofill,
+          input:-webkit-autofill:hover,
+          input:-webkit-autofill:focus,
+          input:-webkit-autofill:active,
+          textarea:-webkit-autofill,
+          textarea:-webkit-autofill:focus {
+            -webkit-text-fill-color: #111827 !important;
+            caret-color: #111827 !important;
+            -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+            box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+            transition: background-color 9999s ease-out 0s;
           }
         ` }} />
         {headNodes}

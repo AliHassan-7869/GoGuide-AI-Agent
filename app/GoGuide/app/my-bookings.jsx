@@ -4,6 +4,8 @@ import { Stack, useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { directionsUrl } from "../Components/utils/mapsLinks";
+import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
@@ -134,15 +136,12 @@ export default function MyBookings() {
   });
 
   const handleOpenMap = (booking) => {
-    const query = booking.subtitle || booking.title;
-    const url = Platform.select({
-      ios: `maps:0,0?q=${encodeURIComponent(query)}`,
-      android: `geo:0,0?q=${encodeURIComponent(query)}`,
-      web: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-    });
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
-    });
+    // Exact coordinates when the booking has them (hotels); text query otherwise.
+    const url = directionsUrl(
+      { coordinates: booking.coordinates, name: booking.subtitle || booking.title },
+      ""
+    );
+    openExternalUrl(url);
   };
 
   const handleOpenDigitalPass = (booking) => {

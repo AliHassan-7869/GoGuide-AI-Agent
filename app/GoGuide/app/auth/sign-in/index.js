@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
+import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -248,7 +249,7 @@ export default function SignIn() {
                   (errorField === "email" || errorField === "both") && styles.inputError,
                 ]}
                 placeholder="Enter your email"
-                placeholderTextColor={Colors.GRAY}
+                {...AUTH_INPUT_PROPS}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -272,7 +273,7 @@ export default function SignIn() {
                     (errorField === "password" || errorField === "both") && styles.inputError,
                   ]}
                   placeholder="Enter your password"
-                  placeholderTextColor={Colors.GRAY}
+                  {...AUTH_INPUT_PROPS}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(val) => {
@@ -369,7 +370,7 @@ export default function SignIn() {
               value={otpCode}
               onChangeText={(val) => setOtpCode(val.replace(/[^0-9]/g, "").slice(0, 6))}
               placeholder="------"
-              placeholderTextColor="#94A3B8"
+              {...AUTH_INPUT_PROPS}
               keyboardType="number-pad"
               maxLength={6}
               autoFocus={true}
@@ -477,9 +478,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
+    ...authInputTextStyle,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 14,
@@ -608,8 +609,7 @@ const styles = StyleSheet.create({
     letterSpacing: 12,
     fontSize: 26,
     fontFamily: "Outfit-Bold",
-    color: "#0F172A",
-    backgroundColor: "#F8FAFC",
+    ...authInputTextStyle,
     borderWidth: 1.5,
     borderColor: "#CBD5E1",
     borderRadius: 14,

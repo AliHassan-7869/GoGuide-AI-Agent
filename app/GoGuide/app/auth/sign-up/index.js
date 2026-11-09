@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
+import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
 export default function Signup() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -211,7 +212,7 @@ export default function Signup() {
           <TextInput
             style={styles.input}
             placeholder="name"
-            placeholderTextColor={Colors.GRAY}
+            {...AUTH_INPUT_PROPS}
             value={fullName}
             onChangeText={setFullName}
           />
@@ -226,7 +227,7 @@ export default function Signup() {
               (errorField === "email" || errorField === "both") && styles.inputError,
             ]}
             placeholder="example@email.com"
-            placeholderTextColor={Colors.GRAY}
+            {...AUTH_INPUT_PROPS}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
@@ -255,7 +256,7 @@ export default function Signup() {
                 (errorField === "password" || errorField === "both") && styles.inputError,
               ]}
               placeholder="Create a password"
-              placeholderTextColor={Colors.GRAY}
+              {...AUTH_INPUT_PROPS}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={(v) => {
@@ -389,9 +390,9 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    ...authInputTextStyle,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 14,

@@ -31,13 +31,44 @@ export default function AiAssistant() {
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
 
-  useEffect(() => {
-    const eventName = Platform.OS === "android" ? "keyboardDidShow" : "keyboardWillShow";
-    const sub = Keyboard.addListener(eventName, () => {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  // Keyboard handling (Android). app.json sets softwareKeyboardLayoutMode "resize"
+  // (windowSoftInputMode=adjustResize), so the OS usually shrinks the window itself.
+  // Adding the full keyboard height on top of that doubles the padding and leaves a
+  // gap above the keyboard. Instead we pad only by the part of this view that is
+  // STILL covered by the keyboard: 0 when the window resized, the overlap otherwise.
+  const chatWrapRef = useRef(null);
+  const kbTopRef = useRef(null); // screenY of the keyboard's top edge, null when hidden
+  const [kbOverlap, setKbOverlap] = useState(0);
+
+  const recomputeOverlap = React.useCallback(() => {
+    if (Platform.OS !== "android" || kbTopRef.current == null) {
+      setKbOverlap(0);
+      return;
+    }
+    chatWrapRef.current?.measureInWindow((x, y, w, h) => {
+      const overlap = Math.max(0, Math.round(y + h - kbTopRef.current));
+      setKbOverlap(overlap);
     });
-    return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      const sub = Keyboard.addListener("keyboardWillShow", () => {
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      });
+      return () => sub.remove();
+    }
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      kbTopRef.current = e.endCoordinates?.screenY ?? null;
+      recomputeOverlap();
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      kbTopRef.current = null;
+      setKbOverlap(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, [recomputeOverlap]);
 
   const safeTopPadding = Platform.select({
     android: insets.top + 4,
@@ -421,6 +452,12 @@ export default function AiAssistant() {
       </View>
 
       {/* Chat Thread */}
+      <View
+        ref={chatWrapRef}
+        collapsable={false}
+        onLayout={recomputeOverlap} // window resized (adjustResize) -> overlap drops to 0
+        style={{ flex: 1, paddingBottom: kbOverlap }}
+      >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -516,6 +553,7 @@ export default function AiAssistant() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

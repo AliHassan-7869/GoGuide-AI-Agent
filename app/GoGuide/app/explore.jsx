@@ -71,7 +71,7 @@ export default function Explore() {
       },
       toLocationImage: dest.image,
       toLocationRating: dest.rating,
-      fromLocation: { name: "Current Location", coordinates: { lat: 0, lng: 0 } },
+      fromLocation: { name: "Current Location", coordinates: null },
     }));
     router.push("/create-trip/trip-summer");
   };

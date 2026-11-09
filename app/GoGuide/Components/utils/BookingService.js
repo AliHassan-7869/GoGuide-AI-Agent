@@ -3,6 +3,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../Configs/FirebaseConfig";
 import { getDestinationImage } from "../constants/Destinations";
 import { buildFlightItinerary } from "./FlightEngine";
+import { coordsOf } from "./mapsLinks";
 
 /**
  * Saves hotel & flight booking passes into My Bookings and ensures the trip is saved in My Trips
@@ -53,7 +54,7 @@ export async function saveTripToBookings(tripData, authUser) {
     details: `${travelerType} • 1 Deluxe Room • Confirmed Reservation`,
     price: hotel?.price || "$120/night",
     image: hotel?.image || destImage,
-    coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
+    coordinates: coordsOf(hotel) || null,
     userEmail: userEmail,
     destination: destName,
     createdAt: new Date().toISOString(),
@@ -221,7 +222,7 @@ export async function addHotelBooking(hotel, destination, tripData, authUser) {
     details: `${tripData?.traveler || "Explorer"} • 1 Deluxe Room • Confirmed Reservation`,
     price: hotel?.price || "$120/night",
     image: hotel?.image || getDestinationImage(destName),
-    coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
+    coordinates: coordsOf(hotel) || null,
     userEmail: userEmail,
     destination: destName,
     createdAt: new Date().toISOString(),

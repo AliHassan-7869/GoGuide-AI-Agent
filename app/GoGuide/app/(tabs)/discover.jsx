@@ -565,8 +565,8 @@ export default function Discover() {
       const generatedTripId = `trip_${Date.now()}`;
       const completeTripData = {
         id: generatedTripId,
-        fromLocation: { name: cleanOrigin, coordinates: { lat: 0, lng: 0 } },
-        toLocation: { name: cleanDest, coordinates: { lat: 0, lng: 0 } },
+        fromLocation: { name: cleanOrigin, coordinates: null },
+        toLocation: { name: cleanDest, coordinates: null },
         toLocationImage: fallbackImage || getDestinationImage(cleanDest),
         startDate: startObj.toISOString(),
         endDate: endObj.toISOString(),
@@ -696,7 +696,7 @@ export default function Discover() {
       toLocation: place,
       toLocationImage: getDestinationImage(item.display_name), 
       toLocationRating: "4.8",
-      fromLocation: { name: "Current Location", coordinates: { lat: 0, lng: 0 } },
+      fromLocation: { name: "Current Location", coordinates: null },
     }));
 
     setSearchQuery("");
@@ -716,7 +716,7 @@ export default function Discover() {
       toLocation: place,
       toLocationImage: dest.image,
       toLocationRating: dest.rating,
-      fromLocation: { name: "Current Location", coordinates: { lat: 0, lng: 0 } },
+      fromLocation: { name: "Current Location", coordinates: null },
     }));
     
     router.push("/create-trip/trip-summer");

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useRef, useState } from "react";
-import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { Alert, FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -175,55 +175,57 @@ export default function SearchPlace() {
   const handleUseCurrentLocation = async () => {
     triggerHaptic();
     setFromQuery("Detecting location...");
+    let reason = "error";
     try {
       const Location = require("expo-location");
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
+      if (status !== "granted") {
+        reason = "denied";
+      } else {
+        // Fresh fix only: no getLastKnownPositionAsync, no cached coordinates.
         const pos = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
         });
-        const { latitude, longitude } = pos.coords;
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
-          { headers: { "User-Agent": "GoGuideApp/2.0" } }
-        );
-        const data = await res.json();
-        const city =
-          data?.address?.city ||
-          data?.address?.town ||
-          data?.address?.state ||
-          "Lahore";
-        const country = data?.address?.country || "Pakistan";
-        const locName = `${city}, ${country}`;
-        setFromQuery(locName);
-        setTripData((prev) => ({
-          ...prev,
-          fromLocation: {
-            name: locName,
-            coordinates: { lat: latitude, lng: longitude },
-          },
-        }));
-        return;
+        const { latitude, longitude } = pos?.coords || {};
+        const valid =
+          Number.isFinite(latitude) &&
+          Number.isFinite(longitude) &&
+          !(latitude === 0 && longitude === 0);
+        if (valid) {
+          let locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
+              { headers: { "User-Agent": "GoGuideApp/2.0" } }
+            );
+            const data = await res.json();
+            const city = data?.address?.city || data?.address?.town || data?.address?.state;
+            const country = data?.address?.country;
+            if (city || country) locName = [city, country].filter(Boolean).join(", ");
+          } catch (e) {
+            // Reverse-geocode failed; the numeric label keeps the exact fix.
+          }
+          setFromQuery(locName);
+          setTripData((prev) => ({
+            ...prev,
+            fromLocation: { name: locName, coordinates: { lat: latitude, lng: longitude } },
+          }));
+          return;
+        }
       }
     } catch (e) {
-      // Fallback to timezone-based city detection
+      reason = "error";
     }
 
-    let fallbackLoc = "Lahore, Pakistan";
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.toLowerCase().includes("karachi")) {
-        fallbackLoc = "Pakistan (Current Location)";
-      } else if (tz.includes("/")) {
-        fallbackLoc = tz.split("/")[1].replace(/_/g, " ");
-      }
-    } catch (e) {}
-
-    setFromQuery(fallbackLoc);
-    setTripData((prev) => ({
-      ...prev,
-      fromLocation: { name: fallbackLoc },
-    }));
+    // No GPS fix: clear the field and tell the user. Never invent coordinates.
+    setFromQuery("");
+    setTripData((prev) => ({ ...prev, fromLocation: { name: "", coordinates: null } }));
+    const msg =
+      reason === "denied"
+        ? "Location permission was denied. Enable it in Settings or type your departure city."
+        : "Couldn't get your location. Please type your departure city.";
+    if (Platform.OS === "web" && typeof window !== "undefined") window.alert(msg);
+    else Alert.alert("Location unavailable", msg);
   };
 
   const goNext = () => {
@@ -243,11 +245,11 @@ export default function SearchPlace() {
       fromLocation:
         prev?.fromLocation?.name === cleanFrom
           ? prev.fromLocation
-          : { name: cleanFrom, coordinates: prev?.fromLocation?.coordinates },
+          : { name: cleanFrom, coordinates: null },
       toLocation:
         prev?.toLocation?.name === cleanTo
           ? prev.toLocation
-          : { name: cleanTo, coordinates: prev?.toLocation?.coordinates },
+          : { name: cleanTo, coordinates: null },
       locationInfo: {
         ...(prev?.locationInfo || {}),
         name: cleanTo,
