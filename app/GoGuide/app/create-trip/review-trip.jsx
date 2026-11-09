@@ -93,14 +93,27 @@ export default function ReviewTrip() {
     tripData?.homeCurrency ||
     detectUserHomeCurrency(tripData?.fromLocation?.name || "");
 
-  const dailyBaseUSD = budgetTier.toLowerCase().includes("econ")
-    ? 75
-    : budgetTier.toLowerCase().includes("lux")
-    ? 450
-    : 200;
-  const totalUSD = dailyBaseUSD * Number(durationDays || 5);
-  const formattedDestTotal = formatCurrencyAmount(convertAmount(totalUSD, destCurrency), destCurrency);
-  const formattedHomeTotal = formatCurrencyAmount(convertAmount(totalUSD, homeCurrency), homeCurrency);
+  let formattedDestTotal = "";
+  let formattedHomeTotal = "";
+
+  if (tripData?.isCustomBudget && tripData?.customBudgetAmount) {
+    const customAmtHome = Number(tripData.customBudgetAmount);
+    formattedHomeTotal = formatCurrencyAmount(customAmtHome, homeCurrency);
+    // Convert to dest currency
+    const rateHome = CURRENCY_RATES[homeCurrency]?.rate || 278;
+    const rateDest = CURRENCY_RATES[destCurrency]?.rate || 1;
+    const customAmtDest = rateHome > 0 ? (customAmtHome / rateHome) * rateDest : customAmtHome;
+    formattedDestTotal = formatCurrencyAmount(customAmtDest, destCurrency);
+  } else {
+    const dailyBaseUSD = budgetTier.toLowerCase().includes("econ")
+      ? 75
+      : budgetTier.toLowerCase().includes("lux")
+      ? 450
+      : 200;
+    const totalUSD = dailyBaseUSD * Number(durationDays || 5);
+    formattedDestTotal = formatCurrencyAmount(convertAmount(totalUSD, destCurrency), destCurrency);
+    formattedHomeTotal = formatCurrencyAmount(convertAmount(totalUSD, homeCurrency), homeCurrency);
+  }
 
 
   const interestCount =

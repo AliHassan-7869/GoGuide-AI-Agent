@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -22,6 +22,10 @@ export default function SelectBudget() {
   const theme = useTheme();
   const { tripData, setTripData } = useContext(CreateTripContext);
   const [selectedBudget, setSelectedBudget] = useState(tripData?.budget || null);
+  const [customAmount, setCustomAmount] = useState(tripData?.customBudgetAmount ? String(tripData.customBudgetAmount) : "");
+  const [isCustomMode, setIsCustomMode] = useState(Boolean(tripData?.isCustomBudget || (tripData?.budget && tripData.budget.startsWith("Custom:"))));
+
+  const totalDays = Number(tripData?.totalNoOfDays || 5);
 
   const activeAccent = Colors.PRIMARY || "#0A7EA4";
 
@@ -58,15 +62,40 @@ export default function SelectBudget() {
 
   const handleSelectBudget = (val) => {
     triggerHaptic();
+    setIsCustomMode(false);
     setSelectedBudget(val);
+  };
+
+  const handleCustomAmountChange = (text) => {
+    // Keep only numbers
+    const cleaned = text.replace(/[^0-9]/g, "");
+    setCustomAmount(cleaned);
+    if (cleaned && Number(cleaned) > 0) {
+      setIsCustomMode(true);
+      setSelectedBudget(`Custom: ${homeCurrencyInfo.symbol || ""}${Number(cleaned).toLocaleString()} ${homeCurrency}`);
+    } else {
+      setSelectedBudget(null);
+    }
   };
 
   const handleContinue = () => {
     triggerHaptic();
     if (!selectedBudget) return;
+
+    let finalBudgetString = selectedBudget;
+    let numericCustom = null;
+
+    if (isCustomMode && customAmount && Number(customAmount) > 0) {
+      numericCustom = Number(customAmount);
+      finalBudgetString = `Custom: ${homeCurrencyInfo.symbol || ""}${numericCustom.toLocaleString()} ${homeCurrency}`;
+    }
+
     setTripData((prev) => ({
       ...prev,
-      budget: selectedBudget,
+      budget: finalBudgetString,
+      isCustomBudget: Boolean(isCustomMode && numericCustom),
+      customBudgetAmount: numericCustom,
+      customBudgetCurrency: homeCurrency,
       destinationCurrency: destCurrency,
       homeCurrency: homeCurrency,
     }));
@@ -268,6 +297,85 @@ export default function SelectBudget() {
             );
           })}
         </View>
+
+        {/* OR DIVIDER */}
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+          <Text style={[styles.dividerText, { color: theme.subtext }]}>OR SET EXACT BUDGET</Text>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+        </View>
+
+        {/* CUSTOM BUDGET INPUT CARD (PLACED AT THE END) */}
+        <View
+          style={[
+            styles.customBudgetCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: isCustomMode ? activeAccent : theme.border,
+              borderWidth: isCustomMode ? 2 : 1,
+            },
+          ]}
+        >
+          <View style={styles.customCardHeader}>
+            <View style={styles.customIconCircle}>
+              <Text style={{ fontSize: 20 }}>✍️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.customCardTitle, { color: theme.text }]}>Custom Total Budget</Text>
+              <Text style={[styles.customCardSubtitle, { color: theme.subtext }]}>
+                Specify your exact target spend in {homeCurrencyInfo.name} ({homeCurrency})
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.inputWrapper, { backgroundColor: theme.isDark ? "#1E293B" : "#F8FAFC", borderColor: isCustomMode ? activeAccent : theme.border }]}>
+            <Text style={[styles.currencyPrefix, { color: isCustomMode ? activeAccent : theme.subtext }]}>
+              {homeCurrencyInfo.symbol || homeCurrency}
+            </Text>
+            <TextInput
+              style={[styles.amountInput, { color: theme.text }]}
+              placeholder="e.g. 150000"
+              placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+              keyboardType="numeric"
+              value={customAmount}
+              onChangeText={handleCustomAmountChange}
+              onFocus={() => {
+                triggerHaptic();
+                if (customAmount && Number(customAmount) > 0) {
+                  setIsCustomMode(true);
+                  setSelectedBudget(`Custom: ${homeCurrencyInfo.symbol || ""}${Number(customAmount).toLocaleString()} ${homeCurrency}`);
+                }
+              }}
+            />
+            {customAmount ? (
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHaptic();
+                  setCustomAmount("");
+                  setIsCustomMode(false);
+                  setSelectedBudget(null);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={18} color={theme.subtext} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* DYNAMIC PER-DAY BREAKDOWN PILL */}
+          {customAmount && Number(customAmount) > 0 ? (
+            <View style={[styles.customEstimatePill, { backgroundColor: theme.isDark ? "rgba(10, 126, 164, 0.15)" : "rgba(10, 126, 164, 0.08)", borderColor: activeAccent + "40" }]}>
+              <Ionicons name="calculator-outline" size={15} color={activeAccent} style={{ marginRight: 6 }} />
+              <Text style={[styles.customEstimateText, { color: activeAccent }]}>
+                ≈ {homeCurrencyInfo.symbol}{Math.round(Number(customAmount) / Math.max(1, totalDays)).toLocaleString()} / day for {totalDays} days
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.customHintText, { color: theme.subtext }]}>
+              💡 AI will automatically calibrate hotels, food, and activities to stay strictly within your target.
+            </Text>
+          )}
+        </View>
       </ScrollView>
 
       {/* BOTTOM BUTTON */}
@@ -457,5 +565,91 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Outfit-Bold",
     color: "#FFF",
+  },
+
+  // OR Divider Styles
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 22,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    opacity: 0.6,
+  },
+  dividerText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Bold",
+    letterSpacing: 1.2,
+  },
+
+  // Custom Budget Card Styles
+  customBudgetCard: {
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 20,
+  },
+  customCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  customIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(10, 126, 164, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  customCardTitle: {
+    fontSize: 16,
+    fontFamily: "Outfit-Bold",
+  },
+  customCardSubtitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    height: 52,
+    marginBottom: 10,
+  },
+  currencyPrefix: {
+    fontSize: 16,
+    fontFamily: "Outfit-Bold",
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: "Outfit-Bold",
+    height: "100%",
+  },
+  customEstimatePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  customEstimateText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
+  },
+  customHintText: {
+    fontSize: 11,
+    fontFamily: "Outfit-Regular",
+    lineHeight: 16,
+    marginTop: 2,
   },
 });
