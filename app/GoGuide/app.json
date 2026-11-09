@@ -54,6 +54,12 @@
         }
       ],
       "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GoGuide uses your location to set your departure city and give accurate directions."
+        }
+      ],
       "expo-font",
       [
         "expo-image-picker",
