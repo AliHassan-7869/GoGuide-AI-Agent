@@ -15,7 +15,7 @@ function patchTextInput() {
       returnKeyType: props?.returnKeyType ?? (multiline ? undefined : isSearch ? "search" : "done"),
       textAlignVertical: props?.textAlignVertical ?? (multiline ? "top" : undefined),
       style: [
-        { minHeight: 48 },
+        { minHeight: 48, minWidth: 0 }, // minWidth:0 lets flex:1 inputs shrink inside rows (no overflow on narrow screens)
         Platform.OS === "android" ? { includeFontPadding: false } : null,
         props?.style,
       ],

@@ -524,7 +524,7 @@ export default function AiAssistant() {
                 color: theme.isDark ? "#FFFFFF" : "#0F172A",
               },
             ]}
-            placeholder="Ask anything about your destination..."
+            placeholder="Ask about your trip..."
             placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
             value={inputText}
             onChangeText={setInputText}

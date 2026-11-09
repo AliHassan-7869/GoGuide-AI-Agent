@@ -1262,8 +1262,9 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 14,
   },
-  aiTextInput: { flex: 1, fontSize: 13, fontFamily: "Outfit-Regular", paddingVertical: 8 },
+  aiTextInput: { flex: 1, minWidth: 0, fontSize: 13, fontFamily: "Outfit-Regular", paddingVertical: 8 },
   aiSendBtn: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#8B5CF6",
