@@ -217,6 +217,75 @@ const KNOWN_CITY_COORDINATES = {
   "new york": { lat: 40.7128, lng: -74.0060 },
 };
 
+// Curated authentic transit modes for destinations (0ms instant render)
+const CITY_TRANSPORTS = {
+  istanbul: [
+    { id: "ist-metro", name: "🚇 Metro & Marmaray" },
+    { id: "ist-tram", name: "🚋 Historic Tram (T1)" },
+    { id: "ist-ferry", name: "⛴️ Bosphorus Ferry" },
+    { id: "ist-taxi", name: "🚕 Yellow Taxi & BiTaksi" },
+    { id: "ist-walk", name: "🚶 Walking & Historic Alleys" },
+  ],
+  dubai: [
+    { id: "dxb-metro", name: "🚇 Dubai Metro" },
+    { id: "dxb-taxi", name: "🚕 RTA Taxi / Careem" },
+    { id: "dxb-monorail", name: "🚝 Palm Monorail" },
+    { id: "dxb-abra", name: "🛶 Traditional Abra" },
+    { id: "dxb-walk", name: "🚶 Marina & Promenade" },
+  ],
+  paris: [
+    { id: "par-metro", name: "🚇 Paris Métro & RER" },
+    { id: "par-walk", name: "🚶 Walking Boulevards" },
+    { id: "par-bus", name: "🚌 City Bus" },
+    { id: "par-bike", name: "🚲 Vélib' Bike" },
+    { id: "par-taxi", name: "🚕 Paris Taxi / Uber" },
+  ],
+  tokyo: [
+    { id: "tyo-jr", name: "🚆 JR Yamanote Line" },
+    { id: "tyo-subway", name: "🚇 Tokyo Subway" },
+    { id: "tyo-walk", name: "🚶 Walking Neon Streets" },
+    { id: "tyo-taxi", name: "🚕 Tokyo Taxi" },
+    { id: "tyo-bullet", name: "🚅 Shinkansen Bullet Train" },
+  ],
+  rome: [
+    { id: "rom-walk", name: "🚶 Walking Cobblestones" },
+    { id: "rom-metro", name: "🚇 Rome Metro" },
+    { id: "rom-bus", name: "🚌 City Bus & Tram" },
+    { id: "rom-taxi", name: "🚕 White City Taxi" },
+    { id: "rom-scooter", name: "🛵 Vespa / E-Scooter" },
+  ],
+  london: [
+    { id: "lon-tube", name: "🚇 Underground (The Tube)" },
+    { id: "lon-bus", name: "🚌 Red Double-Decker Bus" },
+    { id: "lon-walk", name: "🚶 Walking Thames Riverbank" },
+    { id: "lon-blackcab", name: "🚕 Traditional Black Cab" },
+    { id: "lon-uberboat", name: "🛥️ Uber Thames Boat" },
+  ],
+  bali: [
+    { id: "bali-driver", name: "🚗 Private Driver & Car" },
+    { id: "bali-scooter", name: "🛵 Scooter / Gojek Rental" },
+    { id: "bali-taxi", name: "🚕 Bluebird Taxi" },
+    { id: "bali-shuttle", name: "🚐 Tourist Island Shuttle" },
+    { id: "bali-walk", name: "🚶 Beachfront Walking" },
+  ],
+};
+
+const getSmartDestinationTransports = (dest = "") => {
+  const d = (dest || "").toLowerCase();
+  for (const [cityName, cityTransports] of Object.entries(CITY_TRANSPORTS)) {
+    if (d.includes(cityName)) {
+      return cityTransports;
+    }
+  }
+  return [
+    { id: "taxi", name: "🚕 Local Taxi / Ride-Hailing" },
+    { id: "metro", name: "🚇 Metro & Train" },
+    { id: "walk", name: "🚶 Walking" },
+    { id: "bus", name: "🚌 Local Bus" },
+    { id: "rental", name: "🚗 Car Rental" },
+  ];
+};
+
 // Curated highlights tailored to destination geography (0ms instant initial render)
 const getSmartDestinationInterests = (dest = "") => {
   const d = (dest || "").toLowerCase();
@@ -266,11 +335,14 @@ export default function YourInterest() {
   const [placesList, setPlacesList] = useState(() =>
     getSmartDestinationInterests(tripData?.toLocation?.name)
   );
-  const [transportList, setTransportList] = useState(DEFAULT_TRANSPORTS);
-  const [selectedPlaces, setSelectedPlaces] = useState([]);
-  const [selectedTransport, setSelectedTransport] = useState(
-    tripData?.transport || DEFAULT_TRANSPORTS[0]?.id || "taxi"
+  const [transportList, setTransportList] = useState(() =>
+    getSmartDestinationTransports(tripData?.toLocation?.name)
   );
+  const [selectedPlaces, setSelectedPlaces] = useState([]);
+  const [selectedTransport, setSelectedTransport] = useState(() => {
+    const defaultList = getSmartDestinationTransports(tripData?.toLocation?.name);
+    return tripData?.transport || defaultList[0]?.id || "taxi";
+  });
   const [activeCategory, setActiveCategory] = useState("all");
   const [loadingInterests, setLoadingInterests] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -586,6 +658,45 @@ export default function YourInterest() {
         } catch (osmErr) {
           console.log("[DEBUG] Overpass fast fallback to AI:", osmErr.message);
         }
+      }
+
+      // Fast OSM Nominatim Fetch (Rapid ~300ms response without CORS/406 blocks)
+      try {
+        const nomRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=15&q=attractions+in+${encodeURIComponent(destinationName)}`
+        );
+        const nomData = await nomRes.json();
+        if (Array.isArray(nomData) && nomData.length > 0) {
+          const fetchedPlaces = nomData
+            .map((item, idx) => {
+              const name = (item.name || item.display_name?.split(",")[0] || "").trim();
+              if (!name || name.length < 2) return null;
+              return {
+                id: `nom-${item.place_id || idx}`,
+                name: `📍 ${name}`,
+                description: item.display_name?.split(",").slice(1, 3).join(",").trim() || "Popular landmark & attraction",
+                category: "Attraction",
+              };
+            })
+            .filter(Boolean);
+
+          if (fetchedPlaces.length > 0) {
+            setPlacesList((prev) => {
+              const existingNames = new Set(prev.map((p) => p.name.replace(/^[^\w\s]+/, "").trim().toLowerCase()));
+              const novel = fetchedPlaces.filter(
+                (p) => !existingNames.has(p.name.replace(/^[^\w\s]+/, "").trim().toLowerCase())
+              );
+              return [...prev, ...novel.slice(0, 8)];
+            });
+            setLoadingInterests(false);
+            try {
+              await AsyncStorage.setItem(cacheKey, JSON.stringify({ interests: fetchedPlaces, transports: transportList }));
+            } catch (e) {}
+            return;
+          }
+        }
+      } catch (nomErr) {
+        console.log("[DEBUG] Nominatim search note:", nomErr.message);
       }
 
       // Fallback: Gemini prompt via resilient backend /generate call with timeout
@@ -916,43 +1027,39 @@ export default function YourInterest() {
             </Text>
 
             <View style={styles.transportContainer}>
-              {loadingInterests ? (
-                <ActivityIndicator size="small" color={Colors.PRIMARY} />
-              ) : (
-                transportList.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    activeOpacity={0.8}
+              {transportList.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.transportCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor:
+                        selectedTransport === item.id
+                          ? Colors.PRIMARY
+                          : theme.isDark
+                          ? "#333"
+                          : Colors.LIGHT_GRAY,
+                    },
+                    selectedTransport === item.id && styles.selectedTransport,
+                  ]}
+                  onPress={() => {
+                    triggerHaptic();
+                    setSelectedTransport(item.id);
+                  }}
+                >
+                  <Text
                     style={[
-                      styles.transportCard,
-                      {
-                        backgroundColor: theme.card,
-                        borderColor:
-                          selectedTransport === item.id
-                            ? Colors.PRIMARY
-                            : theme.isDark
-                            ? "#333"
-                            : Colors.LIGHT_GRAY,
-                      },
-                      selectedTransport === item.id && styles.selectedTransport,
+                      styles.transportText,
+                      { color: theme.text },
+                      selectedTransport === item.id && styles.selectedTransportText,
                     ]}
-                    onPress={() => {
-                      triggerHaptic();
-                      setSelectedTransport(item.id);
-                    }}
                   >
-                    <Text
-                      style={[
-                        styles.transportText,
-                        { color: theme.text },
-                        selectedTransport === item.id && styles.selectedTransportText,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              )}
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         )}
