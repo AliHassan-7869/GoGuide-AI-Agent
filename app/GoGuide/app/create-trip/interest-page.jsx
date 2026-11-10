@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -326,6 +327,7 @@ const getSmartDestinationInterests = (dest = "") => {
 };
 
 export default function YourInterest() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
 
@@ -1048,7 +1050,7 @@ export default function YourInterest() {
       />
 
       {/* Floating Bottom Button Bar */}
-      <View style={[styles.footer, { backgroundColor: theme.card, borderTopColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={[

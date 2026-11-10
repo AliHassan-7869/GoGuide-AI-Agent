@@ -746,7 +746,7 @@ export default function PackingChecklist() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={[styles.modalCard, { paddingBottom: Math.max(insets.bottom, 16) + 16, backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Add Luggage Item</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>

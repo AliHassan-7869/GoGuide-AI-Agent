@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +14,7 @@ export default function PrintableItineraryModal({
   onClose,
   theme,
 }) {
+  const insets = useSafeAreaInsets();
   const [downloading, setDownloading] = React.useState(false);
 
   if (!plan) return null;
@@ -151,7 +153,7 @@ export default function PrintableItineraryModal({
         </ScrollView>
 
         {/* Action Button */}
-        <View style={[styles.footer, { backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
           <TouchableOpacity
             style={styles.printBtn}
             onPress={handlePrintOrPdf}

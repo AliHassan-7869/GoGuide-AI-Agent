@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
@@ -16,6 +17,7 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
 export default function TripSummer() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { tripData, setTripData } = useContext(CreateTripContext);
@@ -190,6 +192,7 @@ export default function TripSummer() {
       <View
         style={[
           styles.footer,
+          { paddingBottom: Math.max(insets.bottom, 16) + 8 },
           {
             borderTopColor: theme.border,
             backgroundColor: theme.card,

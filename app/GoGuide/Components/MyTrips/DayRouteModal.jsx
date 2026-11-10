@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect } from "react";
 import { openExternalUrl as openUrl } from "../utils/openExternalUrl";
 import { Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -33,6 +34,7 @@ export default function DayRouteModal({
   onClose,
   theme,
 }) {
+  const insets = useSafeAreaInsets();
   const [selectedStopIdx, setSelectedStopIdx] = useState(0);
   const [activeDayObj, setActiveDayObj] = useState(day || allDays?.[0] || null);
 
@@ -303,7 +305,7 @@ export default function DayRouteModal({
         </ScrollView>
 
         {/* Bottom Floating Navigation Action */}
-        <View style={[styles.footer, { backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
           <TouchableOpacity
             style={styles.fullRouteBtn}
             onPress={openFullDayRoute}
