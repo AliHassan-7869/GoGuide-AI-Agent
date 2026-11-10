@@ -97,162 +97,6 @@ export default function GenerateTrip() {
     return () => clearInterval(interval);
   }, []);
 
-  // Curated, realistic itinerary generator when server is unreachable or offline
-  const buildOfflinePlan = (destination, days, budget, interests) => {
-    const destName = destination ? destination.split(",")[0].trim() : "Vacation Destination";
-    const destLower = destName.toLowerCase();
-    const numDays = Math.min(30, Math.max(1, parseInt(days, 10) || 3));
-
-    // Curated catalog for iconic destinations
-    if (destLower.includes("tokyo") || destLower.includes("japan")) {
-      const tokyoDays = [
-        {
-          day: 1,
-          theme: "Historic Asakusa & Modern Skyline",
-          activities: [
-            { time: "09:30 AM", placeName: "Senso-ji Temple & Nakamise-dori", details: "Tokyo's oldest Buddhist temple, giant red lanterns, and traditional artisanal snack stalls.", tickets: "Free" },
-            { time: "02:00 PM", placeName: "Tokyo Skytree & Solamachi", details: "Towering 634-meter observation tower with 360-degree views of Tokyo Bay and Mount Fuji.", tickets: "¥2,100 (~$14)" },
-            { time: "07:00 PM", placeName: "Sumida River Promenade & Izakaya", details: "Evening river breeze stroll followed by authentic Japanese yakitori and craft ramen.", tickets: "Free" },
-          ],
-        },
-        {
-          day: 2,
-          theme: "Iconic Shibuya & Harajuku Culture",
-          activities: [
-            { time: "09:30 AM", placeName: "Meiji Jingu Shrine & Yoyogi Park", details: "Peaceful forest sanctuary with grand wooden Torii gates in the center of Tokyo.", tickets: "Free" },
-            { time: "01:30 PM", placeName: "Takeshita Street & Omotesando", details: "Vibrant fashion boutiques, famous Japanese crepes, and architectural flagship stores.", tickets: "Free" },
-            { time: "06:30 PM", placeName: "Shibuya Crossing & Shibuya Sky", details: "World's busiest pedestrian crossing, Hachiko statue, and open-air rooftop observation deck.", tickets: "¥2,200 (~$15)" },
-          ],
-        },
-        {
-          day: 3,
-          theme: "Culinary Tsukiji & Digital Art",
-          activities: [
-            { time: "09:00 AM", placeName: "Tsukiji Outer Market Food Crawl", details: "Fresh sashimi, tamagoyaki Japanese omelettes, matcha ice cream, and street delicacies.", tickets: "Pay per dish" },
-            { time: "01:30 PM", placeName: "teamLab Planets Digital Museum", details: "Immersive water-walking museum with infinite crystal light rooms and floating flower gardens.", tickets: "¥3,800 (~$25)" },
-            { time: "07:30 PM", placeName: "Ginza Luxury Avenues & Ramen", details: "Grand architecture, Kabuki-za theater exterior, and world-class culinary dining.", tickets: "Free" },
-          ],
-        },
-        {
-          day: 4,
-          theme: "Akihabara Tech & Ueno Cultural Park",
-          activities: [
-            { time: "10:00 AM", placeName: "Akihabara Electric Town", details: "Epicenter of gaming, electronics, retro arcades, anime figurines, and multi-floor hobby shops.", tickets: "Free" },
-            { time: "02:00 PM", placeName: "Ueno Park & Tokyo National Museum", details: "Historic public park, Shinobazu Pond, and Japan's oldest national art and cultural museum.", tickets: "¥1,000 (~$7)" },
-            { time: "07:00 PM", placeName: "Ameyoko Shopping Street & Izakayas", details: "Open-air market street packed with affordable clothing, cosmetics, and bustling food stalls.", tickets: "Free" },
-          ],
-        },
-        {
-          day: 5,
-          theme: "Futuristic Odaiba & Shinjuku Lights",
-          activities: [
-            { time: "10:00 AM", placeName: "Odaiba Seaside & Unicorn Gundam", details: "Tokyo Bay man-made island, Rainbow Bridge views, and the transforming anime mecha statue.", tickets: "Free" },
-            { time: "02:30 PM", placeName: "Shinjuku Gyoen National Garden", details: "Sprawling tranquil park featuring French formal, English landscape, and traditional Japanese gardens.", tickets: "¥500 (~$3)" },
-            { time: "07:30 PM", placeName: "Shinjuku Omoide Yokocho & Golden Gai", details: "Atmospheric retro lantern-lit alleyways filled with cozy counter izakayas and yakitori grills.", tickets: "Free to explore" },
-          ],
-        },
-      ];
-
-      const tokyoHotels = [
-        { name: "Hotel Gracery Shinjuku", address: "1-19-1 Kabukicho, Shinjuku City, Tokyo", price: "$140/night", rating: "4.7" },
-        { name: "Keio Plaza Hotel Tokyo", address: "2-2-1 Nishi-Shinjuku, Shinjuku City, Tokyo", price: "$210/night", rating: "4.8" },
-      ];
-
-      const itinerary = [];
-      for (let i = 1; i <= numDays; i++) {
-        const sourceDay = tokyoDays[(i - 1) % tokyoDays.length];
-        itinerary.push({ ...sourceDay, day: i });
-      }
-
-      return {
-        destination: "Tokyo, Japan",
-        duration: `${numDays} Days`,
-        budget: budget || "Moderate",
-        traveler: tripData?.traveler?.title || "Explorer",
-        weatherBrief: "Clear to pleasant seasonal conditions with crisp city air. Excellent walking weather.",
-        flights: { details: "Scheduled round-trip to Haneda / Narita International Airport", price: "$520 - $780" },
-        hotels: tokyoHotels,
-        itinerary,
-        packingList: [
-          { item: "Valid Passport & Suica/Pasmo IC Card", category: "Documents" },
-          { item: "Comfortable Walking Shoes", category: "Clothing" },
-          { item: "Pocket Wi-Fi / Japanese eSIM", category: "Electronics" },
-          { item: "Small Cash Yen Bills & Coins", category: "Money" },
-        ],
-      };
-    }
-
-    // Dynamic, realistic multi-day generator for any global city
-    const dayBlueprints = [
-      {
-        theme: "Arrival, Historic Old Quarter & Grand Plaza",
-        activities: [
-          { time: "09:30 AM", placeName: `${destName} Historic Old Quarter & Grand Square`, details: `Wander ancient cobblestone avenues, historical monuments, and vibrant central squares of ${destName}.`, tickets: "Free" },
-          { time: "01:00 PM", placeName: `Traditional ${destName} Bistro & Regional Dining`, details: "Savor authentic regional gastronomy, artisanal oven-baked specialties, and local beverages.", tickets: "$15 - $25" },
-          { time: "03:30 PM", placeName: `${destName} National Heritage & Fine Arts Museum`, details: "Explore celebrated classical masterworks, regional artifacts, and royal gallery exhibitions.", tickets: "$12 - $18" },
-          { time: "07:30 PM", placeName: `${destName} Twilight Riverside / Harbor Promenade`, details: "Sunset golden-hour viewpoint followed by relaxed evening waterfront dining.", tickets: "Free" },
-        ],
-      },
-      {
-        theme: "Royal Palaces, Botanical Gardens & Local Bazaars",
-        activities: [
-          { time: "09:30 AM", placeName: `${destName} Royal Palace & Grand Gardens`, details: "Tour gilded state apartments, ceremonial halls, and landscaped marble courtyards.", tickets: "$20 - $30" },
-          { time: "01:30 PM", placeName: `${destName} Covered Artisan Market & Spice Bazaar`, details: "Sample handcrafted souvenirs, aromatic spices, local confectionery, and handmade textiles.", tickets: "Free" },
-          { time: "04:00 PM", placeName: `${destName} Historic Cathedral / Sanctuary`, details: "Admire soaring gothic architecture, stained glass, and peaceful reflection cloisters.", tickets: "Free" },
-          { time: "07:30 PM", placeName: "Bohemian Quarter Dining & Ambient Music", details: "Dine on candlelit terrace bistros with live acoustic performances and regional desserts.", tickets: "$25 - $40" },
-        ],
-      },
-      {
-        theme: "Scenic Panoramas, Nature Trails & Sunset Vista",
-        activities: [
-          { time: "09:30 AM", placeName: `${destName} Mountain / Skyline Panoramic Viewpoint`, details: "Ride the funicular or scenic elevator for sweeping 360-degree aerial views across the city.", tickets: "$10 - $15" },
-          { time: "01:00 PM", placeName: "Scenic Hilltop Cafe & Light Lunch", details: "Enjoy artisanal sandwiches, fresh espresso, and panoramic mountain breezes.", tickets: "$12 - $20" },
-          { time: "03:30 PM", placeName: `${destName} Modern Cultural Pavilion & Sculpture Park`, details: "Interactive contemporary installations, peaceful fountains, and open-air greenery.", tickets: "Free" },
-          { time: "07:30 PM", placeName: "Grand Sunset Vista & Fine Cuisine", details: "Twilight cocktail or dinner overlooking the illuminated city skyline.", tickets: "$30 - $55" },
-        ],
-      },
-      {
-        theme: "Coastal Waterfront, River Cruise & Hidden Gems",
-        activities: [
-          { time: "10:00 AM", placeName: `${destName} Scenic Boat Cruise & Island Excursion`, details: "Glide along iconic waterways past historic bridges and architectural waterfront landmarks.", tickets: "$20 - $35" },
-          { time: "01:30 PM", placeName: "Waterfront Seafood & Grill Tavern", details: "Fresh daily catch, seaside terrace dining, and local seasonal refreshments.", tickets: "$22 - $38" },
-          { time: "04:00 PM", placeName: `${destName} Old Port / Marina Promenade`, details: "Stroll between luxury yachts, maritime heritage docks, and gelaterias.", tickets: "Free" },
-          { time: "07:30 PM", placeName: "Night Market & Open-Air Street Food Crawl", details: "Bustling evening food stalls, regional street snacks, and warm festive atmosphere.", tickets: "$10 - $20" },
-        ],
-      },
-    ];
-
-    const itinerary = [];
-    for (let i = 1; i <= numDays; i++) {
-      const blueprint = dayBlueprints[(i - 1) % dayBlueprints.length];
-      itinerary.push({
-        day: i,
-        theme: blueprint.theme,
-        activities: blueprint.activities.map((act) => ({ ...act })),
-      });
-    }
-
-    return {
-      destination: destName,
-      duration: `${numDays} Days`,
-      budget: budget || "Moderate",
-      traveler: tripData?.traveler?.title || "Explorer",
-      weatherBrief: "Pleasant seasonal conditions with comfortable temperatures. Great for walking and sightseeing.",
-      flights: { details: `Standard scheduled flight to ${destName} International Airport`, price: "$350 - $620" },
-      hotels: [
-        { name: `Grand ${destName} Heritage Hotel`, address: `Historic Center, ${destName}`, price: "$110/night", rating: "4.8" },
-        { name: `${destName} Boutique Suites`, address: `Central Promenade, ${destName}`, price: "$165/night", rating: "4.9" },
-      ],
-      itinerary,
-      packingList: [
-        { item: "Valid Passport & Travel Documents", category: "Documents" },
-        { item: "Comfortable Walking Shoes", category: "Clothing" },
-        { item: "Universal Power Adapter", category: "Electronics" },
-        { item: "Light Weather Jacket", category: "Clothing" },
-      ],
-    };
-  };
-
   const handleSaveAndProceed = async (plan) => {
     const cleanOrigin =
       tripData?.fromLocation?.name?.split(",")[0]?.trim() ||
@@ -353,6 +197,7 @@ export default function GenerateTrip() {
 
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
       let plan = null;
+      let apiError = null;
 
       try {
         let result = null;
@@ -391,19 +236,13 @@ export default function GenerateTrip() {
           }
         }
       } catch (apiErr) {
+        apiError = apiErr;
         console.warn("[GenerateTrip] Backend AI call note:", apiErr?.message);
       }
 
-      // Resilient Fallback: If AI timed out, failed, or returned empty schedule,
-      // seamlessly construct instant verified plan so user is NEVER blocked by an error!
+      // Never invent a plan: if we have no real itinerary, tell the user and let them retry.
       if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
-        console.log("[GenerateTrip] Building resilient instant offline plan for:", tripData?.toLocation?.name);
-        plan = buildOfflinePlan(
-          tripData?.toLocation?.name,
-          totalDays,
-          tripData?.budget,
-          tripData?.interests
-        );
+        throw apiError || new Error("We couldn't build your plan right now. Please try again.");
       }
 
       await handleSaveAndProceed(plan);
@@ -419,9 +258,9 @@ export default function GenerateTrip() {
         message: isAuthError
           ? "Please sign in to your GoGuide account to generate AI itineraries."
           : isQuota
-          ? "AI model is currently experiencing high demand. Please try again or generate an instant plan."
+          ? "AI is experiencing high demand right now. Please wait a minute and try again."
           : err.message?.includes("reach GoGuide server")
-          ? "Could not reach GoGuide backend server. Please make sure the API is running or continue with an offline plan."
+          ? "Could not reach GoGuide server. Please check your internet connection and try again."
           : err.message || "Something went wrong while generating your trip.",
       });
     }
@@ -433,28 +272,6 @@ export default function GenerateTrip() {
       GenerateAiTrip();
     }
   }, [tripData]);
-
-  const handleUseOfflinePlan = () => {
-    try {
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
-    } catch (e) {}
-
-    const start = new Date(tripData?.startDate);
-    const end = new Date(tripData?.endDate);
-    const diffTime = Math.abs(end - start);
-    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 || 3;
-
-    const offlinePlan = buildOfflinePlan(
-      tripData?.toLocation?.name,
-      totalDays,
-      tripData?.budget,
-      tripData?.interests
-    );
-
-    handleSaveAndProceed(offlinePlan);
-  };
 
   const currentStep = GENERATION_STEPS[currentStepIndex];
 
@@ -576,9 +393,9 @@ export default function GenerateTrip() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={styles.offlineBtn} onPress={handleUseOfflinePlan} activeOpacity={0.8}>
-                <Ionicons name="flash-outline" size={15} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
-                <Text style={styles.offlineText}>Instant Plan</Text>
+              <TouchableOpacity style={styles.offlineBtn} onPress={() => router.back()} activeOpacity={0.8}>
+                <Ionicons name="arrow-back-outline" size={15} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
+                <Text style={styles.offlineText}>Go Back</Text>
               </TouchableOpacity>
             </View>
           </View>
