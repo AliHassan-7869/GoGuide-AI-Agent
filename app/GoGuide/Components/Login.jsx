@@ -42,7 +42,7 @@ export default function Login() {
 
       {/* Smooth Gradient Overlay for text readability */}
       <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)", "#000000"]}
+        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.9)", "#000000"]}
         locations={[0, 0.4, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />

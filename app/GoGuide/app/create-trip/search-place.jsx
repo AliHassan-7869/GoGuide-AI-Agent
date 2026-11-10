@@ -327,7 +327,7 @@ export default function SearchPlace() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DEPARTURE CITY</Text>
               <TextInput
-                placeholder="Where are you starting from?"
+                placeholder="Starting from?"
                 placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
                 value={fromQuery}
                 onFocus={() => setActiveField("from")}
@@ -369,7 +369,7 @@ export default function SearchPlace() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DESTINATION</Text>
               <TextInput
-                placeholder="Where to? (e.g. Dubai, Tokyo, Rome)"
+                placeholder="Where to? (e.g. Dubai)"
                 placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
                 value={toQuery}
                 onFocus={() => setActiveField("to")}

@@ -312,7 +312,7 @@ export default function AiAssistant() {
             <View style={styles.aiHeaderLine}>
               <Text style={styles.aiLabel}>GoGuide AI Copilot</Text>
               <View style={styles.liveModelBadge}>
-                <Text style={styles.liveModelText}>Gemini 2.5</Text>
+                <Text style={styles.liveModelText}>AI</Text>
               </View>
             </View>
           )}

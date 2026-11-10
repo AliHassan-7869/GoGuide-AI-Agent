@@ -17,51 +17,6 @@ import { TouchableOpacity } from "../Components/ui/Touchable";
 const STATUS_TABS = ["Upcoming", "Completed", "Cancelled"];
 const CATEGORY_FILTERS = ["All", "Hotels", "Flights", "Activities"];
 
-const SAMPLE_BOOKINGS = [
-  {
-    id: "bk_1",
-    type: "Hotels",
-    status: "Upcoming",
-    bookingRef: "GG-84921",
-    title: "Grand Hyatt Tokyo",
-    subtitle: "Roppongi Hills, Minato City, Tokyo, Japan",
-    checkIn: "Nov 14, 2026 • 3:00 PM",
-    checkOut: "Nov 19, 2026 • 11:00 AM",
-    details: "Deluxe King Room • 1 Room, 2 Guests",
-    price: "$640.00",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
-    coordinates: { lat: 35.6599, lng: 139.729 },
-  },
-  {
-    id: "bk_2",
-    type: "Flights",
-    status: "Upcoming",
-    bookingRef: "GG-51892",
-    title: "Emirates Flight EK-601",
-    subtitle: "DXB (Dubai) ✈️ HND (Tokyo Haneda)",
-    checkIn: "Nov 14, 2026 • 08:30 AM",
-    checkOut: "Nov 14, 2026 • 10:45 PM",
-    details: "Seat 14A, 14B • Terminal 3 • Economy Premium",
-    price: "$820.00",
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
-    coordinates: { lat: 25.2532, lng: 55.3657 },
-  },
-  {
-    id: "bk_3",
-    type: "Activities",
-    status: "Completed",
-    bookingRef: "GG-20391",
-    title: "Mount Fuji & Hakone Day Tour",
-    subtitle: "Shinjuku Center Building, Tokyo",
-    checkIn: "Oct 10, 2026 • 08:00 AM",
-    checkOut: "Oct 10, 2026 • 06:30 PM",
-    details: "Guided Express Coach & Lake Ashi Cruise",
-    price: "$145.00",
-    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop",
-    coordinates: { lat: 35.3606, lng: 138.7274 },
-  },
-];
-
 export default function MyBookings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -70,7 +25,7 @@ export default function MyBookings() {
 
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [bookings, setBookings] = useState(SAMPLE_BOOKINGS);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Digital Pass Modal State
@@ -122,9 +77,7 @@ export default function MyBookings() {
         }
       });
 
-      if (combined.length > 0) {
-        setBookings([...combined, ...SAMPLE_BOOKINGS]);
-      }
+      setBookings(combined);
     })();
   }, []);
 

@@ -108,7 +108,7 @@ const TRAVEL_VIBES = [
   },
   {
     id: "vibe_city",
-    label: "Historic Cities",
+    label: "Cities",
     category: "Cities",
     image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=800&auto=format&fit=crop",
     icon: "trail-sign-outline",
@@ -116,7 +116,7 @@ const TRAVEL_VIBES = [
   },
   {
     id: "vibe_forest",
-    label: "Nature & Forest",
+    label: "Nature",
     category: "Nature & Forest",
     image: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop",
     icon: "leaf-outline",

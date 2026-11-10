@@ -896,7 +896,7 @@ export default function Discover() {
           <Ionicons name="search" size={20} color={themeStyles.subTextColor} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: themeStyles.textColor }]}
-            placeholder="Search specific city (e.g. London, Cairo)..."
+            placeholder="Search a city (e.g. London)"
             placeholderTextColor={themeStyles.subTextColor}
             value={searchQuery}
             onChangeText={searchPlace}

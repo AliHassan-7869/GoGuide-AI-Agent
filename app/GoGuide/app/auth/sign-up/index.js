@@ -211,7 +211,7 @@ export default function Signup() {
           <Text style={styles.label}>First Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="name"
+            placeholder="Your name"
             {...AUTH_INPUT_PROPS}
             value={fullName}
             onChangeText={setFullName}

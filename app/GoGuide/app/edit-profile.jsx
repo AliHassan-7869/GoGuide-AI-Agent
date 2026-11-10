@@ -20,7 +20,7 @@ export default function EditProfile() {
   const { userData, setUserData, uid, preferences } = useContext(CreateTripContext);
 
   const [name, setName] = useState(userData?.name || "Traveler");
-  const [email, setEmail] = useState(userData?.email || "user@example.com");
+  const [email, setEmail] = useState(userData?.email || "");
   const [phone, setPhone] = useState(userData?.phone || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

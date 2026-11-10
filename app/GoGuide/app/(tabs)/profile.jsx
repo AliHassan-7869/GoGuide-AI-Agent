@@ -624,10 +624,10 @@ export default function Profile() {
           </TouchableOpacity>
 
           <Text style={[styles.userName, { color: theme.text }]}>
-            {userData?.name || "Traveler"}
+            {userData?.name || "Guest"}
           </Text>
           <Text style={[styles.userEmail, { color: theme.subtext }]}>
-            {userData?.email || "user@example.com"}
+            {userData?.email || "Guest account"}
           </Text>
 
           {/* Explorer Tier Pill */}
