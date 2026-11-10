@@ -51,6 +51,7 @@ app.add_middleware(
 # -------------------- CONFIG --------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
 API_KEY = os.getenv("API_KEY")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "goguideai")
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
@@ -65,6 +66,9 @@ GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-2.0-flash
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "mistralai/mistral-large-4-1t-a52b")
+NVIDIA_TIMEOUT = (5, 35)
 AI_ERROR = "AI service error, please try again"
 
 _google_request = google_requests.Request()
@@ -274,13 +278,42 @@ def call_deepseek(messages: list, temperature: float, max_tokens: int, json_mode
     return re.sub(r"<think>[\s\S]*?</think>", "", content).strip()
 
 
-def generate_with_fallback(gemini_call, deepseek_call) -> str:
-    """Try Gemini first, then DeepSeek. Raise a generic error if both fail."""
-    if not GEMINI_API_KEY and not DEEPSEEK_API_KEY:
-        logger.error("Neither GEMINI_API_KEY nor DEEPSEEK_API_KEY is configured on server")
+def call_nvidia(messages: list, temperature: float = 0.5, max_tokens: int = 4096, json_mode: bool = False) -> str:
+    if not NVIDIA_API_KEY:
+        raise ValueError("NVIDIA_API_KEY is not configured")
+    payload = {
+        "model": NVIDIA_MODEL,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+
+    response = requests.post(
+        NVIDIA_URL,
+        headers={
+            "Authorization": f"Bearer {NVIDIA_API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json=payload,
+        timeout=NVIDIA_TIMEOUT
+    )
+    response.raise_for_status()
+    res_json = response.json()
+    choice = res_json.get("choices", [{}])[0].get("message", {})
+    text = choice.get("content") or choice.get("reasoning_content") or ""
+    clean = re.sub(r"<think>[\s\S]*?</think>", "", text).strip()
+    return clean
+
+
+def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=None) -> str:
+    """Try Gemini first, then NVIDIA NIM, then DeepSeek. Raise a generic error if all configured fail."""
+    if not GEMINI_API_KEY and not DEEPSEEK_API_KEY and not NVIDIA_API_KEY:
+        logger.error("No AI provider key configured on server (Gemini/NVIDIA/DeepSeek)")
         raise HTTPException(status_code=503, detail="Service not configured")
 
-    if GEMINI_API_KEY:
+    if GEMINI_API_KEY and gemini_call:
         try:
             text = gemini_call()
             if text:
@@ -289,7 +322,16 @@ def generate_with_fallback(gemini_call, deepseek_call) -> str:
         except requests.exceptions.RequestException as e:
             logger.error("Gemini API error: %s", e)
 
-    if DEEPSEEK_API_KEY:
+    if NVIDIA_API_KEY and nvidia_call:
+        try:
+            text = nvidia_call()
+            if text:
+                return text
+            logger.error("NVIDIA returned an empty response")
+        except requests.exceptions.RequestException as e:
+            logger.error("NVIDIA API error: %s", e)
+
+    if DEEPSEEK_API_KEY and deepseek_call:
         try:
             text = deepseek_call()
             if text:
@@ -476,12 +518,21 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
 }}"""
 
     raw_content = generate_with_fallback(
-        lambda: call_gemini(
+        gemini_call=lambda: call_gemini(
             [{"parts": [{"text": prompt}]}],
             {"temperature": 0.7, "maxOutputTokens": 3072, "responseMimeType": "application/json"},
             system_instruction=PLAN_SYSTEM_INSTRUCTION,
         ),
-        lambda: call_deepseek(
+        nvidia_call=lambda: call_nvidia(
+            [
+                {"role": "system", "content": PLAN_SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+            json_mode=True,
+        ),
+        deepseek_call=lambda: call_deepseek(
             [
                 {
                     "role": "system",
@@ -647,12 +698,21 @@ Return ONLY valid JSON matching this exact structure:
 
     try:
         raw_content = generate_with_fallback(
-            lambda: call_gemini(
+            gemini_call=lambda: call_gemini(
                 [{"parts": [{"text": prompt}]}],
                 {"temperature": 0.65, "maxOutputTokens": 4096, "responseMimeType": "application/json"},
                 system_instruction=PLAN_SYSTEM_INSTRUCTION,
             ),
-            lambda: call_deepseek(
+            nvidia_call=lambda: call_nvidia(
+                [
+                    {"role": "system", "content": PLAN_SYSTEM_INSTRUCTION},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.65,
+                max_tokens=4096,
+                json_mode=True,
+            ),
+            deepseek_call=lambda: call_deepseek(
                 [
                     {"role": "system", "content": PLAN_SYSTEM_INSTRUCTION},
                     {"role": "user", "content": prompt}
@@ -912,12 +972,13 @@ CRITICAL SCOPE & SECURITY GUARDRAILS:
     deepseek_messages.append({"role": "user", "content": user_msg})
 
     reply = generate_with_fallback(
-        lambda: call_gemini(
+        gemini_call=lambda: call_gemini(
             gemini_contents,
             {"temperature": 0.8, "topP": 0.95, "maxOutputTokens": 1024},
             system_instruction=system_instruction,
         ),
-        lambda: call_deepseek(deepseek_messages, temperature=0.8, max_tokens=1024),
+        nvidia_call=lambda: call_nvidia(deepseek_messages, temperature=0.8, max_tokens=1024),
+        deepseek_call=lambda: call_deepseek(deepseek_messages, temperature=0.8, max_tokens=1024),
     )
 
     return {"status": "success", "data": {"reply": reply.strip()}}
@@ -949,15 +1010,21 @@ def _clean_destination(raw: str) -> str:
 
 def _generate_json(prompt: str, max_tokens: int = 3072):
     raw = generate_with_fallback(
-        lambda: call_gemini(
+        gemini_call=lambda: call_gemini(
             [{"parts": [{"text": prompt}]}],
             {"temperature": 0.7, "maxOutputTokens": max_tokens, "responseMimeType": "application/json"},
             system_instruction=DATA_SYSTEM_INSTRUCTION,
         ),
-        lambda: call_deepseek(
+        nvidia_call=lambda: call_nvidia(
             [{"role": "system", "content": DATA_SYSTEM_INSTRUCTION}, {"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=4096,
+            max_tokens=max_tokens,
+            json_mode=True,
+        ),
+        deepseek_call=lambda: call_deepseek(
+            [{"role": "system", "content": DATA_SYSTEM_INSTRUCTION}, {"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=max_tokens,
             json_mode=True,
         ),
     )
