@@ -743,7 +743,7 @@ export default function PackingChecklist() {
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior="padding"
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
           <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>

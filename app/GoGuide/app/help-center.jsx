@@ -143,7 +143,7 @@ export default function HelpCenter() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Header */}
       <View
         style={[

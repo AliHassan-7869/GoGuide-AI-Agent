@@ -307,7 +307,7 @@ export default function EditProfile() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.isDark ? "#0C0C12" : "#F8FAFC" }]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Header */}
       <View
         style={[
