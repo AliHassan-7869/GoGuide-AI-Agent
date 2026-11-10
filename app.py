@@ -68,7 +68,7 @@ GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "mistralai/mistral-large-4-1t-a52b")
-NVIDIA_TIMEOUT = (5, 35)
+NVIDIA_TIMEOUT = (5, 55)
 AI_ERROR = "AI service error, please try again"
 
 _google_request = google_requests.Request()
