@@ -155,7 +155,7 @@ export default function HelpCenter() {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons
             name="arrow-back"
             size={24}
@@ -274,7 +274,7 @@ export default function HelpCenter() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSearchQuery("")}>
               <Ionicons name="close-circle" size={18} color={theme.subtext} />
             </TouchableOpacity>
           )}
@@ -486,7 +486,7 @@ export default function HelpCenter() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                 onPress={() => setIsModalVisible(false)}
                 style={styles.modalCloseBtn}
               >

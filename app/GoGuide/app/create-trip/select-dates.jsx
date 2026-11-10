@@ -113,7 +113,7 @@ function CustomCalendarView({
           marginBottom: 16,
         }}
       >
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={handlePrevMonth}
           style={{
             padding: 8,
@@ -128,7 +128,7 @@ function CustomCalendarView({
           {monthNames[currentMonth]} {currentYear}
         </Text>
 
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Next"
           onPress={handleNextMonth}
           style={{
             padding: 8,
@@ -446,7 +446,7 @@ export default function SelectDates() {
 
       {/* Top Header */}
       <View style={styles.headerRow}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();
@@ -579,7 +579,7 @@ export default function SelectDates() {
 
           <View style={styles.manualControlsRow}>
             {/* Decrement Button */}
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove"
               onPress={() => handleStepDays(-1)}
               style={[
                 styles.stepperBtn,
@@ -614,7 +614,7 @@ export default function SelectDates() {
             </View>
 
             {/* Increment Button */}
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add"
               onPress={() => handleStepDays(1)}
               style={[
                 styles.stepperBtn,

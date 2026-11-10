@@ -902,7 +902,7 @@ export default function Discover() {
             onChangeText={searchPlace}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(""); setResults([]); }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => { setSearchQuery(""); setResults([]); }}>
               <Ionicons name="close-circle" size={18} color={themeStyles.subTextColor} />
             </TouchableOpacity>
           )}
@@ -1074,6 +1074,8 @@ export default function Discover() {
 
                       {/* Interactive Heart (Wishlist) Button */}
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Save to favourites"
                         style={styles.heartButton}
                         onPress={() => toggleSavePlace(dest)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

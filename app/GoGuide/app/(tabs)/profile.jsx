@@ -773,7 +773,7 @@ export default function Profile() {
           {/* Modal Header: Clean, Responsive with Back Button */}
           <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
                 onPress={() => setShowSavedTripsModal(false)}
                 style={styles.modalBackBtn}
                 activeOpacity={0.7}
@@ -791,7 +791,7 @@ export default function Profile() {
               </View>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
               style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
               onPress={() => setShowSavedTripsModal(false)}
             >
@@ -933,7 +933,7 @@ export default function Profile() {
                         <Text style={[styles.tripItemTitle, { color: titleColor }]} numberOfLines={1}>
                           {dest}
                         </Text>
-                        <TouchableOpacity
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
                           onPress={() => handleDeleteSavedTrip(trip)}
                           style={styles.tripItemDelete}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -985,7 +985,7 @@ export default function Profile() {
         <View style={[styles.modalContainer, { backgroundColor: theme.bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
                 onPress={() => setShowFavoritesModal(false)}
                 style={styles.modalBackBtn}
                 activeOpacity={0.7}
@@ -1002,7 +1002,7 @@ export default function Profile() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
               style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
               onPress={() => setShowFavoritesModal(false)}
             >
@@ -1041,7 +1041,7 @@ export default function Profile() {
                       <Text style={[styles.tripItemTitle, { color: titleColor }]} numberOfLines={1}>
                         {place.name || place.title}
                       </Text>
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add to favourites"
                         onPress={() => handleRemoveFavorite(place)}
                         style={styles.tripItemDelete}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

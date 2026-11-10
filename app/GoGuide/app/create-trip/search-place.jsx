@@ -286,7 +286,7 @@ export default function SearchPlace() {
 
       {/* Top Header & Back Button */}
       <View style={styles.headerRow}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();
@@ -349,7 +349,7 @@ export default function SearchPlace() {
           {/* CONNECTOR LINE & SWAP BUTTON */}
           <View style={styles.connectorRow}>
             <View style={[styles.verticalDashedLine, { backgroundColor: theme.border }]} />
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Swap locations"
               onPress={handleSwapRoute}
               style={[
                 styles.swapBtn,

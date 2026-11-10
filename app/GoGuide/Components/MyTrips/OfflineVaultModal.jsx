@@ -138,7 +138,7 @@ export default function OfflineVaultModal({
             </View>
           </View>
 
-          <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.border + "40" }]}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.border + "40" }]}>
             <Ionicons name="close" size={20} color={theme.text} />
           </TouchableOpacity>
         </View>

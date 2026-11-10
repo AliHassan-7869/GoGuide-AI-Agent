@@ -168,7 +168,7 @@ export default function LocationPage() {
       
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();

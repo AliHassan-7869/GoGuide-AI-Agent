@@ -109,7 +109,7 @@ export default function ShareTripModal({
               Invite friends or co-travelers to this plan
             </Text>
           </View>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
             style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
             onPress={onClose}
           >

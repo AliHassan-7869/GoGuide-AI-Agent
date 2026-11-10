@@ -97,7 +97,7 @@ export default function Explore() {
     <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={themeStyles.textColor} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeStyles.textColor }]}>{activeInfo?.title}</Text>

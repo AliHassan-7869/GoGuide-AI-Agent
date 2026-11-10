@@ -821,7 +821,7 @@ export default function YourInterest() {
 
       {/* Top Header Bar with Back Button */}
       <View style={[styles.topBar, { borderBottomColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();

@@ -319,7 +319,7 @@ export default function EditProfile() {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons
             name="arrow-back"
             size={24}
@@ -352,7 +352,7 @@ export default function EditProfile() {
       >
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarWrapper} activeOpacity={0.8}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Change photo" onPress={handleAvatarPress} style={styles.avatarWrapper} activeOpacity={0.8}>
             <Image source={{ uri: avatar }} style={styles.avatar} />
             <View style={styles.cameraIconBox}>
               <Ionicons name="camera" size={16} color="#FFFFFF" />
@@ -570,7 +570,7 @@ export default function EditProfile() {
                 placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={18}

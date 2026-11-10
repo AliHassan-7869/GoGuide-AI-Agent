@@ -63,7 +63,7 @@ export default function PrintableItineraryModal({
               Printable PDF & Travel Documentation
             </Text>
           </View>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
             style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
             onPress={onClose}
           >

@@ -127,7 +127,7 @@ export default function SelectBudget() {
 
       {/* HEADER BAR */}
       <View style={[styles.headerBar, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();
@@ -423,7 +423,7 @@ export default function SelectBudget() {
               }}
             />
             {customAmount ? (
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                 onPress={() => {
                   triggerHaptic();
                   setCustomAmount("");
@@ -496,7 +496,7 @@ export default function SelectBudget() {
           <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Select Currency</Text>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                 onPress={() => setShowCurrencyModal(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >

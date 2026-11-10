@@ -130,7 +130,7 @@ export default function SafetyAlerts() {
 
       {/* Custom Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Safety Alerts</Text>
@@ -146,7 +146,7 @@ export default function SafetyAlerts() {
               <Ionicons name="cloud-outline" size={24} color={Colors.PRIMARY || "#0a7ea4"} />
               <Text style={[styles.weatherTitle, { color: theme.text }]}>Destination Weather</Text>
             </View>
-            <TouchableOpacity onPress={() => fetchWeather(true)} disabled={loading}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh" onPress={() => fetchWeather(true)} disabled={loading}>
               <Ionicons name="refresh" size={20} color={loading ? theme.subText : (Colors.PRIMARY || "#0a7ea4")} />
             </TouchableOpacity>
           </View>
@@ -204,7 +204,7 @@ export default function SafetyAlerts() {
             <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Emergency Contacts</Text>
-                <TouchableOpacity onPress={() => setEmergencyVisible(false)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => setEmergencyVisible(false)}>
                   <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>

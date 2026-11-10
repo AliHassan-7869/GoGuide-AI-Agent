@@ -1019,14 +1019,14 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
           </View>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete" 
             style={[styles.iconButton, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]} 
             onPress={() => handleDeleteTrip(tripData)}
             activeOpacity={0.7}
           >
             <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="View itinerary document" 
             style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1042,13 +1042,13 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
           >
             <Ionicons name={isSavedToTripsLocal ? "bookmark" : "bookmark-outline"} size={18} color={isSavedToTripsLocal ? "#10B981" : theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Choose date" 
             style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={addToCalendar}
           >
             <Ionicons name="calendar-outline" size={18} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add" 
             style={[styles.iconButton, { marginLeft: 6 }]} 
             onPress={createNewTrip}
           >
@@ -1129,7 +1129,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                       </View>
                     )}
 
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
                       style={styles.carouselDeleteBtn}
                       onPress={(e) => {
                         e.stopPropagation();
@@ -1288,7 +1288,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                   </Text>
                   <View style={styles.liveIndicatorDot} />
                 </View>
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                   onPress={() => setShowNotificationBanner(false)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
@@ -1964,7 +1964,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                             <Ionicons name="navigate" size={13} color="#10B981" />
                             <Text style={[styles.mapQuickText, { color: "#10B981" }]}>Directions</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity 
+                          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete" 
                             style={[styles.mapQuickBtn, { marginLeft: 6, backgroundColor: "transparent", borderWidth: 0 }]}
                             onPress={() => deleteActivityFromDay(day.day, j)}
                           >
@@ -2016,7 +2016,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
               <Text style={[styles.modalTitle, { color: theme.text }]}>Exported Itinerary</Text>
               <Text style={[styles.modalSub, { color: theme.subtext }]}>Printable & shareable travel document</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" 
               style={styles.modalCloseBtn}
               onPress={() => setShowExportModal(false)}
             >

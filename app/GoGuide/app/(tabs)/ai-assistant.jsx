@@ -402,7 +402,7 @@ export default function AiAssistant() {
           </View>
         </View>
 
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
           onPress={handleClearChat}
           style={[
             styles.clearButton,
@@ -533,7 +533,7 @@ export default function AiAssistant() {
             multiline={false}
           />
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Send message"
             style={[
               styles.sendButton,
               {

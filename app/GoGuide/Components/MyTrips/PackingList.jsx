@@ -91,6 +91,8 @@ export default function PackingList({ items }) {
         
         {item.desc && (
           <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel={expandedIndex === index ? "Collapse details" : "Expand details"}
             onPress={() => toggleExpand(index)} 
             style={styles.expandBtn}
           >

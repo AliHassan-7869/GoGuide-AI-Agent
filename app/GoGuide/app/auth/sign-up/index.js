@@ -176,7 +176,7 @@ export default function Signup() {
       >
       <View style={styles.card}>
         {/* Back */}
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={26} color={Colors.PRIMARY} />
         </TouchableOpacity>
 
@@ -200,7 +200,7 @@ export default function Signup() {
                 </TouchableOpacity>
               )}
             </View>
-            <TouchableOpacity onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={18} color="#991B1B" />
             </TouchableOpacity>
           </View>
@@ -266,6 +266,8 @@ export default function Signup() {
             />
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               onPress={() => setShowPassword(!showPassword)}
               style={styles.eye}
             >

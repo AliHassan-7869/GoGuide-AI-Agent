@@ -120,7 +120,7 @@ export default function TripSummer() {
             style={styles.image}
             onError={() => setImgFailed(true)}
           />
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
 

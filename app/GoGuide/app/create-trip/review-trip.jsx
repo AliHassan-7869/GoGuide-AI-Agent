@@ -150,7 +150,7 @@ export default function ReviewTrip() {
 
       {/* Top Header */}
       <View style={styles.headerRow}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();
@@ -223,7 +223,7 @@ export default function ReviewTrip() {
             <View style={{ flex: 1 }}>
               <View style={styles.editRow}>
                 <Text style={styles.passCityTag}>ORIGIN</Text>
-                <TouchableOpacity onPress={() => router.push("/create-trip/search-place")}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit" onPress={() => router.push("/create-trip/search-place")}>
                   <Ionicons name="pencil" size={12} color={activeAccent} />
                 </TouchableOpacity>
               </View>
@@ -249,7 +249,7 @@ export default function ReviewTrip() {
 
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <View style={styles.editRow}>
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit"
                   onPress={() => router.push("/create-trip/search-place")}
                   style={{ marginRight: 4 }}
                 >

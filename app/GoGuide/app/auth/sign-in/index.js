@@ -170,7 +170,7 @@ export default function SignIn() {
                   <Text style={styles.errorTitle}>{errorTitle || "Wrong Credentials"}</Text>
                   <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
-                <TouchableOpacity onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close" size={18} color="#991B1B" />
                 </TouchableOpacity>
               </View>
@@ -218,6 +218,8 @@ export default function SignIn() {
                   }}
                 />
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                   style={{ position: "absolute", right: 16, top: 14 }}
                   onPress={() => setShowPassword(!showPassword)}
                 >

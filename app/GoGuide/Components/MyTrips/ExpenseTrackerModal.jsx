@@ -249,7 +249,7 @@ export default function ExpenseTrackerModal({
               Target: {symbol}{targetBudgetNumber.toLocaleString()} ({budgetTier})
             </Text>
           </View>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
             style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
             onPress={onClose}
           >
@@ -389,7 +389,7 @@ export default function ExpenseTrackerModal({
                 <Text style={[styles.formTitle, { color: theme.text }]}>
                   {editingExpenseId ? "✏️ Edit & Renew Expense" : "Add Expense"}
                 </Text>
-                <TouchableOpacity onPress={handleCancelForm}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={handleCancelForm}>
                   <Ionicons name="close-circle-outline" size={22} color={theme.subtext} />
                 </TouchableOpacity>
               </View>
@@ -429,7 +429,7 @@ export default function ExpenseTrackerModal({
                       Logging for: {expenseDay}
                     </Text>
                   </View>
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                     onPress={() => setExpenseDay("")}
                     style={{ padding: 4 }}
                   >
@@ -684,7 +684,7 @@ export default function ExpenseTrackerModal({
 
                   <View style={styles.itemActionGroup}>
                     {/* Quick Edit */}
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit"
                       onPress={() => handleStartEdit(item)}
                       style={styles.iconBtn}
                       activeOpacity={0.7}
@@ -693,7 +693,7 @@ export default function ExpenseTrackerModal({
                     </TouchableOpacity>
 
                     {/* Quick Renew / Repeat */}
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Regenerate"
                       onPress={() => handleQuickRenew(item)}
                       style={[styles.iconBtn, { marginHorizontal: 2 }]}
                       activeOpacity={0.7}
@@ -702,7 +702,7 @@ export default function ExpenseTrackerModal({
                     </TouchableOpacity>
 
                     {/* Delete */}
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
                       onPress={() => handleDeleteExpense(item.id)}
                       style={styles.iconBtn}
                       activeOpacity={0.7}

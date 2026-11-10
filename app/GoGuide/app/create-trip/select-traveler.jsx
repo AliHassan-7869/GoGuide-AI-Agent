@@ -47,7 +47,7 @@ export default function SelectTraveler() {
 
       {/* Top Header */}
       <View style={styles.headerRow}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
             router.back();

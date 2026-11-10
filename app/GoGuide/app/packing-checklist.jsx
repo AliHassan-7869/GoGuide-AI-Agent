@@ -354,7 +354,7 @@ export default function PackingChecklist() {
 
       {/* Top Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
             router.back();
@@ -372,13 +372,13 @@ export default function PackingChecklist() {
         </View>
 
         <View style={styles.headerRightActions}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share"
             onPress={handleShareChecklist}
             style={[styles.iconActionBtn, { backgroundColor: theme.card }]}
           >
             <Ionicons name="share-outline" size={18} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add"
             onPress={() => setModalVisible(true)}
             style={[styles.iconActionBtn, { backgroundColor: Colors.PRIMARY, marginLeft: 8 }]}
           >
@@ -723,7 +723,7 @@ export default function PackingChecklist() {
               </TouchableOpacity>
 
               {/* Delete Button */}
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
                 onPress={() => deleteItem(item.id)}
                 style={styles.deleteBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -749,7 +749,7 @@ export default function PackingChecklist() {
           <View style={[styles.modalCard, { paddingBottom: Math.max(insets.bottom, 16) + 16, backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Add Luggage Item</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={22} color={theme.text} />
               </TouchableOpacity>
             </View>
@@ -842,7 +842,7 @@ export default function PackingChecklist() {
                   Select essentials to add without losing your custom items
                 </Text>
               </View>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                 onPress={() => setRecommendModalVisible(false)}
                 style={[styles.closeIconBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
               >

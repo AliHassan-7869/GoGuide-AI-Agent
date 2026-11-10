@@ -121,7 +121,7 @@ export default function MyBookings() {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons
             name="arrow-back"
             size={24}
@@ -414,7 +414,7 @@ export default function MyBookings() {
                   Present this QR code at reception or terminal
                 </Text>
               </View>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
                 onPress={() => setIsPassModalVisible(false)}
                 style={styles.closeBtn}
               >

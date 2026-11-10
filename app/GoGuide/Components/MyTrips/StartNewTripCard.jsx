@@ -363,7 +363,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                       style={{ position: "absolute", top: 10, right: onDeleteTrip ? 44 : 10, width: 28, height: 28, borderRadius: 14 }}
                     />
                     {onDeleteTrip && (
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
                         onPress={(e) => {
                           e.stopPropagation();
                           onDeleteTrip(t);

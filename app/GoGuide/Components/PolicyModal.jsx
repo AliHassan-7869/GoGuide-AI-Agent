@@ -25,6 +25,8 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
       <View style={styles.overlay}>
         {/* Backdrop touch to close */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           style={StyleSheet.absoluteFillObject}
           onPress={onClose}
           activeOpacity={1}
@@ -83,7 +85,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
               </View>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
               onPress={onClose}
               style={[
                 styles.closeCircle,
