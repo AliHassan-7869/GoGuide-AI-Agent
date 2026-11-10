@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
-import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
+import { clearLocalUserData, deleteAllUserData, hasRecentLogin } from "../Components/utils/AccountService";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 export default function EditProfile() {
@@ -254,33 +255,46 @@ export default function EditProfile() {
   const handleDeleteAccount = () => {
     Alert.alert(
       "⚠️ Delete Account Permanently",
-      "This action CANNOT be undone. All your saved itineraries, profile data, and preferences will be permanently wiped.",
+      "This action CANNOT be undone. Your account, saved trips, bookings, favourites and shared trip links will be permanently deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete Forever",
           style: "destructive",
           onPress: async () => {
+            const user = auth.currentUser;
+            if (!user) {
+              router.replace("/auth/sign-in");
+              return;
+            }
+            // Check BEFORE deleting anything: Firebase refuses to delete accounts with an old login,
+            // and we must not wipe the data and then fail to remove the login.
+            if (!hasRecentLogin(user)) {
+              Alert.alert(
+                "Please Sign In Again",
+                "For your security, sign out and sign in again, then delete your account right away."
+              );
+              return;
+            }
             setDeleting(true);
             try {
-              if (uid) {
-                await deleteDoc(doc(db, "users", uid));
-              }
-              if (auth.currentUser) {
-                await deleteUser(auth.currentUser);
-              }
-              Alert.alert("Account Deleted", "Your account has been permanently removed.");
+              await deleteAllUserData({ uid: user.uid, email: user.email });
+              await deleteUser(user);
+              await clearLocalUserData();
+              Alert.alert("Account Deleted", "Your account and data have been permanently removed.");
               router.replace("/auth/sign-in");
             } catch (error) {
               console.error("Delete error:", error);
               if (error.code === "auth/requires-recent-login") {
                 Alert.alert(
-                  "Recent Login Required",
-                  "For your security, please logout and login again before permanently deleting your account."
+                  "Please Sign In Again",
+                  "For your security, sign out and sign in again, then delete your account right away."
                 );
               } else {
-                Alert.alert("Notice", "Account marked for deletion.");
-                router.replace("/auth/sign-in");
+                Alert.alert(
+                  "Could Not Delete Account",
+                  "Something went wrong and your account was not fully deleted. Please check your connection and try again."
+                );
               }
             } finally {
               setDeleting(false);
