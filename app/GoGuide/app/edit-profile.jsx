@@ -1,13 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { downloadFile } from "../Components/utils/fileDownloader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import { auth, db } from "../Configs/FirebaseConfig";
@@ -29,25 +28,9 @@ export default function EditProfile() {
     userData?.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
   );
 
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  // Load 2FA status
-  useEffect(() => {
-    (async () => {
-      try {
-        const emailKey = (email || auth.currentUser?.email || "").toLowerCase().trim();
-        const stored = await AsyncStorage.getItem(`@goguide_2fa_enabled_${emailKey}`);
-        if (stored !== null) {
-          setTwoFactorEnabled(stored === "true");
-        } else if (userData?.twoFactorEnabled !== undefined) {
-          setTwoFactorEnabled(!!userData.twoFactorEnabled);
-        }
-      } catch (e) {}
-    })();
-  }, [email, userData]);
 
   // Avatar rotation (random style)
   const changeAvatar = () => {
@@ -137,14 +120,8 @@ export default function EditProfile() {
         email: email.trim(),
         phone: phone.trim(),
         avatar,
-        twoFactorEnabled,
         updatedAt: new Date().toISOString(),
       };
-
-      await AsyncStorage.setItem(
-        `@goguide_2fa_enabled_${(email || auth.currentUser?.email || "").toLowerCase().trim()}`,
-        twoFactorEnabled ? "true" : "false"
-      );
 
       // Save to Firestore with merge: true (creates doc if new, updates if exists)
       await setDoc(userRef, updatedData, { merge: true });
@@ -588,29 +565,6 @@ export default function EditProfile() {
               </TouchableOpacity>
             </View>
 
-            {/* Divider */}
-            <View style={{ height: 1, backgroundColor: theme.isDark ? "#242436" : "#E2E8F0", marginVertical: 14 }} />
-
-            {/* 2FA Toggle Row */}
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                  <Ionicons name="shield-checkmark-outline" size={18} color="#0D9488" />
-                  <Text style={[styles.fieldLabel, { marginBottom: 0, color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}>
-                    Two-Factor Auth (2FA)
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 12, color: theme.isDark ? "#94A3B8" : "#64748B", lineHeight: 16 }}>
-                  Require a 6-digit verification code sent to your email whenever you sign in.
-                </Text>
-              </View>
-              <Switch
-                value={twoFactorEnabled}
-                onValueChange={setTwoFactorEnabled}
-                trackColor={{ false: theme.isDark ? "#334155" : "#CBD5E1", true: "#0D9488" }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
           </View>
         </View>
 

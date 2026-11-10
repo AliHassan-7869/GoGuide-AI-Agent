@@ -8,8 +8,8 @@ import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
-import { INTEREST_PROMPT, DEFAULT_INTERESTS, DEFAULT_TRANSPORTS } from "../../Components/constants/Option";
-import { model, generationConfig } from "../../Configs/AiModel";
+import { DEFAULT_INTERESTS, DEFAULT_TRANSPORTS } from "../../Components/constants/Option";
+import { fetchDestinationInterests } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -699,38 +699,20 @@ export default function YourInterest() {
         console.log("[DEBUG] Nominatim search note:", nomErr.message);
       }
 
-      // Fallback: Gemini prompt via resilient backend /generate call with timeout
-      const FINAL_PROMPT = INTEREST_PROMPT.replace("{{location}}", locationName);
+      // Fallback: server-side AI (fixed endpoint) with timeout
       let parsedResponse = null;
-
       try {
-        const result = await Promise.race([
-          model.generateContent({
-            contents: [{ role: "user", parts: [{ text: FINAL_PROMPT }] }],
-            generationConfig,
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4500))
+        parsedResponse = await Promise.race([
+          fetchDestinationInterests(locationName),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4500)),
         ]);
-
-        const response = await result.response.text();
-        let cleanResponse = response.trim();
-        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) cleanResponse = jsonMatch[0];
-
-        if (cleanResponse) {
-          parsedResponse = JSON.parse(cleanResponse);
-        }
       } catch (genErr) {
         console.log("[DEBUG] Fallback AI interest attempt note:", genErr.message);
       }
 
       if (parsedResponse) {
-        if (Array.isArray(parsedResponse.interests) && parsedResponse.interests.length > 0) {
-          setPlacesList(parsedResponse.interests);
-        }
-        if (Array.isArray(parsedResponse.transports) && parsedResponse.transports.length > 0) {
-          setTransportList(parsedResponse.transports);
-        }
+        if (parsedResponse.interests?.length > 0) setPlacesList(parsedResponse.interests);
+        if (parsedResponse.transports?.length > 0) setTransportList(parsedResponse.transports);
         try {
           await AsyncStorage.setItem(cacheKey, JSON.stringify(parsedResponse));
         } catch (e) {}

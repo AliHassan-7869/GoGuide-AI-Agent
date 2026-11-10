@@ -75,8 +75,6 @@ Return the response ONLY in JSON format following this exact schema:
 }`;
 
 
-export const INTEREST_PROMPT = 'Analyze the travel destination: {{location}}. Generate a highly specific real-time response in JSON format containing two arrays: "interests" and "transports". \n\n1. "interests": 15-18 points of interest and experiences unique to {{location}}. Prioritize categories that exist naturally in this destination: if coastal (e.g. Bali, Miami, Phuket), include "Beaches"; if historic/cultural (e.g. Paris, Rome, Lahore), include "History" and "Museum"; if mountainous/outdoors, include "Nature" and "Adventure"; always include iconic local "Food". Each item must be: {"id": "string", "name": "emoji + spot name", "description": "1 short engaging hook", "category": "Beaches|History|Nature|Food|Shopping|Viewpoint|Adventure"}.\n\n2. "transports": 5 best ways to travel within or around {{location}}. Each: {"id": "string", "name": "emoji + name"}. \n\nCrucial: Ensure no generic suggestions. Data must be 100% tailored to the actual geography and attractions of {{location}}.'
-
 export const DEFAULT_INTERESTS = [
   { id: '1', name: '🏛️ Iconic Historical Landmark', description: 'Explore ancient heritage, palaces & museums', category: 'History' },
   { id: '2', name: '🍴 Local Food & Culinary Tour', description: 'Taste legendary local street food and bistros', category: 'Food' },

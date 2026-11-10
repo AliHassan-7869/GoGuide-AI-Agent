@@ -3,7 +3,7 @@ import { Alert, Modal, Platform, ScrollView, Share, StyleSheet, Text, View } fro
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../../Configs/FirebaseConfig";
+import { auth, db } from "../../Configs/FirebaseConfig";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
@@ -33,9 +33,11 @@ export default function ShareTripModal({
 
   const syncPublicShare = async () => {
     try {
-      if (cleanTripId && plan) {
+      const uid = auth.currentUser?.uid;
+      if (cleanTripId && plan && uid) {
         await setDoc(doc(db, "SharedTrips", String(cleanTripId)), {
           id: String(cleanTripId),
+          userId: uid,
           destination: plan.destination || destination || "Destination",
           plan: plan,
           updatedAt: new Date().toISOString(),

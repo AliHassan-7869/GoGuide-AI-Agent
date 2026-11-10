@@ -136,7 +136,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
                   4. User Accounts & Security
                 </Text>
                 <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  You are responsible for maintaining the confidentiality of your login credentials. When two-factor authentication (2FA) is used, one-time verification codes protect your account from unauthorized access.
+                  You are responsible for maintaining the confidentiality of your login credentials.
                 </Text>
 
                 <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>

@@ -35,10 +35,9 @@ flowchart TD
 
     subgraph Backend["Backend Gateway (FastAPI, app.py)"]
         Auth["Auth: Firebase Token / API Key"]
-        TwoFA["2FA Email OTP (/auth/*)"]
-        RL["In-Memory Rate Limiter"]
+        RL["In-Memory Rate Limiter (per user + per IP)"]
         PlanCache[("24-Hour Plan Cache")]
-        EP["Endpoints: /plan  /plan/orchestrate  /plan-deep  /chat"]
+        EP["Endpoints: /plan  /plan/orchestrate  /plan-deep  /chat  /destination/*  /tools/*"]
     end
 
     subgraph Stack5["Stack 5: LangGraph Multi-Agent Orchestrator"]
@@ -225,7 +224,7 @@ All incoming and cached trip plans pass through `normalizeTrip(raw)`:
 | POST | `/plan-deep` | Async deep planning | Asynchronous background synthesis running LangGraph Orchestrator or Deep Plan engine |
 | GET | `/plan-deep/{job_id}` | Async pollers | Polls background job status until `ready` |
 | POST | `/chat` | AI Copilot | Chat reply using the last 6 messages and the active trip |
-| POST | `/generate` | Interests (no coordinates), Safety alerts | General prompt, JSON output |
+| POST | `/destination/interests`, `/destination/safety` | Interests (no coordinates), Safety alerts | Fixed server-side prompts; client sends only a destination |
 | GET | `/tools/destination-info` | Trip essentials | Zero-token travel essentials (visas, events, safety hotlines, currency) |
 
 ### 4.2 Request pipeline
@@ -395,12 +394,12 @@ sequenceDiagram
 ### 6.3 Interests
 
 1. If the place has coordinates, the app asks Overpass (OpenStreetMap) for real nearby places. No AI cost.
-2. If not, it calls `POST /generate` with the interest prompt.
+2. If not, it calls `POST /destination/interests`.
 
 ### 6.4 Safety alerts
 
 1. Safety screen calls `fetchDestinationSafety(destination)`.
-2. That calls `POST /generate` and expects a JSON list of 3 tips.
+2. That calls `POST /destination/safety` and expects validated alerts.
 3. If it fails, the screen shows built in default tips.
 
 ### 6.5 Offline mode

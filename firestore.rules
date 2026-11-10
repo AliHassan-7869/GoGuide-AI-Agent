@@ -74,14 +74,25 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // 5. Shared Trips: Publicly readable; create/modify restricted to authenticated owners
+    // 5. Shared Trips: Publicly readable (share links); only the authenticated owner can create/modify.
+    // The client must stamp userId = auth.uid on create. Owner fields cannot be changed afterwards.
     match /SharedTrips/{tripId} {
       allow read: if true;
-      allow create: if signedIn();
-      allow update, delete: if signedIn() && (
-        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
-        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
-      );
+      allow create: if signedInUid()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['id', 'destination', 'plan', 'updatedAt', 'userId', 'userEmail']);
+      allow update: if signedInUid()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if signedInUid() && resource.data.userId == request.auth.uid;
+    }
+
+    // 5b. Favorites: private to the owner (synced by email, matching existing documents)
+    match /UserFavorites/{favId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail)
+        && request.resource.data.userEmail == resource.data.userEmail;
     }
 
     // 6. Telemetry & Crash Reports: App can log errors; NEVER readable or modifiable from client

@@ -20,6 +20,11 @@ service cloud.firestore {
       return signedInUid() && uidField == request.auth.uid;
     }
 
+    // Size/shape guards so open "create" endpoints cannot be used to flood the database
+    function isShortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
     // 1. User Trips: Private to the trip creator (by email or UID)
     match /UserTrips/{docId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
@@ -39,18 +44,28 @@ service cloud.firestore {
     match /UserBookings/{bookingId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail);
       allow create: if isOwnerByEmail(request.resource.data.userEmail);
-      allow update: if isOwnerByEmail(resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail)
+        && request.resource.data.userEmail == resource.data.userEmail;
     }
 
     match /Bookings/{bookingId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail);
       allow create: if isOwnerByEmail(request.resource.data.userEmail);
-      allow update: if isOwnerByEmail(resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail)
+        && request.resource.data.userEmail == resource.data.userEmail;
     }
 
     // 4. Support Tickets: Anyone can create; users can ONLY read their own tickets
     match /SupportTickets/{ticketId} {
-      allow create: if true;
+      // Guests may file tickets, but only with a bounded, well-formed payload
+      allow create: if request.resource.data.keys().hasOnly(['category', 'message', 'userEmail', 'userId', 'platform', 'status', 'createdAt'])
+        && isShortString(request.resource.data.message, 2000)
+        && request.resource.data.message.size() > 0
+        && isShortString(request.resource.data.category, 100)
+        && isShortString(request.resource.data.userEmail, 320)
+        && isShortString(request.resource.data.userId, 128)
+        && request.resource.data.status == 'open'
+        && (!signedIn() || request.resource.data.userId == request.auth.uid || request.resource.data.userId == 'guest');
       allow read: if signedIn() && (
         (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
         (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
@@ -59,19 +74,33 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // 5. Shared Trips: Publicly readable; create/modify restricted to authenticated owners
+    // 5. Shared Trips: Publicly readable (share links); only the authenticated owner can create/modify.
+    // The client must stamp userId = auth.uid on create. Owner fields cannot be changed afterwards.
     match /SharedTrips/{tripId} {
       allow read: if true;
-      allow create: if signedIn();
-      allow update, delete: if signedIn() && (
-        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
-        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
-      );
+      allow create: if signedInUid()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['id', 'destination', 'plan', 'updatedAt', 'userId', 'userEmail']);
+      allow update: if signedInUid()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if signedInUid() && resource.data.userId == request.auth.uid;
+    }
+
+    // 5b. Favorites: private to the owner (synced by email, matching existing documents)
+    match /UserFavorites/{favId} {
+      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow update: if isOwnerByEmail(resource.data.userEmail)
+        && request.resource.data.userEmail == resource.data.userEmail;
     }
 
     // 6. Telemetry & Crash Reports: App can log errors; NEVER readable or modifiable from client
     match /AppErrors/{errorId} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().hasOnly(['message', 'stack', 'componentStack', 'platform', 'timestamp'])
+        && isShortString(request.resource.data.message, 1000)
+        && isShortString(request.resource.data.stack, 2000)
+        && isShortString(request.resource.data.componentStack, 2000);
       allow read, update, delete: if false;
     }
 

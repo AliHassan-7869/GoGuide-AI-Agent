@@ -65,11 +65,6 @@ if (!API_URL) {
   console.log("[Backend] Using", API_URL);
 }
 
-export const generationConfig = {
-  temperature: 0.7,
-  top_p: 0.9,
-  max_tokens: 4096,
-};
 
 const REQUEST_TIMEOUT_MS = 120000;
 
@@ -148,20 +143,10 @@ const asResult = (text) => ({
   },
 });
 
-async function generateText(prompt) {
-  const data = await callBackend("/generate", { prompt: String(prompt).slice(0, 8000), json_output: true });
-  return data.text || "";
-}
-
-export const model = {
-  generateContent: async ({ contents }) => {
-    const promptText = contents.map(c => c.parts.map(p => p.text).join("\n")).join("\n\n");
-    return asResult(await generateText(promptText));
-  }
-};
-
-export const chatSession = {
-  sendMessage: async (prompt) => asResult(await generateText(prompt)),
+// Interests + transport options for a destination (server-side prompt)
+export const fetchDestinationInterests = async (destination) => {
+  const data = await callBackend("/destination/interests", { destination: String(destination || "").slice(0, 100) });
+  return { interests: data.interests || [], transports: data.transports || [] };
 };
 
 export const generateTripWithAgent = async (params) => {
@@ -223,31 +208,14 @@ export const askTravelAssistant = async (userMessage, chatHistory = [], activeTr
 
 // Destination-aware Live AI Safety Alerts
 export const fetchDestinationSafety = async (destination) => {
-  const dest = destination || "popular international tourist spots";
-  const prompt = `Provide 3 realistic and practical safety advisories and emergency precautions for a traveler visiting ${dest}. Return ONLY valid JSON array of objects with this schema:
-[
-  {
-    "id": 1,
-    "type": "Safety Advisory / Scam Warning / Health Notice",
-    "title": "Short title",
-    "description": "Specific, practical 1-2 sentence advice for ${dest}",
-    "severity": "High",
-    "icon": "shield-outline",
-    "color": "#D32F2F",
-    "bgColor": "#FFEBEE"
-  }
-]`;
-
+  const dest = String(destination || "popular international tourist spots").slice(0, 100);
   try {
-    const text = await generateText(prompt);
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      return JSON.parse(match[0]);
-    }
+    const data = await callBackend("/destination/safety", { destination: dest });
+    return Array.isArray(data.alerts) && data.alerts.length ? data.alerts : null;
   } catch (e) {
     console.warn("[Safety AI] Backend error:", e.message);
+    return null;
   }
-  return null;
 };
 
 // Premium Deep Plan (Async background polling with zero timeout risk)
@@ -294,37 +262,3 @@ export const fetchDestinationEssentials = async (destination) => {
     return null;
   }
 };
-
-// 2FA Security: Request 6-digit Email OTP
-export const send2FaOtp = async (email) => {
-  if (!API_URL) throw new Error("Backend URL is not configured");
-  const cleanEmail = String(email || "").trim().toLowerCase();
-  const res = await fetch(`${API_URL}/auth/send-2fa-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: cleanEmail }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.status !== "success") {
-    throw new Error(data.detail || "Unable to send verification code. Please try again.");
-  }
-  return data;
-};
-
-// 2FA Security: Verify 6-digit Email OTP
-export const verify2FaOtp = async (email, code) => {
-  if (!API_URL) throw new Error("Backend URL is not configured");
-  const cleanEmail = String(email || "").trim().toLowerCase();
-  const cleanCode = String(code || "").trim();
-  const res = await fetch(`${API_URL}/auth/verify-2fa-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: cleanEmail, code: cleanCode }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.status !== "success") {
-    throw new Error(data.detail || "Invalid or expired verification code.");
-  }
-  return data;
-};
-

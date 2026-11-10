@@ -4,13 +4,13 @@ on:
   push:
     branches: [main, staging]
     paths:
-      - "app.py"
+      - "*.py"
       - "tests/**"
       - "requirements*.txt"
       - ".github/workflows/backend-tests.yml"
   pull_request:
     paths:
-      - "app.py"
+      - "*.py"
       - "tests/**"
       - "requirements*.txt"
       - ".github/workflows/backend-tests.yml"
