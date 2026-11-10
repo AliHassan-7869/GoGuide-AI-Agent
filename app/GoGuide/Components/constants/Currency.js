@@ -415,3 +415,14 @@ export function convertPriceString(priceStr, targetCurrency = "USD") {
     return `${symbol}${converted.toLocaleString()}`;
   });
 }
+
+
+/**
+ * Hotel prices are estimates (curated or AI), never live rates. Show "≈ price" when the text
+ * contains a real number, otherwise "See price" (the AI sometimes returns "$XXX" or "N/A").
+ */
+export function hotelPriceLabel(priceStr, targetCurrency = "USD") {
+  if (typeof priceStr !== "string" || !/\d/.test(priceStr)) return "See price";
+  const converted = convertPriceString(priceStr, targetCurrency).trim();
+  return converted.startsWith("≈") ? converted : `≈ ${converted}`;
+}

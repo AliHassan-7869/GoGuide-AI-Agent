@@ -29,6 +29,7 @@ import { saveTripToBookings, addActivityBooking } from "../../Components/utils/B
 import { fetchDestinationEssentials } from "../../Configs/AiModel";
 import {
   convertPriceString,
+  hotelPriceLabel,
   getCurrencySymbol,
   convertAmount,
   detectCurrencyFromLocation,
@@ -41,13 +42,7 @@ import {
 } from "../../Components/constants/Destinations";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
-// High quality curated hotel fallbacks (Verified HD 1200px)
-const HOTEL_IMAGES = [
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1200&auto=format&fit=crop"
-];
+import { useHotelImages } from "../../Components/utils/HotelImages";
 
 function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
   const [hasError, setHasError] = useState(false);
@@ -70,6 +65,7 @@ export default function MyTrip() {
   const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
   const plan = normalizeTrip(tripData?.aiTripPlan || tripData);
+  const hotelPhotos = useHotelImages(plan?.hotels, plan?.destination);
 
   const safeTopPadding = Platform.select({
     android: insets.top + 8,
@@ -1594,15 +1590,15 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                 <View key={idx} style={[styles.hotelCard, { backgroundColor: theme.card }]}>
                   <View style={styles.hotelImageWrap}>
                     <SafeTripImage 
-                      uri={hotel.image || HOTEL_IMAGES[idx % HOTEL_IMAGES.length]} 
+                      uri={hotel.image || hotelPhotos[hotel.name] || getDestinationImage(plan?.destination)} 
                       style={styles.hotelImage} 
-                      fallbackUri={HOTEL_IMAGES[idx % HOTEL_IMAGES.length]}
+                      fallbackUri={getDestinationImage(plan?.destination)}
                     />
                     <FavoriteHeartButton
                       place={{
                         name: hotel.name,
                         tag: `Hotel • ${plan?.destination || "Stay"}`,
-                        img: sanitizeImageUrl(hotel.image, HOTEL_IMAGES[idx % HOTEL_IMAGES.length]),
+                        img: sanitizeImageUrl(hotel.image || hotelPhotos[hotel.name], getDestinationImage(plan?.destination)),
                         desc: hotel.address || hotel.details || `Recommended stay in ${plan?.destination || "destination"}`,
                       }}
                       size={15}
@@ -1614,7 +1610,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                     </View>
                     <View style={styles.hotelPricePill}>
                       <Text style={styles.hotelPriceText}>
-                        {convertPriceString(hotel.price, preferences?.currency)}
+                        {hotelPriceLabel(hotel.price, preferences?.currency)}
                       </Text>
                     </View>
                   </View>

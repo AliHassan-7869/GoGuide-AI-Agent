@@ -17,6 +17,7 @@ import { fetchDestinationEssentials } from "../Configs/AiModel";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../Components/utils/FlightEngine";
 import { normalizeTrip } from "../Components/utils/TripNormalizer";
+import { useHotelImages } from "../Components/utils/HotelImages";
 import { directionsUrl, placeUrl } from "../Components/utils/mapsLinks";
 import {
   detectCurrencyFromLocation,
@@ -539,6 +540,8 @@ export default function SharedTripView() {
     setShowExpenseModal(false);
   };
 
+  const hotelPhotos = useHotelImages(tripPlan?.hotels, tripPlan?.destination);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -817,12 +820,12 @@ export default function SharedTripView() {
               {hotels.map((hotel, idx) => (
                 <View key={idx} style={styles.hotelCard}>
                   <View style={{ position: "relative" }}>
-                    <Image source={{ uri: hotel.image || heroImage }} style={styles.hotelImg} />
+                    <Image source={{ uri: hotel.image || hotelPhotos[hotel.name] || heroImage }} style={styles.hotelImg} />
                     <FavoriteHeartButton
                       place={{
                         name: hotel.name,
                         tag: `Hotel • ${destination}`,
-                        img: hotel.image || heroImage,
+                        img: hotel.image || hotelPhotos[hotel.name] || heroImage,
                         desc: hotel.address || `Recommended stay in ${destination}`,
                       }}
                       size={14}
