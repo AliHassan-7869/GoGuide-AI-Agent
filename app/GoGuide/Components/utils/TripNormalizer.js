@@ -1,3 +1,4 @@
+import { sanitizeTripCoordinates } from "./mapsLinks";
 /**
  * Resilient JSON Parser
  * Recovers malformed LLM outputs: unquoted property names, single quotes,
@@ -262,7 +263,7 @@ export function normalizeTrip(raw) {
   const packingList = Array.isArray(data.packingList) ? data.packingList : Array.isArray(raw.packingList) ? raw.packingList : [];
   const expenses = Array.isArray(data.expenses) ? data.expenses : Array.isArray(raw.expenses) ? raw.expenses : [];
 
-  return {
+  return sanitizeTripCoordinates({
     ...data,
     destination,
     duration,
@@ -274,5 +275,5 @@ export function normalizeTrip(raw) {
     weatherBrief,
     packingList,
     expenses,
-  };
+  });
 }

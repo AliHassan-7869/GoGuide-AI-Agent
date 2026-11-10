@@ -1,0 +1,884 @@
+{
+ "dubai": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 25.1972,
+       "lng": 55.2744
+      },
+      "details": "Ascend to level 124 & 125 for panoramic views of the skyline and Arabian Gulf.",
+      "placeName": "At The Top - Burj Khalifa",
+      "tickets": "$45 per person",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 25.1985,
+       "lng": 55.2796
+      },
+      "details": "Explore the world's largest shopping mall, underwater zoo, and indoor ice rink.",
+      "placeName": "The Dubai Mall & Dubai Aquarium",
+      "tickets": "Free mall entry ($35 for Aquarium)",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 25.1953,
+       "lng": 55.2762
+      },
+      "details": "Witness the choreographed water show and enjoy dinner overlooking the lake.",
+      "placeName": "Dubai Fountain Show & Souk Al Bahar",
+      "tickets": "Free",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Modern Icons & Downtown Glamour"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 25.2631,
+       "lng": 55.2972
+      },
+      "details": "Stroll wind-tower alleys, cross Dubai Creek on a traditional Abra boat ($1).",
+      "placeName": "Al Fahidi Historical District & Gold Souk",
+      "tickets": "$1 Abra ride",
+      "time": "Morning (9:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 24.9575,
+       "lng": 55.6121
+      },
+      "details": "4x4 dune bashing, sandboarding, and sunset photo stops in Lahbab desert.",
+      "placeName": "Red Dune Desert Safari",
+      "tickets": "$50 - $70 (includes BBQ)",
+      "time": "Afternoon (3:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 24.9575,
+       "lng": 55.6121
+      },
+      "details": "Traditional dinner, tanoura dance performance, and fire show under the stars.",
+      "placeName": "Bedouin Camp & Stargazing",
+      "tickets": "Included with Safari",
+      "time": "Evening (8:00 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "Heritage, Souks & Desert Adventure"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 25.1147,
+       "lng": 55.1417
+      },
+      "details": "360-degree observation deck 240 meters above Palm Jumeirah island.",
+      "placeName": "The View at The Palm",
+      "tickets": "$28 per person",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 25.0782,
+       "lng": 55.1345
+      },
+      "details": "Relax along the vibrant seaside promenade, cafes, and open beach.",
+      "placeName": "Dubai Marina Walk & JBR Beach",
+      "tickets": "Free",
+      "time": "Afternoon (2:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 25.0805,
+       "lng": 55.1396
+      },
+      "details": "Cruise between illuminated skyscrapers on a sunset dinner catamaran.",
+      "placeName": "Marina Yacht Cruise & Dinner",
+      "tickets": "$40 per person",
+      "time": "Evening (7:30 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Palm Jumeirah & Marina Riviera"
+   }
+  ],
+  "destination": "Dubai, United Arab Emirates",
+  "hotels": [
+   {
+    "address": "Downtown Dubai, Near Burj Khalifa",
+    "coordinates": {
+     "lat": 25.1972,
+     "lng": 55.2744
+    },
+    "name": "Rove Downtown Dubai",
+    "price": "$120 per night",
+    "rating": "4.6"
+   },
+   {
+    "address": "Crescent Road, Palm Jumeirah",
+    "coordinates": {
+     "lat": 25.1304,
+     "lng": 55.1171
+    },
+    "name": "Atlantis, The Palm",
+    "price": "$380 per night",
+    "rating": "4.8"
+   }
+  ]
+ },
+ "istanbul": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 41.0086,
+       "lng": 28.9802
+      },
+      "details": "Marvel at the 1,500-year-old architectural marvel and massive golden mosaics.",
+      "placeName": "Hagia Sophia (Ayasofya)",
+      "tickets": "€25 visitor entry",
+      "time": "Morning (9:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 41.0115,
+       "lng": 28.9833
+      },
+      "details": "Visit the Ottoman Sultan's palace, treasury, and the 6-minaret Blue Mosque.",
+      "placeName": "Topkapi Palace & Blue Mosque",
+      "tickets": "$35 Palace entry (Blue Mosque is Free)",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 41.0084,
+       "lng": 28.9778
+      },
+      "details": "Subterranean Roman water reservoir featuring illuminated columns and Medusa heads.",
+      "placeName": "Basilica Cistern & Sultanahmet Square",
+      "tickets": "$20 entry",
+      "time": "Evening (6:30 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Imperial Ottoman & Byzantine Wonders"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 41.0107,
+       "lng": 28.968
+      },
+      "details": "Wander 4,000 shops with Turkish delights, lanterns, spices, and ceramics.",
+      "placeName": "Grand Bazaar & Egyptian Spice Market",
+      "tickets": "Free",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 41.0183,
+       "lng": 28.9723
+      },
+      "details": "Ferry cruise separating Europe and Asia, viewing waterfront Ottoman mansions (Yalı).",
+      "placeName": "Bosphorus Strait Cruise",
+      "tickets": "$5 Public Ferry / $15 Private",
+      "time": "Afternoon (2:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 41.0256,
+       "lng": 28.9741
+      },
+      "details": "360-degree panorama of Golden Horn followed by authentic seafood or kebabs.",
+      "placeName": "Galata Tower & Karaköy Dining",
+      "tickets": "€30 Tower ticket",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "Bazaars & The Two Continents (Bosphorus)"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 41.0392,
+       "lng": 29.0003
+      },
+      "details": "19th-century waterfront palace adorned with crystal chandeliers and gold leaf.",
+      "placeName": "Dolmabahçe Palace",
+      "tickets": "$30 entry",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 40.9904,
+       "lng": 29.0254
+      },
+      "details": "Scenic 20-minute ferry across continents to explore trendy Moda cafes and street art.",
+      "placeName": "Ferry to Kadıköy (Asian Side)",
+      "tickets": "$1 (using Istanbulkart)",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 41.034,
+       "lng": 28.9778
+      },
+      "details": "Historic red tram, Turkish coffee tasting, and vibrant street performers.",
+      "placeName": "İstiklal Avenue & Taksim Square",
+      "tickets": "Free",
+      "time": "Evening (7:30 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Modern Chic & Kadıköy Asian Side"
+   }
+  ],
+  "destination": "Istanbul, Turkey",
+  "hotels": [
+   {
+    "address": "Sultanahmet Old City",
+    "coordinates": {
+     "lat": 41.0125,
+     "lng": 28.979
+    },
+    "name": "Sirkeci Mansion Hotel",
+    "price": "$95 per night",
+    "rating": "4.7"
+   },
+   {
+    "address": "Taksim Square, Beyoğlu",
+    "coordinates": {
+     "lat": 41.0369,
+     "lng": 28.9858
+    },
+    "name": "The Marmara Taksim",
+    "price": "$170 per night",
+    "rating": "4.5"
+   }
+  ]
+ },
+ "lahore": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 31.588,
+       "lng": 74.3107
+      },
+      "details": "Grand 17th-century red sandstone mosque and Sheesh Mahal (Palace of Mirrors).",
+      "placeName": "Badshahi Mosque & Lahore Fort",
+      "tickets": "Rs. 50 - 500 ($1 - $2)",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.5828,
+       "lng": 74.3218
+      },
+      "details": "Frescoed Persian tilework in the heart of Old Lahore and Royal Shahi Hammam.",
+      "placeName": "Delhi Gate & Wazir Khan Mosque",
+      "tickets": "Rs. 200 ($1)",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.5878,
+       "lng": 74.3142
+      },
+      "details": "Rooftop dining with illuminated views of Badshahi Mosque serving mutton chops & karahi.",
+      "placeName": "Haveli Restaurant - Fort Road Food Street",
+      "tickets": "Dining cost: $10 - $20 / person",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Mughal Splendor & Walled City"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 31.5683,
+       "lng": 74.309
+      },
+      "details": "Fast Buddha of Gandhara, Mughal miniature paintings, and colonial architecture.",
+      "placeName": "Lahore Museum & Mall Road",
+      "tickets": "Rs. 50 - 1000 ($1 - $3)",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.6047,
+       "lng": 74.5728
+      },
+      "details": "High-octane patriotic military parade between Pakistan and Indian border rangers.",
+      "placeName": "Wagah Border Beating Retreat Ceremony",
+      "tickets": "Free (arrive early for front seats)",
+      "time": "Afternoon (3:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.5694,
+       "lng": 74.3144
+      },
+      "details": "Century-old bazaar, famous for falooda, halwa puri, and embroidered textiles.",
+      "placeName": "Anarkali Bazaar & Food Trail",
+      "tickets": "Free",
+      "time": "Evening (8:00 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "National Heritage & Wagah Flag Ceremony"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 31.5858,
+       "lng": 74.382
+      },
+      "details": "UNESCO World Heritage terraced Mughal water gardens built by Shah Jahan in 1642.",
+      "placeName": "Shalimar Gardens",
+      "tickets": "Rs. 50 - 500 ($1 - $2)",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.5186,
+       "lng": 74.3524
+      },
+      "details": "Upscale dining, cafes, and boutiques in Lahore's culinary heartland.",
+      "placeName": "MM Alam Road, Gulberg",
+      "tickets": "Free",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 31.4725,
+       "lng": 74.3563
+      },
+      "details": "Traditional handicrafts, leather goods, and casual dinner.",
+      "placeName": "Packages Mall or Liberty Market",
+      "tickets": "Free",
+      "time": "Evening (7:30 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Gardens, Modern Gulberg & Shopping"
+   }
+  ],
+  "destination": "Lahore, Pakistan",
+  "hotels": [
+   {
+    "address": "Shahrah-e-Quaid-e-Azam, Mall Road",
+    "coordinates": {
+     "lat": 31.5546,
+     "lng": 74.3317
+    },
+    "name": "Pearl Continental Hotel Lahore",
+    "price": "$85 per night",
+    "rating": "4.4"
+   },
+   {
+    "address": "Mian Mehmood Ali Kasoori Road, Gulberg III",
+    "coordinates": {
+     "lat": 31.5103,
+     "lng": 74.3542
+    },
+    "name": "Nishat Hotel Gulberg",
+    "price": "$125 per night",
+    "rating": "4.6"
+   }
+  ]
+ },
+ "london": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 51.4994,
+       "lng": -0.1274
+      },
+      "details": "Gothic architecture and coronation church of British monarchs.",
+      "placeName": "Big Ben & Westminster Abbey",
+      "tickets": "£29 Abbey entry (Big Ben free viewing)",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5014,
+       "lng": -0.1419
+      },
+      "details": "View the royal residence and stroll through park gardens.",
+      "placeName": "Buckingham Palace & St. James's Park",
+      "tickets": "Free (State rooms £32 in summer)",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5033,
+       "lng": -0.1195
+      },
+      "details": "Observation wheel views followed by buskers and food stalls along the Thames.",
+      "placeName": "The London Eye & South Bank",
+      "tickets": "£38 per person",
+      "time": "Evening (6:30 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Royal London & Iconic Monuments"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 51.5081,
+       "lng": -0.0759
+      },
+      "details": "Medieval fortress, Beefeater tour, and 900 years of royal history.",
+      "placeName": "Tower of London & Crown Jewels",
+      "tickets": "£34 per person",
+      "time": "Morning (9:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5055,
+       "lng": -0.09
+      },
+      "details": "Walk the glass floor of Tower Bridge then feast on artisan foods at Borough Market.",
+      "placeName": "Tower Bridge & Borough Market",
+      "tickets": "£13.40 Bridge walkway",
+      "time": "Afternoon (1:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5117,
+       "lng": -0.1238
+      },
+      "details": "Performers, piazza shopping, and an evening West End musical performance.",
+      "placeName": "Covent Garden & West End Theatre",
+      "tickets": "Shows from £30",
+      "time": "Evening (6:30 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "History, Tower Bridge & Street Markets"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 51.5194,
+       "lng": -0.127
+      },
+      "details": "Rosetta Stone, Parthenon sculptures, and world antiquity treasures.",
+      "placeName": "The British Museum",
+      "tickets": "Free (Donations welcome)",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5073,
+       "lng": -0.1696
+      },
+      "details": "Rent a pedal boat on the Serpentine Lake and tour Kensington Gardens.",
+      "placeName": "Hyde Park & Kensington Palace",
+      "tickets": "Free (£24 Palace tour)",
+      "time": "Afternoon (2:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 51.5136,
+       "lng": -0.1313
+      },
+      "details": "Vibrant multicultural nightlife, dim sum, and classic British pubs.",
+      "placeName": "Soho & Chinatown Dining",
+      "tickets": "Free",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Museums & Royal Parks"
+   }
+  ],
+  "destination": "London, United Kingdom",
+  "hotels": [
+   {
+    "address": "21 Tothill St, Westminster",
+    "coordinates": {
+     "lat": 51.4998,
+     "lng": -0.1314
+    },
+    "name": "Hub by Premier Inn London Westminster",
+    "price": "$140 per night",
+    "rating": "4.5"
+   },
+   {
+    "address": "199-206 High Holborn",
+    "coordinates": {
+     "lat": 51.5173,
+     "lng": -0.1221
+    },
+    "name": "The Hoxton, Holborn",
+    "price": "$240 per night",
+    "rating": "4.6"
+   }
+  ]
+ },
+ "paris": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 48.8584,
+       "lng": 2.2945
+      },
+      "details": "Visit the summit or 2nd floor, followed by photos on the green lawns.",
+      "placeName": "Eiffel Tower & Champ de Mars",
+      "tickets": "€28 per person",
+      "time": "Morning (9:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.8606,
+       "lng": 2.3376
+      },
+      "details": "Marvel at Mona Lisa, Venus de Milo, and the glass pyramid courtyards.",
+      "placeName": "Louvre Museum",
+      "tickets": "€22 (advance booking mandatory)",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.859,
+       "lng": 2.2933
+      },
+      "details": "Glide past Notre Dame, Musée d'Orsay, and illuminated bridges.",
+      "placeName": "Seine River Sunset Cruise (Bateaux Parisiens)",
+      "tickets": "€17 per person",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Classic Landmarks & The Seine"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 48.8867,
+       "lng": 2.3431
+      },
+      "details": "Highest viewpoint in Paris, cobblestone alleys, and portrait painters.",
+      "placeName": "Sacré-Cœur Basilica & Place du Tertre",
+      "tickets": "Free (Dome climb €8)",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.8553,
+       "lng": 2.3657
+      },
+      "details": "Historic French mansions, vintage boutiques, and famous falafel on Rue des Rosiers.",
+      "placeName": "Le Marais & Place des Vosges",
+      "tickets": "Free",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.8522,
+       "lng": 2.347
+      },
+      "details": "Cozy bistros, Shakespeare & Company bookstore, and evening jazz bars.",
+      "placeName": "Latin Quarter & Boulevard Saint-Germain",
+      "tickets": "Free",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "Bohemian Montmartre & Latin Quarter"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 48.8599,
+       "lng": 2.3265
+      },
+      "details": "Impressionist masterworks by Monet, Van Gogh, and Renoir inside a beaux-arts railway station.",
+      "placeName": "Musée d'Orsay",
+      "tickets": "€16 per person",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.8738,
+       "lng": 2.295
+      },
+      "details": "Stroll down Champs-Élysées up to the panoramic terrace of Arc de Triomphe.",
+      "placeName": "Jardin des Tuileries & Arc de Triomphe",
+      "tickets": "€16 for Arc terrace",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 48.8719,
+       "lng": 2.3316
+      },
+      "details": "Admire the gilded opera house and savor authentic French cuisine nearby.",
+      "placeName": "Palais Garnier (Paris Opera) & Dinner",
+      "tickets": "€15 self-guided tour",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Art, Gardens & Royal Grandeur"
+   }
+  ],
+  "destination": "Paris, France",
+  "hotels": [
+   {
+    "address": "8 Rue Van Gogh, 12th Arrondissement",
+    "coordinates": {
+     "lat": 48.8448,
+     "lng": 2.3734
+    },
+    "name": "CitizenM Paris Gare de Lyon",
+    "price": "$160 per night",
+    "rating": "4.5"
+   },
+   {
+    "address": "4 Rue Danton, Latin Quarter",
+    "coordinates": {
+     "lat": 48.8526,
+     "lng": 2.3428
+    },
+    "name": "Hotel Dame des Arts",
+    "price": "$290 per night",
+    "rating": "4.7"
+   }
+  ]
+ },
+ "tokyo": {
+  "days": [
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 35.7148,
+       "lng": 139.7967
+      },
+      "details": "Tokyo's oldest Buddhist temple, giant red lanterns, and traditional artisanal snack stalls.",
+      "placeName": "Senso-ji Temple & Nakamise-dori",
+      "tickets": "Free",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.7101,
+       "lng": 139.8107
+      },
+      "details": "Towering 634-meter observation tower with 360-degree views of Tokyo Bay and Mount Fuji.",
+      "placeName": "Tokyo Skytree & Solamachi Mall",
+      "tickets": "¥2,100 ($14 per person)",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.7126,
+       "lng": 139.7989
+      },
+      "details": "Evening river breeze stroll followed by authentic Japanese yakitori and craft ramen.",
+      "placeName": "Sumida River Promenade & Izakaya Dining",
+      "tickets": "Free",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 1,
+    "theme": "Historic Asakusa & Modern Skyline"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 35.6764,
+       "lng": 139.6993
+      },
+      "details": "Peaceful forest sanctuary with grand wooden Torii gates in the center of Tokyo.",
+      "placeName": "Meiji Jingu Shrine & Yoyogi Park",
+      "tickets": "Free",
+      "time": "Morning (9:30 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6702,
+       "lng": 139.7027
+      },
+      "details": "Vibrant fashion boutiques, famous Japanese crepes, and architectural flagship stores.",
+      "placeName": "Takeshita Street & Omotesando Avenue",
+      "tickets": "Free",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6595,
+       "lng": 139.7005
+      },
+      "details": "World's busiest pedestrian crossing, iconic Hachiko statue, and open-air rooftop observation deck.",
+      "placeName": "Shibuya Scramble Crossing & Shibuya Sky",
+      "tickets": "¥2,200 for Shibuya Sky",
+      "time": "Evening (6:30 PM)"
+     }
+    ],
+    "day": 2,
+    "theme": "Iconic Shibuya & Harajuku Pop Culture"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 35.6655,
+       "lng": 139.7708
+      },
+      "details": "Fresh sushi, tamagoyaki Japanese omelettes, matcha ice cream, and seafood delicacies.",
+      "placeName": "Tsukiji Outer Market Food Crawl",
+      "tickets": "Free entry (pay per food item)",
+      "time": "Morning (9:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6534,
+       "lng": 139.7915
+      },
+      "details": "Immersive water-walking museum with infinite crystal light rooms and floating flower gardens.",
+      "placeName": "teamLab Planets Digital Art Museum",
+      "tickets": "¥3,800 ($25 advance reservation)",
+      "time": "Afternoon (1:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6719,
+       "lng": 139.7648
+      },
+      "details": "Luxury avenues, Kabuki-za theater exterior, and world-class culinary dining.",
+      "placeName": "Ginza District & Evening Ramen",
+      "tickets": "Free",
+      "time": "Evening (7:30 PM)"
+     }
+    ],
+    "day": 3,
+    "theme": "Culinary Tsukiji & Digital Art Wonderland"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 35.6984,
+       "lng": 139.7731
+      },
+      "details": "Epicenter of gaming, electronics, retro arcades, anime figurines, and multi-floor hobby shops.",
+      "placeName": "Akihabara Electric Town",
+      "tickets": "Free",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.7188,
+       "lng": 139.7765
+      },
+      "details": "Historic public park, Shinobazu Pond, and Japan's oldest national art and cultural museum.",
+      "placeName": "Ueno Park & Tokyo National Museum",
+      "tickets": "¥1,000 for National Museum",
+      "time": "Afternoon (2:00 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.7112,
+       "lng": 139.7744
+      },
+      "details": "Open-air market street packed with affordable clothing, cosmetics, and bustling food stalls.",
+      "placeName": "Ameyoko Shopping Street & Street Food",
+      "tickets": "Free",
+      "time": "Evening (7:00 PM)"
+     }
+    ],
+    "day": 4,
+    "theme": "Akihabara Otaku Hub & Ueno Cultural Park"
+   },
+   {
+    "activities": [
+     {
+      "coordinates": {
+       "lat": 35.6244,
+       "lng": 139.7755
+      },
+      "details": "Tokyo Bay man-made island, Rainbow Bridge views, and the transforming anime mecha statue.",
+      "placeName": "Odaiba Seaside Park & Life-Size Unicorn Gundam",
+      "tickets": "Free",
+      "time": "Morning (10:00 AM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6852,
+       "lng": 139.7101
+      },
+      "details": "Sprawling tranquil park featuring French formal, English landscape, and traditional Japanese gardens.",
+      "placeName": "Shinjuku Gyoen National Garden",
+      "tickets": "¥500 entry",
+      "time": "Afternoon (2:30 PM)"
+     },
+     {
+      "coordinates": {
+       "lat": 35.6928,
+       "lng": 139.7001
+      },
+      "details": "Atmospheric retro lantern-lit alleyways filled with cozy counter izakayas and yakitori grills.",
+      "placeName": "Shinjuku Omoide Yokocho (Memory Lane) & Golden Gai",
+      "tickets": "Free to explore",
+      "time": "Evening (7:30 PM)"
+     }
+    ],
+    "day": 5,
+    "theme": "Futuristic Odaiba & Shinjuku Nightscape"
+   }
+  ],
+  "destination": "Tokyo, Japan",
+  "hotels": [
+   {
+    "address": "1-19-1 Kabukicho, Shinjuku City",
+    "coordinates": {
+     "lat": 35.6953,
+     "lng": 139.7022
+    },
+    "name": "Hotel Gracery Shinjuku",
+    "price": "$140 per night",
+    "rating": "4.6"
+   },
+   {
+    "address": "2-2-1 Nishi-Shinjuku, Shinjuku City",
+    "coordinates": {
+     "lat": 35.6896,
+     "lng": 139.6922
+    },
+    "name": "Keio Plaza Hotel Tokyo",
+    "price": "$220 per night",
+    "rating": "4.7"
+   }
+  ]
+ }
+}

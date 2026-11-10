@@ -136,6 +136,24 @@ async function callBackend(path, body = null, method = "POST") {
   return data.data;
 }
 
+// Retries only failures that are likely temporary (server waking up, network blip, AI hiccup).
+const isTransient = (e) =>
+  /reach GoGuide server|Server error 5|AI service error|Auth service unavailable/i.test(String(e?.message || ""));
+
+async function withRetry(fn, delaysMs = [3000, 7000]) {
+  let lastError;
+  for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (!isTransient(e) || attempt === delaysMs.length) break;
+      await new Promise((r) => setTimeout(r, delaysMs[attempt]));
+    }
+  }
+  throw lastError;
+}
+
 // Wraps text in the same shape the screens already expect: result.response.text()
 const asResult = (text) => ({
   response: {
@@ -164,7 +182,7 @@ export const generateTripWithAgent = async (params) => {
   if (params.categories) {
     payload.categories = String(params.categories).slice(0, 300);
   }
-  const data = await callBackend("/plan", payload);
+  const data = await withRetry(() => callBackend("/plan", payload));
 
   const plan = data.plan;
   return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));

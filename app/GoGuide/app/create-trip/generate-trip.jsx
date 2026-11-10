@@ -1,5 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import { Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
@@ -196,12 +196,26 @@ export default function GenerateTrip() {
       const { generateTripWithAgent, generateDeepTripPlan } = require("../../Configs/AiModel");
 
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
+      const { buildCuratedPlan } = require("../../Components/utils/CuratedPlans");
+      const destinationName = tripData?.toLocation?.name || "";
+      const budgetName = tripData?.budget || "Moderate";
+      const wantsCustomPlan = Boolean(interestNames || categoriesStr);
       let plan = null;
       let apiError = null;
+      let usedOfflineFallback = false;
+
+      // 1. Instant path: verified itinerary bundled in the app. No network, no AI, no waiting.
+      //    Only when the user did not ask for specific interests/themes (those need the AI).
+      if (!tripData?.isDeepPlan && !wantsCustomPlan) {
+        const curated = buildCuratedPlan(destinationName, totalDays, budgetName);
+        if (curated) plan = normalizeTrip(curated);
+      }
 
       try {
         let result = null;
-        if (tripData?.isDeepPlan) {
+        if (plan) {
+          result = null;
+        } else if (tripData?.isDeepPlan) {
           result = await generateDeepTripPlan(
             {
               destination: tripData?.toLocation?.name || "",
@@ -240,9 +254,32 @@ export default function GenerateTrip() {
         console.warn("[GenerateTrip] Backend AI call note:", apiErr?.message);
       }
 
-      // Never invent a plan: if we have no real itinerary, tell the user and let them retry.
+      // 2. AI failed: fall back to the verified bundled itinerary if this city has one.
+      //    This is real, checked data (never invented) and the user is told what they got.
+      if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
+        const curated = buildCuratedPlan(destinationName, totalDays, budgetName);
+        if (curated) {
+          plan = normalizeTrip(curated);
+          usedOfflineFallback = true;
+        }
+      }
+
+      // 3. Nothing real available: tell the user and let them retry. Never invent a plan.
       if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
         throw apiError || new Error("We couldn't build your plan right now. Please try again.");
+      }
+
+      if (usedOfflineFallback) {
+        const note = wantsCustomPlan
+          ? "Live AI is unavailable, so we're showing our verified highlights for this city. Your chosen interests were not included."
+          : "Live AI is unavailable, so we're showing our verified highlights for this city.";
+        try {
+          if (Platform.OS === "web") {
+            if (typeof window !== "undefined" && window.alert) window.alert(note);
+          } else {
+            Alert.alert("Verified highlights", note);
+          }
+        } catch (e) {}
       }
 
       await handleSaveAndProceed(plan);

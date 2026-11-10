@@ -6,12 +6,16 @@ on:
     paths:
       - "*.py"
       - "tests/**"
+      - "tools/**"
+      - "app/GoGuide/Components/constants/curatedPlans.json"
       - "requirements*.txt"
       - ".github/workflows/backend-tests.yml"
   pull_request:
     paths:
       - "*.py"
       - "tests/**"
+      - "tools/**"
+      - "app/GoGuide/Components/constants/curatedPlans.json"
       - "requirements*.txt"
       - ".github/workflows/backend-tests.yml"
 

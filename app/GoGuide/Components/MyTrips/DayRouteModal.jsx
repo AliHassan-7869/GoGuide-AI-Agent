@@ -89,9 +89,11 @@ export default function DayRouteModal({
   let googleMapQuery = destination || "Tourist Attractions";
   if (activeStop) {
     const c = coordsOf(activeStop);
-    googleMapQuery = c
-      ? `${c.lat},${c.lng}`
-      : `${activeStop.placeName} ${destination || ""}`.trim();
+    // Exact coordinates only for verified plans; AI plans are searched by name + city.
+    googleMapQuery =
+      c && activeStop.coordsVerified
+        ? `${c.lat},${c.lng}`
+        : `${activeStop.placeName} ${destination || ""}`.trim();
   }
   const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
     googleMapQuery

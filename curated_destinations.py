@@ -5,6 +5,8 @@ Saves 70-80% of API token usage by serving instant, curated itineraries
 with real coordinates, realistic hotels, and accurate local attractions.
 """
 
+import re
+
 CURATED_DESTINATIONS = {
     "tokyo": {
         "destination": "Tokyo, Japan",
@@ -676,6 +678,14 @@ CURATED_DESTINATIONS = {
 }
 
 
+def find_curated_key(clean_dest: str) -> str | None:
+    """Whole-word match so 'rome' does not match 'chrome' or 'jerome'."""
+    for key in CURATED_DESTINATIONS:
+        if re.search(rf"\b{re.escape(key)}\b", clean_dest):
+            return key
+    return None
+
+
 def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
     """
     Check if a requested destination matches our pre-computed curated database.
@@ -687,11 +697,7 @@ def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
     clean_dest = destination.strip().lower()
 
     # Direct match or substring match
-    matched_key = None
-    for key in CURATED_DESTINATIONS:
-        if key in clean_dest:
-            matched_key = key
-            break
+    matched_key = find_curated_key(clean_dest)
 
     if not matched_key:
         return None
@@ -717,6 +723,8 @@ def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
             "budget": budget,
             "hotels": entry["hotels"],
             "itinerary": selected_days,
+            # Coordinates in this catalog are hand-checked, so maps may use them exactly
+            "coordinatesVerified": True,
         }
     }
 
