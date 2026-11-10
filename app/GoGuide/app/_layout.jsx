@@ -5,6 +5,7 @@ import { View, Platform, StyleSheet, useWindowDimensions, LogBox } from "react-n
 LogBox.ignoreAllLogs(true);
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useTheme } from "../Components/constants/theme";
 import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";
 import ErrorBoundary from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
@@ -16,6 +17,7 @@ function AppContent() {
   const context = useContext(CreateTripContext);
   const isDark = context?.preferences?.darkMode;
   const { width } = useWindowDimensions();
+  const theme = useTheme();
 
   const isDesktopWeb = Platform.OS === "web" && width > 520;
 
@@ -66,14 +68,11 @@ function AppContent() {
 
   if (isDesktopWeb) {
     return (
-      <View style={[styles.webOuter, { backgroundColor: isDark ? "#080C14" : "#0F172A" }]}>
+      <View style={[styles.webOuter, { backgroundColor: theme.bg }]}>
         <View
           style={[
             styles.webContainer,
-            {
-              backgroundColor: isDark ? "#121212" : "#FFFFFF",
-              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.12)",
-            },
+            { backgroundColor: theme.bg },
           ]}
         >
           {stack}
@@ -92,7 +91,7 @@ function AppContent() {
           height: "100%",
           maxHeight: "100dvh",
           overflow: "hidden",
-          backgroundColor: isDark ? "#121212" : "#FFFFFF",
+          backgroundColor: theme.bg,
         }}
       >
         {stack}
@@ -143,9 +142,6 @@ const styles = StyleSheet.create({
     height: "100%",
     maxHeight: "100dvh",
     overflow: "hidden",
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05)",
   },
 });
 

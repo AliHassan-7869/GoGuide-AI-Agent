@@ -1848,7 +1848,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
                 </View>
 
                 {/* Day Action Buttons: + Add Activity, 💳 Log Expense & 🗺️ Route Map */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", width: "100%" }}>
                   <TouchableOpacity 
                     style={styles.dayAddBtn}
                     onPress={() => {
