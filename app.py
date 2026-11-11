@@ -35,8 +35,10 @@ except Exception as _e:
 logger = logging.getLogger("goguide")
 
 # Crash/error tracking. Completely optional: does nothing unless SENTRY_DSN is set on the server.
-_SENTRY_DSN = os.getenv("SENTRY_DSN", "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808")
-if _SENTRY_DSN:
+_raw_sentry_dsn = (os.getenv("SENTRY_DSN") or "").strip().strip('"').strip("'")
+_SENTRY_DSN = _raw_sentry_dsn or "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+
+if _SENTRY_DSN and _SENTRY_DSN.startswith(("http://", "https://")):
     try:
         import sentry_sdk  # type: ignore
 
