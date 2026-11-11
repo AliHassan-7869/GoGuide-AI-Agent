@@ -913,7 +913,7 @@ export default function Discover() {
           horizontal 
           showsHorizontalScrollIndicator={false} 
           style={styles.quickTagsScroll}
-          contentContainerStyle={{ gap: 8, paddingBottom: 14 }}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 14 }}
         >
           {QUICK_SEARCH_TAGS.map((tag, idx) => (
             <TouchableOpacity
@@ -976,7 +976,7 @@ export default function Discover() {
               horizontal 
               showsHorizontalScrollIndicator={false} 
               style={styles.categoriesContainer}
-              contentContainerStyle={{ paddingRight: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
             >
               {categories.map((item) => (
                 <TouchableOpacity 
@@ -1021,8 +1021,8 @@ export default function Discover() {
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
-              style={{ marginTop: 8, marginBottom: 14 }}
-              contentContainerStyle={{ gap: 8 }}
+              style={{ marginTop: 8, marginBottom: 14, overflow: "visible" }}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
             >
               {FEED_FILTER_CHIPS.map((chip) => {
                 const isSelected = activeFeedCategory === chip.id;
@@ -1055,7 +1055,12 @@ export default function Discover() {
             </ScrollView>
 
             {/* Horizontal Destinations Carousel */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 4, overflow: "visible" }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            >
               {displayedDestinations.map((dest) => {
                 const isSaved = !!savedPlaces[dest.id || dest.title];
                 return (
@@ -1219,14 +1224,15 @@ export default function Discover() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, overflow: "hidden" },
-  scrollContent: { paddingHorizontal: 16, paddingBottom: 90 },
-  header: { marginBottom: 15 },
+  container: { flex: 1 },
+  scrollContent: { paddingTop: 0, paddingBottom: 90 },
+  header: { paddingHorizontal: 16, marginBottom: 15 },
   title: { fontSize: 28, fontFamily: "Outfit-Bold" },
   subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },
 
   // AI Hero Card
   aiHeroCard: {
+    marginHorizontal: 16,
     borderRadius: 24,
     padding: 18,
     borderWidth: 1.5,
@@ -1290,6 +1296,7 @@ const styles = StyleSheet.create({
 
   // Regular Search Bar
   searchContainer: {
+    marginHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 16,
@@ -1304,6 +1311,7 @@ const styles = StyleSheet.create({
   // Quick Search Suggested Tags
   quickTagsScroll: {
     marginBottom: 6,
+    overflow: "visible",
   },
   quickTagPill: {
     paddingHorizontal: 12,
@@ -1317,6 +1325,7 @@ const styles = StyleSheet.create({
   },
 
   searchResultsContainer: {
+    marginHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
     padding: 10,
@@ -1325,9 +1334,18 @@ const styles = StyleSheet.create({
   resultItem: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
 
   // Categories
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: 10 },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 10,
+  },
   sectionTitle: { fontSize: 18, fontFamily: "Outfit-Bold" },
-  categoriesContainer: { marginTop: 6 },
+  categoriesContainer: {
+    marginTop: 6,
+    overflow: "visible",
+  },
   categoryCard: {
     flexDirection: "row",
     alignItems: "center",

@@ -925,20 +925,20 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
         </View>
 
         {/* Skeleton Hero Banner */}
-        <Animated.View style={[styles.skeletonCard, { height: 220, opacity: pulseAnim }]} />
+        <Animated.View style={[styles.skeletonCard, { height: 220, opacity: pulseAnim, marginHorizontal: 16 }]} />
 
         {/* Skeleton Widgets */}
-        <Animated.View style={[styles.skeletonCard, { height: 75, marginTop: 15, opacity: pulseAnim }]} />
-        <Animated.View style={[styles.skeletonCard, { height: 110, marginTop: 15, opacity: pulseAnim }]} />
+        <Animated.View style={[styles.skeletonCard, { height: 75, marginTop: 15, opacity: pulseAnim, marginHorizontal: 16 }]} />
+        <Animated.View style={[styles.skeletonCard, { height: 110, marginTop: 15, opacity: pulseAnim, marginHorizontal: 16 }]} />
 
         {/* Skeleton Section Header */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25, marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25, marginBottom: 12, paddingHorizontal: 16 }}>
           <Animated.View style={[styles.skeletonLine, { width: 150, height: 20, opacity: pulseAnim }]} />
           <Animated.View style={[styles.skeletonLine, { width: 60, height: 16, opacity: pulseAnim }]} />
         </View>
 
         {/* Skeleton Hotel Row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, marginRight: 14, opacity: pulseAnim }]} />
           <Animated.View style={[styles.skeletonCard, { width: 220, height: 170, opacity: pulseAnim }]} />
         </ScrollView>
@@ -1585,7 +1585,12 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
               <Text style={[styles.sectionSubtitle, { color: theme.subtext }]}>{plan.hotels.length} options</Text>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 12, marginHorizontal: -16 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            >
               {plan.hotels.map((hotel, idx) => (
                 <View key={idx} style={[styles.hotelCard, { backgroundColor: theme.card }]}>
                   <View style={styles.hotelImageWrap}>
@@ -1793,7 +1798,12 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
 
           {/* Sticky Horizontal Day Filter Pills */}
           {daysList.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabsScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={[styles.dayTabsScroll, { marginHorizontal: -16 }]}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            >
               <TouchableOpacity 
                 style={[
                   styles.dayTabPill, 
@@ -2110,14 +2120,14 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    paddingHorizontal: 14,
-    overflow: "hidden",
   },
   header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginBottom: 12 
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    marginBottom: 8 
   },
   backToHubBtn: {
     flexDirection: 'row',
@@ -2179,7 +2189,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
-    paddingHorizontal: 2,
+    paddingHorizontal: 16,
   },
   carouselTitle: {
     fontSize: 15,
@@ -2201,7 +2211,7 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     gap: 12,
-    paddingRight: 10,
+    paddingHorizontal: 16,
     paddingVertical: 4,
   },
   tripCarouselCard: {
@@ -2312,7 +2322,7 @@ const styles = StyleSheet.create({
   // Hero Section
   heroContainer: {
     height: 240,
-    width: '100%',
+    marginHorizontal: 16,
     borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 16,
@@ -2359,6 +2369,7 @@ const styles = StyleSheet.create({
   quickActionBar: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginHorizontal: 16,
     gap: 10,
     marginBottom: 20,
   },
@@ -2383,12 +2394,20 @@ const styles = StyleSheet.create({
   },
 
   // Sections
-  section: { marginBottom: 20 },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+  },
   sectionTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   mainSectionTitle: { fontSize: 20, fontFamily: 'Outfit-Bold' },
   sectionSubtitle: { fontSize: 13, fontFamily: "Outfit-Medium" },
 
-  sectionCard: { padding: 18, borderRadius: 20, marginBottom: 20 },
+  sectionCard: {
+    marginHorizontal: 16,
+    padding: 18,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   iconCircle: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", marginRight: 10 },
   sectionTitle: { fontSize: 17, fontFamily: 'Outfit-Bold' },
@@ -2413,6 +2432,7 @@ const styles = StyleSheet.create({
 
   // In-Trip Expense Snapshot Card
   expenseSnapshotCard: {
+    marginHorizontal: 16,
     borderRadius: 18,
     padding: 16,
     marginBottom: 20,

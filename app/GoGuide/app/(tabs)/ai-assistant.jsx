@@ -31,44 +31,15 @@ export default function AiAssistant() {
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
 
-  // Keyboard handling (Android). app.json sets softwareKeyboardLayoutMode "resize"
-  // (windowSoftInputMode=adjustResize), so the OS usually shrinks the window itself.
-  // Adding the full keyboard height on top of that doubles the padding and leaves a
-  // gap above the keyboard. Instead we pad only by the part of this view that is
-  // STILL covered by the keyboard: 0 when the window resized, the overlap otherwise.
-  const chatWrapRef = useRef(null);
-  const kbTopRef = useRef(null); // screenY of the keyboard's top edge, null when hidden
-  const [kbOverlap, setKbOverlap] = useState(0);
-
-  const recomputeOverlap = React.useCallback(() => {
-    if (Platform.OS !== "android" || kbTopRef.current == null) {
-      setKbOverlap(0);
-      return;
-    }
-    chatWrapRef.current?.measureInWindow((x, y, w, h) => {
-      const overlap = Math.max(0, Math.round(y + h - kbTopRef.current));
-      setKbOverlap(overlap);
-    });
-  }, []);
-
   useEffect(() => {
-    if (Platform.OS !== "android") {
-      const sub = Keyboard.addListener("keyboardWillShow", () => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-      });
-      return () => sub.remove();
-    }
-    const show = Keyboard.addListener("keyboardDidShow", (e) => {
-      kbTopRef.current = e.endCoordinates?.screenY ?? null;
-      recomputeOverlap();
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
-    });
-    const hide = Keyboard.addListener("keyboardDidHide", () => {
-      kbTopRef.current = null;
-      setKbOverlap(0);
-    });
-    return () => { show.remove(); hide.remove(); };
-  }, [recomputeOverlap]);
+      }
+    );
+    return () => showSub.remove();
+  }, []);
 
   const safeTopPadding = Platform.select({
     android: insets.top + 4,
@@ -402,19 +373,24 @@ export default function AiAssistant() {
           </View>
         </View>
 
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Clear conversation"
           onPress={handleClearChat}
           style={[
             styles.clearButton,
-            { backgroundColor: theme.isDark ? "#222230" : "#F1F5F9" },
+            { backgroundColor: theme.isDark ? "#222230" : "#F1F5F9", borderColor: theme.border },
           ]}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="trash-outline"
-            size={18}
-            color={theme.isDark ? "#94A3B8" : "#64748B"}
-          />
+          <Text
+            style={[
+              styles.clearButtonText,
+              { color: theme.isDark ? "#CBD5E1" : "#475569" },
+            ]}
+          >
+            Clear
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -451,13 +427,7 @@ export default function AiAssistant() {
         />
       </View>
 
-      {/* Chat Thread */}
-      <View
-        ref={chatWrapRef}
-        collapsable={false}
-        onLayout={recomputeOverlap} // window resized (adjustResize) -> overlap drops to 0
-        style={{ flex: 1, paddingBottom: kbOverlap }}
-      >
+      {/* Chat Thread with Pinned Keyboard Avoiding View */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -553,7 +523,6 @@ export default function AiAssistant() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-      </View>
     </View>
   );
 }
@@ -614,11 +583,16 @@ const styles = StyleSheet.create({
     color: "#10B981",
   },
   clearButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Bold",
   },
   chipsWrapper: {
     paddingVertical: 10,

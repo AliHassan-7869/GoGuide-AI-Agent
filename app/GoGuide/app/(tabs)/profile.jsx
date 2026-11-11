@@ -1118,18 +1118,17 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontFamily: "Outfit-Bold",
   },
   themeToggleBtn: {
@@ -1140,15 +1139,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 110,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 100,
   },
   userCard: {
     alignItems: "center",
     paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderRadius: 22,
+    paddingHorizontal: 16,
+    borderRadius: 18,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1365,14 +1364,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalScroll: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 14,
     paddingBottom: 40,
   },
   modalEmptyWrap: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   modalEmptyTitle: {
     fontSize: 18,
@@ -1401,10 +1401,10 @@ const styles = StyleSheet.create({
   },
   tripItemCard: {
     flexDirection: "row",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,

@@ -306,7 +306,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
       {/* 0. SAVED TRIPS SECTION */}
       {userTrips && userTrips.length > 0 && (
         <View style={{ marginBottom: 20 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, marginBottom: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="bookmark" size={18} color={activeAccent} style={{ marginRight: 6 }} />
               <Text style={[styles.sectionTitle, { color: theme.text, fontSize: 18 }]}>Your Saved Trips</Text>
@@ -316,7 +316,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 4 }}>
             {userTrips.map((t, idx) => {
               const destTitle = t.aiTripPlan?.destination || t.destination || t.locationInfo?.name || "My Trip";
               const rawImg = t.toLocationImage || t.locationInfo?.photoRef || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1200&auto=format&fit=crop";
@@ -706,6 +706,7 @@ const styles = StyleSheet.create({
 
   // Hero Card Styles
   heroCardWrapper: {
+    marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 24,
     shadowColor: "#000",
@@ -810,7 +811,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingVertical: 2,
-    paddingHorizontal: 2,
+    paddingHorizontal: 16,
   },
   featurePill: {
     height: 38,
@@ -845,6 +846,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
   sectionTitle: {
@@ -858,6 +860,7 @@ const styles = StyleSheet.create({
 
   // Vibes 2x2 Grid (Two balanced rows)
   vibesGrid: {
+    paddingHorizontal: 16,
     gap: 10,
     width: "100%",
   },
@@ -892,7 +895,7 @@ const styles = StyleSheet.create({
   // Trending Slider Cards
   trendingSlider: {
     gap: 14,
-    paddingRight: 10,
+    paddingHorizontal: 16,
     paddingVertical: 4,
   },
   destCard: {

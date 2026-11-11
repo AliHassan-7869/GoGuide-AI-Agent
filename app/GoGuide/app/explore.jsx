@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, FlatList, Image, Platform, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useContext, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CreateTripContext } from '../context/CreateTripContext';
 import { Colors } from '../Components/constants/constants';
+import { useTheme } from '../Components/constants/theme';
 import {
   DESTINATIONS,
   DESTINATION_CATEGORIES,
@@ -30,15 +31,11 @@ function DestinationImage({ uri, style }) {
 export default function Explore() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { category } = useLocalSearchParams();
   const { preferences, setTripData } = useContext(CreateTripContext);
   const isDark = preferences?.darkMode;
-
-  const safeTopPadding = Platform.select({
-    android: insets.top + 8,
-    ios: Math.max(insets.top, 44),
-    default: 16,
-  });
+  const activeAccent = Colors.PRIMARY || "#0F172A";
 
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");
   const [topRatedFirst, setTopRatedFirst] = useState(false);
@@ -52,15 +49,6 @@ export default function Explore() {
     if (!topRatedFirst) return filtered;
     return [...filtered].sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
   }, [activeCategory, topRatedFirst]);
-
-  const themeStyles = {
-    backgroundColor: isDark ? "#121212" : "#F8F9FA",
-    textColor: isDark ? "#FFFFFF" : "#1A1A1A",
-    subTextColor: isDark ? "#A0A0A0" : "#666666",
-    cardBg: isDark ? "#1E1E1E" : "#FFFFFF",
-    chipBg: isDark ? "#1E1E1E" : "#FFFFFF",
-    chipBorder: isDark ? "#333333" : "#E0E0E0",
-  };
 
   const selectDestination = (dest) => {
     setTripData((prev) => ({
@@ -84,23 +72,60 @@ export default function Explore() {
       style={[
         styles.chip,
         active
-          ? { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY }
-          : { backgroundColor: themeStyles.chipBg, borderColor: themeStyles.chipBorder },
+          ? { backgroundColor: activeAccent, borderColor: activeAccent }
+          : { backgroundColor: theme.card, borderColor: theme.border },
       ]}
     >
-      <Ionicons name={icon} size={16} color={active ? "#FFFFFF" : themeStyles.textColor} />
-      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : themeStyles.textColor }]}>{label}</Text>
+      <Ionicons name={icon} size={15} color={active ? "#FFFFFF" : theme.text} />
+      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : theme.text }]}>{label}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeStyles.textColor} />
+
+      {/* Header matching My Bookings standard */}
+      <View
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, 0) + 4 },
+          {
+            backgroundColor: theme.header,
+            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
+          },
+        ]}
+      >
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={activeAccent}
+          />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: themeStyles.textColor }]}>{activeInfo?.title}</Text>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: activeAccent },
+            ]}
+          >
+            {activeInfo?.title || "Explore"}
+          </Text>
+          <Text
+            style={[
+              styles.headerSubtitle,
+              { color: theme.isDark ? "#94A3B8" : "#64748B" },
+            ]}
+          >
+            Handpicked destinations & top-rated sights
+          </Text>
+        </View>
       </View>
 
       <View>
@@ -118,7 +143,7 @@ export default function Explore() {
               onPress: () => setActiveCategory(c.id),
             })
           )}
-          <View style={[styles.chipDivider, { backgroundColor: themeStyles.chipBorder }]} />
+          <View style={[styles.chipDivider, { backgroundColor: theme.border }]} />
           {renderChip({
             id: "top-rated",
             label: "Top rated",
@@ -133,14 +158,15 @@ export default function Explore() {
         data={visibleDestinations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: themeStyles.subTextColor }]}>No places in this category yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.subtext }]}>No places in this category yet.</Text>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.card, { backgroundColor: themeStyles.cardBg }]}
+            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => selectDestination(item)}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             <View style={{ position: "relative" }}>
               <DestinationImage uri={item.image} style={styles.image} />
@@ -156,10 +182,10 @@ export default function Explore() {
               />
             </View>
             <View style={styles.infoContainer}>
-              <Text style={[styles.cardTitle, { color: themeStyles.textColor }]}>{item.title}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
               <View style={styles.ratingRow}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={[styles.ratingText, { color: themeStyles.subTextColor }]}>{item.rating}</Text>
+                <Ionicons name="star" size={15} color="#FFD700" />
+                <Text style={[styles.ratingText, { color: theme.subtext }]}>{item.rating}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -176,43 +202,56 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    gap: 8,
   },
   backButton: {
-    marginRight: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  title: {
+  headerTitle: {
+    fontSize: 20,
     fontFamily: "Outfit-Bold",
-    fontSize: 24,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
   },
   chipRow: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     alignItems: "center",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 7,
+    borderRadius: 18,
     borderWidth: 1,
     marginRight: 8,
   },
   chipText: {
     fontFamily: "Outfit-Medium",
-    fontSize: 14,
+    fontSize: 13,
     marginLeft: 6,
   },
   chipDivider: {
     width: 1,
-    height: 24,
+    height: 22,
     marginRight: 8,
   },
   listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 32,
   },
   emptyText: {
     fontFamily: "Outfit-Medium",
@@ -221,36 +260,39 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   card: {
-    borderRadius: 15,
+    borderRadius: 18,
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: 16,
+    borderWidth: 1,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   image: {
     width: "100%",
-    height: 200,
+    height: 190,
   },
   infoContainer: {
-    padding: 15,
+    padding: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   cardTitle: {
     fontFamily: "Outfit-Bold",
-    fontSize: 18,
+    fontSize: 16,
+    flex: 1,
+    marginRight: 8,
   },
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   ratingText: {
-    fontFamily: "Outfit-Medium",
-    fontSize: 14,
-    marginLeft: 5,
+    fontFamily: "Outfit-Bold",
+    fontSize: 13,
+    marginLeft: 4,
   },
 });

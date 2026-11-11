@@ -116,6 +116,8 @@ export default function SafetyAlerts() {
     border: isDark ? "#2D2D2D" : "#E2E8F0",
   };
 
+  const activeAccent = Colors.PRIMARY || "#0F172A";
+
   const getSeverityLabel = (severity, color) => {
     return (
       <View style={[styles.badge, { backgroundColor: color }]}>
@@ -128,13 +130,47 @@ export default function SafetyAlerts() {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Custom Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
+      {/* Header matching My Bookings standard */}
+      <View
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, 0) + 4 },
+          {
+            backgroundColor: theme.card,
+            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
+          },
+        ]}
+      >
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => router.back()}
+          style={styles.backBtn}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={activeAccent}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Safety Alerts</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ flex: 1 }}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: activeAccent },
+            ]}
+          >
+            Safety Alerts
+          </Text>
+          <Text
+            style={[
+              styles.headerSubtitle,
+              { color: theme.isDark ? "#94A3B8" : "#64748B" },
+            ]}
+          >
+            Travel advisories, weather & emergency contacts
+          </Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -242,7 +278,7 @@ export default function SafetyAlerts() {
 
         {/* Alert Cards */}
         {(alerts && alerts.length > 0 ? alerts : safetyMockData).map((alert) => (
-          <View key={alert.id} style={[styles.alertCard, { backgroundColor: theme.card }]}>
+          <View key={alert.id} style={[styles.alertCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={[styles.iconWrapper, { backgroundColor: alert.bgColor }]}>
               <Ionicons name={alert.icon} size={28} color={alert.color} />
             </View>
@@ -266,34 +302,35 @@ export default function SafetyAlerts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC', // Very light cool gray
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.WHITE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
-    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    gap: 8,
   },
   backBtn: {
-    padding: 5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontFamily: 'Outfit-Bold',
     fontSize: 20,
-    color: '#1A202C',
+    fontFamily: "Outfit-Bold",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 40,
   },
   infoCard: {
     backgroundColor: Colors.PRIMARY || '#0a7ea4',
@@ -352,14 +389,14 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.WHITE,
-    borderRadius: 16,
+    borderRadius: 18,
+    borderWidth: 1,
     padding: 16,
-    marginBottom: 15,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 2,
   },
   iconWrapper: {
