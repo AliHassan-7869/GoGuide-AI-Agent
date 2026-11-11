@@ -35,7 +35,7 @@ except Exception as _e:
 logger = logging.getLogger("goguide")
 
 # Crash/error tracking. Completely optional: does nothing unless SENTRY_DSN is set on the server.
-_SENTRY_DSN = os.getenv("SENTRY_DSN")
+_SENTRY_DSN = os.getenv("SENTRY_DSN", "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808")
 if _SENTRY_DSN:
     try:
         import sentry_sdk
@@ -43,7 +43,7 @@ if _SENTRY_DSN:
         sentry_sdk.init(
             dsn=_SENTRY_DSN,
             environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
-            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0")),
             send_default_pii=False,  # never send user emails/IPs/request bodies
         )
         logging.getLogger("goguide").info("Sentry error tracking enabled")
