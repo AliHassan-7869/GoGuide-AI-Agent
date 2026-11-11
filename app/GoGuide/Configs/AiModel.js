@@ -6,55 +6,16 @@ const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
 
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
 function resolveApiUrl() {
+  const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
+
   // Always use the live secure backend when hosted on HTTPS (Vercel, custom domain, etc.)
   if (typeof window !== "undefined" && (window.location?.protocol === "https:" || window.location?.hostname?.includes("vercel.app"))) {
     return LIVE_BACKEND_URL;
   }
 
-  const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
-  if (fromEnv) return fromEnv.replace(/\/+$/, "");
-
-  // Default to live Render backend for seamless remote sharing & testing
-  if (!__DEV__) {
-    return LIVE_BACKEND_URL;
-  }
-
-  // Browser: the backend runs on the same computer that serves the web app
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined" && window.location?.hostname) {
-      return `http://${window.location.hostname}:8000`;
-    }
-    return "http://localhost:8000";
-  }
-
-  // Check all possible places Expo stores the host URI across SDK versions
-  const hostUri =
-    Constants.expoConfig?.hostUri ||
-    Constants.expoGoConfig?.debuggerHost ||
-    Constants.manifest2?.extra?.expoClient?.hostUri ||
-    Constants.manifest?.debuggerHost;
-
-  if (hostUri) {
-    const host = hostUri.split(":")[0];
-    return `http://${host}:8000`;
-  }
-
-  if (Constants.linkingUri) {
-    const match = Constants.linkingUri.match(/:\/\/([^:/]+)/);
-    if (match && match[1] && match[1] !== "localhost") {
-      return `http://${match[1]}:8000`;
-    }
-  }
-
-  // Fallback in local development
-  if (__DEV__) {
-    if (Platform.OS === "android") {
-      return "http://10.0.2.2:8000";
-    }
-    return "http://localhost:8000";
-  }
-
-  return "";
+  // Default to live Render backend for seamless remote sharing, local dev & mobile testing
+  return LIVE_BACKEND_URL;
 }
 
 const API_URL = resolveApiUrl();

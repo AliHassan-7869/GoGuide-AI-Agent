@@ -579,6 +579,13 @@ export default function YourInterest() {
     return Number.isFinite(n) ? n : 0;
   };
 
+  // Ensure selected transport is always synchronized with available transports
+  useEffect(() => {
+    if (transportList.length > 0 && !transportList.some((t) => t.id === selectedTransport)) {
+      setSelectedTransport(transportList[0].id);
+    }
+  }, [transportList, selectedTransport]);
+
   const GetDynamicInterests = async () => {
     try {
       const now = Date.now();
@@ -591,9 +598,9 @@ export default function YourInterest() {
 
       setLoadingInterests(true);
       setErrorMessage(null);
-      const locationName = tripData?.toLocation?.name;
+      const locationName = tripData?.toLocation?.name || destinationName;
 
-      if (!locationName) {
+      if (!locationName || locationName === "your destination") {
         setLoadingInterests(false);
         return;
       }
@@ -616,53 +623,30 @@ export default function YourInterest() {
         }
       } catch (e) {}
 
-      // Try OpenStreetMap / Overpass with fast multi-mirror race
-      let lat = parseCoord(tripData?.toLocation?.coordinates?.lat);
-      let lng = parseCoord(tripData?.toLocation?.coordinates?.lng);
-
-      // Fast coordinate resolver if coordinates were not attached
-      if (lat == null || lng == null) {
-        const destKey = destinationName.toLowerCase().trim();
-        for (const [key, coords] of Object.entries(KNOWN_CITY_COORDINATES)) {
-          if (destKey.includes(key)) {
-            lat = coords.lat;
-            lng = coords.lng;
-            break;
-          }
-        }
+      // 1. Primary: Server-side AI (/destination/interests) with multi-model fallback (Gemini -> NVIDIA -> DeepSeek)
+      let aiResponse = null;
+      try {
+        aiResponse = await Promise.race([
+          fetchDestinationInterests(locationName),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 8500)),
+        ]);
+      } catch (aiErr) {
+        console.log("[Interests] Live AI fetch notice:", aiErr.message);
       }
 
-      if (lat == null || lng == null) {
+      if (aiResponse && Array.isArray(aiResponse.interests) && aiResponse.interests.length > 0) {
+        setPlacesList(aiResponse.interests);
+        if (Array.isArray(aiResponse.transports) && aiResponse.transports.length > 0) {
+          setTransportList(aiResponse.transports);
+        }
         try {
-          const geoRes = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locationName)}`
-          );
-          const geoData = await geoRes.json();
-          if (Array.isArray(geoData) && geoData[0]) {
-            lat = Number(geoData[0].lat);
-            lng = Number(geoData[0].lon);
-          }
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(aiResponse));
         } catch (e) {}
+        setLoadingInterests(false);
+        return;
       }
 
-      if (lat != null && lng != null) {
-        try {
-          const osm = await fetchOverpassInterests({ lat, lng });
-          if (osm?.interests?.length) setPlacesList(osm.interests);
-          if (osm?.transports?.length) setTransportList(osm.transports);
-          if (osm?.interests?.length || osm?.transports?.length) {
-            setLoadingInterests(false);
-            try {
-              await AsyncStorage.setItem(cacheKey, JSON.stringify(osm));
-            } catch (e) {}
-            return;
-          }
-        } catch (osmErr) {
-          console.log("[DEBUG] Overpass fast fallback to AI:", osmErr.message);
-        }
-      }
-
-      // Fast OSM Nominatim Fetch (Rapid ~300ms response without CORS/406 blocks)
+      // 2. Fallback: Fast OSM Nominatim Fetch to discover local landmarks if AI is unavailable
       try {
         const nomRes = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&limit=15&q=attractions+in+${encodeURIComponent(destinationName)}`
@@ -690,44 +674,20 @@ export default function YourInterest() {
               );
               return [...prev, ...novel.slice(0, 8)];
             });
-            setLoadingInterests(false);
             try {
               await AsyncStorage.setItem(cacheKey, JSON.stringify({ interests: fetchedPlaces, transports: transportList }));
             } catch (e) {}
-            return;
           }
         }
       } catch (nomErr) {
-        console.log("[DEBUG] Nominatim search note:", nomErr.message);
-      }
-
-      // Fallback: server-side AI (fixed endpoint) with timeout
-      let parsedResponse = null;
-      try {
-        parsedResponse = await Promise.race([
-          fetchDestinationInterests(locationName),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4500)),
-        ]);
-      } catch (genErr) {
-        console.log("[DEBUG] Fallback AI interest attempt note:", genErr.message);
-      }
-
-      if (parsedResponse) {
-        if (parsedResponse.interests?.length > 0) setPlacesList(parsedResponse.interests);
-        if (parsedResponse.transports?.length > 0) setTransportList(parsedResponse.transports);
-        try {
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(parsedResponse));
-        } catch (e) {}
+        console.log("[Interests] Nominatim search note:", nomErr.message);
       }
     } catch (error) {
-      console.error("[DEBUG] Error fetching interests:", error);
-      const msg = String(error?.message || "");
-      const retrySec = extractRetrySeconds(error);
-      if (retrySec > 0) {
-        nextAllowedRequestAtRef.current = Date.now() + retrySec * 1000;
-        startRetryCountdown(retrySec);
-      }
+      console.error("[Interests] Error fetching interests:", error);
     } finally {
+      setLoadingInterests(false);
+    }
+  };
       setLoadingInterests(false);
     }
   };

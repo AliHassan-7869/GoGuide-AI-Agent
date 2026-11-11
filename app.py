@@ -54,14 +54,16 @@ app = FastAPI(title="GoGuide AI API")
 
 # -------------------- CORS --------------------
 # Comma-separated list, e.g. "https://goguide.app,https://admin.goguide.app".
-# Empty (unset) means no browser origin is allowed: native apps send no Origin and are unaffected.
+# Also permits local development (localhost/127.0.0.1 on any port) and Vercel domains.
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS_ORIGIN_REGEX = r"^(https://([a-zA-Z0-9-]+\.)*vercel\.app|https?://(localhost|127\.0\.0\.1)(:\d+)?)$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "HEAD"],
+    allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
