@@ -30,8 +30,25 @@ try:
     from orchestrator import execute_trip_orchestration
 except Exception as _e:
     execute_trip_orchestration = None
+    logging.getLogger("goguide").error("LangGraph orchestrator unavailable: %s", _e)
 
 logger = logging.getLogger("goguide")
+
+# Crash/error tracking. Completely optional: does nothing unless SENTRY_DSN is set on the server.
+_SENTRY_DSN = os.getenv("SENTRY_DSN")
+if _SENTRY_DSN:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(
+            dsn=_SENTRY_DSN,
+            environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
+            send_default_pii=False,  # never send user emails/IPs/request bodies
+        )
+        logging.getLogger("goguide").info("Sentry error tracking enabled")
+    except Exception as _sentry_err:  # a broken Sentry setup must never stop the API
+        logging.getLogger("goguide").error("Sentry init failed: %s", _sentry_err)
 
 app = FastAPI(title="GoGuide AI API")
 

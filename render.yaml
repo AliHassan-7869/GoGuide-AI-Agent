@@ -15,6 +15,8 @@ services:
         sync: false
       - key: NVIDIA_API_KEY
         sync: false
+      - key: SENTRY_DSN
+        sync: false
       - key: FIREBASE_PROJECT_ID
         value: goguideai
       - key: ALLOW_API_KEY_AUTH

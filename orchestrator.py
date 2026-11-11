@@ -8,6 +8,7 @@ Generative Synthesis: Gemini 2.0 Flash / DeepSeek
 """
 
 import os
+import re
 import json
 import logging
 from typing import TypedDict, List, Dict, Any, Optional
@@ -57,6 +58,16 @@ class TripState(TypedDict, total=False):
     final_plan: Optional[Dict[str, Any]]
 
 
+def _nightly_rate(hotel: Dict[str, Any]) -> Optional[int]:
+    """Best-effort nightly USD rate from a hotel dict; None when it cannot be read."""
+    if not isinstance(hotel, dict):
+        return None
+    if isinstance(hotel.get("nightlyRate"), (int, float)):
+        return int(hotel["nightlyRate"])
+    m = re.search(r"\$\s*(\d[\d,]*)", str(hotel.get("price", "")))
+    return int(m.group(1).replace(",", "")) if m else None
+
+
 # ---------------------------------------------------------------------------
 # 2. Worker Nodes
 # ---------------------------------------------------------------------------
@@ -67,7 +78,9 @@ def grounding_node(state: TripState) -> Dict[str, Any]:
     budget = state.get("budget_tier", "moderate")
     logger.info(f"[Orchestrator] Grounding destination: {dest} (days={days}, budget={budget})")
     
-    curated = get_curated_plan(dest, days, budget)
+    curated_resp = get_curated_plan(dest, days, budget)
+    # get_curated_plan returns {"data": {"plan": {"trip": {...}}}}; unwrap to the trip itself
+    curated = (((curated_resp or {}).get("data") or {}).get("plan") or {}).get("trip") or None
     essentials = {
         "visa": get_visa_guidelines(dest),
         "events": get_seasonal_events(dest),
@@ -93,16 +106,16 @@ def flight_worker_node(state: TripState) -> Dict[str, Any]:
     # Pricing calibration based on budget tier
     base_price = 280 if budget_tier in ["cheap", "budget"] else (650 if budget_tier == "moderate" else 1450)
     
+    # Only a labelled estimate. No invented airline or flight number: the app's flight engine
+    # fills carrier/route details, and users are pointed to live search for real fares.
     flights = {
-        "airline": "Top Global Carrier (Emirates / Qatar / Turkish / ANA)",
         "route": f"{origin} ➔ {dest_clean}",
-        "flightNumber": "GG-786",
         "estimatedPrice": f"${base_price}",
         "priceValue": base_price,
-        "duration": "Direct / 1 Stop (~8h - 12h)",
+        "isEstimate": True,
         "bookingUrl": "https://www.google.com/travel/flights",
     }
-    
+
     return {"flights": flights}
 
 
@@ -112,45 +125,15 @@ def hotel_worker_node(state: TripState) -> Dict[str, Any]:
     grounded = state.get("grounded_destination")
     days = max(1, state.get("days", 5))
     
-    hotels = []
-    
-    # Use verified curated hotels if available
-    if grounded and grounded.get("hotels"):
-        hotels = list(grounded["hotels"])
-    else:
-        # Fallback realistic hotel generation
-        dest_clean = state.get("destination", "Vacation City").split(",")[0].strip()
-        nightly = 65 if budget_tier in ["cheap", "budget"] else (150 if budget_tier == "moderate" else 380)
-        hotels = [
-            {
-                "name": f"The Grand {dest_clean} Boutique Stay",
-                "address": f"Central District, {dest_clean}",
-                "price": f"${nightly} per night",
-                "nightlyRate": nightly,
-                "rating": "4.8",
-                "coordinates": {"lat": 35.6895, "lng": 139.6917},
-            },
-            {
-                "name": f"{dest_clean} Heritage Inn & Suites",
-                "address": f"Historic Old Quarter, {dest_clean}",
-                "price": f"${int(nightly * 0.85)} per night",
-                "nightlyRate": int(nightly * 0.85),
-                "rating": "4.6",
-                "coordinates": {"lat": 35.6950, "lng": 139.7020},
-            }
-        ]
-    
+    # Only verified curated hotels. If none exist we return an empty list (never invent names).
+    hotels = [dict(h) for h in grounded["hotels"]] if grounded and grounded.get("hotels") else []
+
     # Compute running total cost
-    flight_price = state.get("flights", {}).get("priceValue", 450)
-    primary_nightly = 110
-    if hotels and "nightlyRate" in hotels[0]:
-        primary_nightly = hotels[0]["nightlyRate"]
-    elif hotels and "$" in str(hotels[0].get("price", "")):
-        try:
-            primary_nightly = int(hotels[0]["price"].split("$")[1].split()[0])
-        except Exception:
-            primary_nightly = 110
-            
+    flight_price = (state.get("flights") or {}).get("priceValue", 450)
+    primary_nightly = _nightly_rate(hotels[0]) if hotels else None
+    if primary_nightly is None:
+        primary_nightly = 110  # rough estimate only; no hotel is shown in this case
+
     total_est = flight_price + (primary_nightly * days) + (45 * days) # 45/day food/activities
     
     return {"hotels": hotels, "total_cost": total_est}
@@ -166,8 +149,8 @@ def itinerary_worker_node(state: TripState) -> Dict[str, Any]:
     itinerary = []
     
     # If destination has curated daily activities, use them
-    if grounded and grounded.get("days"):
-        curated_days = grounded["days"]
+    if grounded and grounded.get("itinerary"):
+        curated_days = grounded["itinerary"]
         for i in range(days_count):
             base_day = curated_days[i % len(curated_days)]
             itinerary.append({
@@ -243,21 +226,17 @@ def jev_audit_node(state: TripState) -> Dict[str, Any]:
 def budget_rebalancer_node(state: TripState) -> Dict[str, Any]:
     """Self-correcting loop: readjusts accommodation price downwards when Jev flags an overage."""
     logger.info("[Orchestrator] Self-healing budget loop triggered by Jev.")
-    current_hotels = state.get("hotels", [])
-    
-    revised_hotels = []
-    for h in current_hotels:
-        revised_h = dict(h)
-        revised_h["price"] = "$75 per night"
-        revised_h["nightlyRate"] = 75
-        revised_hotels.append(revised_h)
-        
+    # Never rewrite verified prices. The only real lever is to put the cheapest verified hotel first.
+    current_hotels = list(state.get("hotels", []))
+    current_hotels.sort(key=lambda h: (_nightly_rate(h) is None, _nightly_rate(h) or 0))
+
     days = max(1, state.get("days", 5))
-    flight_price = state.get("flights", {}).get("priceValue", 320)
-    new_total = flight_price + (75 * days) + (35 * days)
-    
+    flight_price = (state.get("flights") or {}).get("priceValue", 320)
+    nightly = _nightly_rate(current_hotels[0]) if current_hotels else None
+    new_total = flight_price + ((nightly if nightly is not None else 75) * days) + (35 * days)
+
     return {
-        "hotels": revised_hotels,
+        "hotels": current_hotels,
         "total_cost": new_total,
     }
 
@@ -280,6 +259,8 @@ def compiler_node(state: TripState) -> Dict[str, Any]:
             "tier": state.get("budget_tier", "Moderate"),
         },
         "essentials": state.get("essentials", {}),
+        "coordinatesVerified": bool(state.get("grounded_destination")),
+        "source": "curated" if state.get("grounded_destination") else "procedural",
         "qualityAudit": {
             "orchestrator": "LangGraph Stateful Supervisor v5",
             "decisionEngine": "TypeSafe AI Jev (System One)",
