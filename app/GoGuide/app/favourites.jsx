@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -23,6 +24,7 @@ import {
 import { CreateTripContext } from "../context/CreateTripContext";
 
 export default function Favourites() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { setTripData } = useContext(CreateTripContext);
@@ -159,7 +161,7 @@ export default function Favourites() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
         >
           {favorites.map((place, idx) => {
@@ -194,7 +196,7 @@ export default function Favourites() {
                         size={12}
                         color="#FFFFFF"
                       />
-                      <Text style={styles.categoryPillText}>
+                      <Text style={styles.categoryPillText} numberOfLines={1}>
                         {categoryLabel}
                       </Text>
                     </View>
@@ -328,6 +330,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radius.xs,
+    maxWidth: "70%",
+    flexShrink: 1,
   },
   categoryPillText: {
     fontSize: Typography.sizeXs,
@@ -341,18 +345,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 50,
   },
   heroBottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 8,
   },
   heroTitle: {
     flex: 1,
+    minWidth: 0,
     fontSize: Typography.sizeLg,
     fontFamily: Typography.fontBold,
     color: "#FFFFFF",
+    marginRight: 6,
   },
   ratingBadge: {
     flexDirection: "row",

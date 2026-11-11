@@ -232,16 +232,6 @@ export default function MyBookings() {
                 <View style={styles.cardHero}>
                   <Image source={{ uri: item.image }} style={styles.cardImage} />
                   <View style={styles.cardImageOverlay} />
-                  <FavoriteHeartButton
-                    place={{
-                      name: item.title,
-                      tag: item.type || "Booking",
-                      img: item.image,
-                      desc: item.subtitle || item.details || "Saved from My Bookings",
-                    }}
-                    size={16}
-                    style={{ position: "absolute", bottom: 12, right: 12, width: 32, height: 32, borderRadius: 16 }}
-                  />
 
                   <View style={styles.heroTopBadges}>
                     <View style={styles.typeBadge}>
@@ -259,15 +249,34 @@ export default function MyBookings() {
                       <Text style={styles.typeBadgeText}>{item.type}</Text>
                     </View>
 
-                    <View
-                      style={[
-                        styles.statusPill,
-                        isUpcoming
-                          ? { backgroundColor: "rgba(16, 185, 129, 0.9)" }
-                          : { backgroundColor: "rgba(100, 116, 139, 0.9)" },
-                      ]}
-                    >
-                      <Text style={styles.statusPillText}>● {item.status}</Text>
+                    <View style={styles.topRightActions}>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          isUpcoming
+                            ? { backgroundColor: "rgba(16, 185, 129, 0.9)" }
+                            : { backgroundColor: "rgba(100, 116, 139, 0.9)" },
+                        ]}
+                      >
+                        <Text style={styles.statusPillText}>● {item.status}</Text>
+                      </View>
+                      <FavoriteHeartButton
+                        place={{
+                          name: item.title,
+                          tag: item.type || "Booking",
+                          img: item.image,
+                          desc: item.subtitle || item.details || "Saved from My Bookings",
+                        }}
+                        size={14}
+                        style={{
+                          position: "relative",
+                          top: 0,
+                          right: 0,
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                        }}
+                      />
                     </View>
                   </View>
 
@@ -291,40 +300,41 @@ export default function MyBookings() {
                       activeOpacity={0.7}
                     >
                       <Text style={[styles.refLabel, { color: theme.subtext }]}>REF:</Text>
-                      <Text style={[styles.refCode, { color: activeAccent }]}>
+                      <Text style={[styles.refCode, { color: activeAccent }]} numberOfLines={1}>
                         #{item.bookingRef}
                       </Text>
                       <Ionicons name="copy-outline" size={13} color={activeAccent} />
                     </TouchableOpacity>
 
-                    <Text style={[styles.priceTag, { color: theme.text }]}>
+                    <Text style={[styles.priceTag, { color: theme.text }]} numberOfLines={1}>
                       {item.price}
                     </Text>
                   </View>
 
                   {/* Dates Row */}
                   <View style={styles.scheduleRow}>
-                    <View style={styles.scheduleCol}>
+                    <View style={[styles.scheduleCol, { alignItems: "flex-start" }]}>
                       <Text style={[styles.scheduleLabel, { color: theme.subtext }]}>
                         {item.type === "Flights" ? "DEPARTURE" : "CHECK-IN"}
                       </Text>
-                      <Text style={[styles.scheduleValue, { color: theme.text }]}>
+                      <Text style={[styles.scheduleValue, { color: theme.text }]} numberOfLines={1}>
                         {item.checkIn}
                       </Text>
                     </View>
 
-                    <Ionicons
-                      name="arrow-forward"
-                      size={16}
-                      color={theme.subtext}
-                      style={{ marginTop: 12 }}
-                    />
+                    <View style={styles.scheduleArrowWrap}>
+                      <Ionicons
+                        name="arrow-forward"
+                        size={15}
+                        color={theme.subtext}
+                      />
+                    </View>
 
-                    <View style={styles.scheduleCol}>
+                    <View style={[styles.scheduleCol, { alignItems: "flex-end" }]}>
                       <Text style={[styles.scheduleLabel, { color: theme.subtext }]}>
                         {item.type === "Flights" ? "ARRIVAL" : "CHECK-OUT"}
                       </Text>
-                      <Text style={[styles.scheduleValue, { color: theme.text }]}>
+                      <Text style={[styles.scheduleValue, { color: theme.text }]} numberOfLines={1}>
                         {item.checkOut}
                       </Text>
                     </View>
@@ -517,6 +527,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
+  },
+  topRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   typeBadge: {
     flexDirection: "row",
@@ -544,6 +560,7 @@ const styles = StyleSheet.create({
   },
   heroBottomTitle: {
     gap: 2,
+    paddingRight: 8,
   },
   heroTitle: {
     fontSize: 17,
@@ -568,6 +585,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    flexShrink: 1,
+    marginRight: 8,
   },
   refLabel: {
     fontSize: 11,
@@ -584,10 +603,17 @@ const styles = StyleSheet.create({
   scheduleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   scheduleCol: {
     flex: 1,
+    minWidth: 0,
+  },
+  scheduleArrowWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingTop: 10,
   },
   scheduleLabel: {
     fontSize: 10,

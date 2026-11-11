@@ -64,6 +64,10 @@ export default function FavoriteHeartButton({
     await toggleFavoritePlace(normalizedItem);
   };
 
+  const flattened = StyleSheet.flatten(style) || {};
+  const hasCustomBottom = flattened.bottom !== undefined;
+  const hasCustomLeft = flattened.left !== undefined;
+
   return (
     <TouchableOpacity
       onPress={handlePress}
@@ -71,6 +75,8 @@ export default function FavoriteHeartButton({
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       style={[
         variant === "overlay" ? styles.overlayBtn : styles.inlineBtn,
+        variant === "overlay" && hasCustomBottom && { top: undefined },
+        variant === "overlay" && hasCustomLeft && { right: undefined },
         isFav && variant === "overlay" && styles.overlayBtnActive,
         style,
       ]}

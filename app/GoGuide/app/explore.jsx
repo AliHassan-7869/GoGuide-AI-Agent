@@ -122,19 +122,27 @@ export default function Explore() {
       <FlatList
         data={visibleDestinations}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: theme.subtext }]}>No places in this category yet.</Text>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => selectDestination(item)}
-            activeOpacity={0.85}
-          >
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={{ position: "relative" }}>
-              <DestinationImage uri={item.image} style={styles.image} />
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => selectDestination(item)}
+              >
+                <DestinationImage uri={item.image} style={styles.image} />
+              </TouchableOpacity>
+              {item.category ? (
+                <View style={styles.categoryBadge} pointerEvents="none">
+                  <Text style={styles.categoryBadgeText} numberOfLines={1}>
+                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                  </Text>
+                </View>
+              ) : null}
               <FavoriteHeartButton
                 item={{
                   id: item.id || item.title,
@@ -146,14 +154,18 @@ export default function Explore() {
                 }}
               />
             </View>
-            <View style={styles.infoContainer}>
+            <TouchableOpacity
+              style={styles.infoContainer}
+              activeOpacity={0.9}
+              onPress={() => selectDestination(item)}
+            >
               <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={15} color="#FFD700" />
                 <Text style={[styles.ratingText, { color: theme.subtext }]}>{item.rating}</Text>
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         )}
       />
     </View>
@@ -238,6 +250,22 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 190,
+  },
+  categoryBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    maxWidth: "65%",
+  },
+  categoryBadgeText: {
+    color: "#FFFFFF",
+    fontFamily: "Outfit-Bold",
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   infoContainer: {
     padding: 14,
