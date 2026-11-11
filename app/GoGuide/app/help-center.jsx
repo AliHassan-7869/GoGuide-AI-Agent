@@ -6,6 +6,7 @@ import React, { useContext, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
+import ScreenHeader from "../Components/ui/ScreenHeader";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 
@@ -143,46 +144,14 @@ export default function HelpCenter() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      {/* Header matching golden reference */}
+      <ScreenHeader
+        title="Help & Support"
+        subtitle="Quick answers, AI assistance & direct support"
+        onBack={() => router.back()}
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 12 },
-          {
-            backgroundColor: theme.header,
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={theme.isDark ? theme.text : activeAccent}
-          />
-        </TouchableOpacity>
-        <View>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: theme.isDark ? theme.text : activeAccent },
-            ]}
-          >
-            Help & Support
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Quick answers, AI assistance & direct support
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Support Channels Banner */}
         <View style={styles.channelsContainer}>
           {/* Channel 1: AI Copilot */}

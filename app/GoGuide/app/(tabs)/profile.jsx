@@ -163,7 +163,7 @@ export default function Profile() {
       }
       if (reopenFavoritesModalRef.current || params?.openFavorites === "true") {
         reopenFavoritesModalRef.current = false;
-        setShowFavoritesModal(true);
+        router.push("/favourites");
       }
     }, [fetchStats, params?.openSaved, params?.openFavorites])
   );
@@ -447,10 +447,7 @@ export default function Profile() {
       subtitle: "Liked attractions, beaches & spots",
       icon: "heart-outline",
       badge: favoritePlacesList.length > 0 ? `${favoritePlacesList.length}` : null,
-      onPress: () => {
-        triggerHaptic();
-        setShowFavoritesModal(true);
-      },
+      route: "/favourites",
     },
     {
       id: "bookings",
@@ -645,8 +642,7 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              fetchStats();
-              setShowSavedTripsModal(true);
+              router.push("/(tabs)/mytrip");
             }}
             activeOpacity={0.7}
           >
@@ -662,7 +658,7 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              setShowFavoritesModal(true);
+              router.push("/favourites");
             }}
             activeOpacity={0.7}
           >
@@ -975,137 +971,7 @@ export default function Profile() {
         </View>
       </Modal>
 
-      {/* 2. FAVORITE PLACES MODAL */}
-      <Modal statusBarTranslucent
-        visible={showFavoritesModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFavoritesModal(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border, paddingHorizontal: 16, paddingVertical: 12 }]}>
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-                onPress={() => setShowFavoritesModal(false)}
-                style={styles.modalBackBtn}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="arrow-back" size={22} color={titleColor} />
-              </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: titleColor, fontSize: 19, marginLeft: 8 }]} numberOfLines={1}>
-                Favourites
-              </Text>
-              <View style={[styles.modalBadge, { backgroundColor: "rgba(10, 126, 164, 0.12)", marginLeft: 8 }]}>
-                <Text style={[styles.modalBadgeText, { color: Colors.PRIMARY }]}>
-                  {favoritePlacesList.length}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
-              onPress={() => setShowFavoritesModal(false)}
-            >
-              <Ionicons name="close" size={20} color={titleColor} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {favoritePlacesList.length === 0 ? (
-              <View style={styles.modalEmptyWrap}>
-                <Ionicons name="heart-dislike-outline" size={54} color={theme.subtext} />
-                <Text style={[styles.modalEmptyTitle, { color: titleColor }]}>No Favorite Places Yet</Text>
-                <Text style={[styles.modalEmptySub, { color: theme.subtext }]}>
-                  Browse destinations, beaches & mountains to save them to your wishlist.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.modalPrimaryBtn, { backgroundColor: Colors.PRIMARY }]}
-                  onPress={() => {
-                    setShowFavoritesModal(false);
-                    router.push("/explore");
-                  }}
-                >
-                  <Ionicons name="compass" size={16} color="#FFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.modalPrimaryBtnText}>Explore Destinations</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              favoritePlacesList.map((place, idx) => (
-                <View
-                  key={place.id || idx}
-                  style={[styles.tripItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-                >
-                  <Image source={{ uri: place.image }} style={styles.tripItemImg} />
-                  <View style={styles.tripItemBody}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Text style={[styles.tripItemTitle, { color: titleColor }]} numberOfLines={1}>
-                        {place.name || place.title}
-                      </Text>
-                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add to favourites"
-                        onPress={() => handleRemoveFavorite(place)}
-                        style={styles.tripItemDelete}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="heart" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <Text style={[styles.tripItemMeta, { color: theme.subtext }]} numberOfLines={1}>
-                      {place.category || "Top Destination"} • ⭐ {place.rating || "4.8"}
-                    </Text>
-
-                    <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                      <TouchableOpacity
-                        style={[styles.openTripBtn, { backgroundColor: Colors.PRIMARY, flex: 1.3 }]}
-                        onPress={() => {
-                          triggerHaptic();
-                          if (setTripData) {
-                            setTripData((prev) => ({
-                              ...prev,
-                              toLocation: {
-                                name: place.name || place.title,
-                                coordinates: { lat: place.lat || 0, lng: place.lon || 0 },
-                              },
-                              toLocationImage: place.image,
-                              toLocationRating: place.rating,
-                            }));
-                          }
-                          setShowFavoritesModal(false);
-                          router.push("/create-trip/trip-summer");
-                        }}
-                      >
-                        <Ionicons name="sparkles" size={13} color="#FFF" style={{ marginRight: 4 }} />
-                        <Text style={styles.openTripBtnText}>Plan AI Trip</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.openTripBtn,
-                          {
-                            backgroundColor: theme.isDark ? "#2A2A2A" : "#F3F4F6",
-                            borderWidth: 1,
-                            borderColor: theme.border,
-                            flex: 1,
-                          },
-                        ]}
-                        onPress={() => {
-                          triggerHaptic();
-                          reopenFavoritesModalRef.current = true;
-                          setShowFavoritesModal(false);
-                          router.push("/explore");
-                        }}
-                      >
-                        <Text style={[styles.openTripBtnText, { color: titleColor }]}>Explore</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
-          {/* Same-page Policy / Terms Modal */}
+      {/* Same-page Policy / Terms Modal */}
       <PolicyModal
         visible={policyModal.visible}
         type={policyModal.type}

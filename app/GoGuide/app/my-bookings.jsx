@@ -9,6 +9,7 @@ import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
+import ScreenHeader from "../Components/ui/ScreenHeader";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
@@ -110,43 +111,12 @@ export default function MyBookings() {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: Math.max(insets.top, 0) + 4 },
-          {
-            backgroundColor: theme.header,
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={activeAccent}
-          />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: activeAccent },
-            ]}
-          >
-            My Bookings
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Digital boarding passes, hotel vouchers & tickets
-          </Text>
-        </View>
-      </View>
+      {/* Header matching golden reference */}
+      <ScreenHeader
+        title="My Bookings"
+        subtitle="Digital boarding passes, hotel vouchers & tickets"
+        onBack={() => router.back()}
+      />
 
       {/* Status Segmented Tabs */}
       <View style={[styles.tabBarWrap, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>

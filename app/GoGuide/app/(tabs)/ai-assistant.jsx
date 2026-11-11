@@ -22,6 +22,84 @@ const QUICK_CHIPS = [
   { label: "📸 Top Photo Spots", query: "Where are the best Instagrammable photography spots?" },
 ];
 
+/**
+ * Clean Markdown Renderer for AI responses:
+ * Eliminates raw asterisks, parses **bold**, headers, bullet items, and paragraphs.
+ */
+function FormattedMarkdownText({ text, isAi, theme }) {
+  if (!text) return null;
+
+  const lines = text.split("\n");
+
+  return (
+    <View style={{ gap: 4 }}>
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <View key={lineIdx} style={{ height: 4 }} />;
+        }
+
+        const isHeader = /^#{1,4}\s+/.test(trimmed);
+        const cleanLine = isHeader ? trimmed.replace(/^#{1,4}\s+/, "") : trimmed;
+        const isBullet = /^(\*|-|•)\s+/.test(trimmed);
+        const content = isBullet ? cleanLine.replace(/^(\*|-|•)\s+/, "") : cleanLine;
+
+        const parts = content.split(/\*\*(.*?)\*\*/g);
+
+        const textElements = parts.map((part, partIdx) => {
+          if (!part) return null;
+          const isBold = partIdx % 2 === 1;
+          return (
+            <Text
+              key={partIdx}
+              style={{
+                fontFamily: isBold || isHeader ? "Outfit-Bold" : "Outfit-Regular",
+                fontWeight: isBold || isHeader ? "700" : "400",
+                fontSize: isHeader ? 15 : 14,
+                color: isAi
+                  ? (theme.isDark ? "#F1F5F9" : "#1E293B")
+                  : "#FFFFFF",
+                lineHeight: isHeader ? 22 : 20,
+              }}
+            >
+              {part}
+            </Text>
+          );
+        });
+
+        if (isBullet) {
+          return (
+            <View key={lineIdx} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginVertical: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 20,
+                  color: isAi ? (theme.isDark ? "#38BDF8" : "#0A7EA4") : "#FFFFFF",
+                }}
+              >
+                •
+              </Text>
+              <Text style={{ flex: 1, lineHeight: 20 }}>{textElements}</Text>
+            </View>
+          );
+        }
+
+        return (
+          <Text
+            key={lineIdx}
+            style={{
+              lineHeight: isHeader ? 22 : 20,
+              marginTop: isHeader ? 4 : 0,
+            }}
+          >
+            {textElements}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function AiAssistant() {
   const router = useRouter();
   const theme = useTheme();
@@ -31,14 +109,26 @@ export default function AiAssistant() {
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
 
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => {
+        setIsKeyboardVisible(true);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     );
-    return () => showSub.remove();
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        setIsKeyboardVisible(false);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   const safeTopPadding = Platform.select({
@@ -288,20 +378,12 @@ export default function AiAssistant() {
             </View>
           )}
 
-          <Text
-            style={[
-              styles.messageText,
-              {
-                color: isAi
-                  ? theme.isDark
-                    ? "#F1F5F9"
-                    : "#1E293B"
-                  : "#FFFFFF",
-              },
-            ]}
-          >
-            {item.text}
-          </Text>
+          {/* Markdown-parsed message body without raw asterisks */}
+          <FormattedMarkdownText
+            text={item.text}
+            isAi={isAi}
+            theme={theme}
+          />
 
           <Text
             style={[
@@ -427,17 +509,18 @@ export default function AiAssistant() {
         />
       </View>
 
-      {/* Chat Thread with Pinned Keyboard Avoiding View */}
+      {/* Chat Thread with Pinned Keyboard Avoiding View (WhatsApp-style Flush Docking) */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? (insets.top + 50) : 0}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessageItem}
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
@@ -476,13 +559,14 @@ export default function AiAssistant() {
           </View>
         )}
 
-        {/* Message Input Box */}
+        {/* Message Input Box: Flush against virtual keyboard when open, respecting safe area when closed */}
         <View
           style={[
             styles.inputContainer,
             {
               backgroundColor: theme.isDark ? "#16161F" : "#FFFFFF",
               borderTopColor: theme.isDark ? "#222230" : "#E2E8F0",
+              paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
             },
           ]}
         >
@@ -498,9 +582,9 @@ export default function AiAssistant() {
             placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={() => handleSend()}
-            returnKeyType="send"
-            multiline={false}
+            multiline={true}
+            maxHeight={110}
+            textAlignVertical="center"
           />
 
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Send message"
@@ -741,9 +825,12 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    height: 46,
+    minHeight: 46,
+    maxHeight: 110,
     borderRadius: 23,
     paddingHorizontal: 18,
+    paddingTop: Platform.OS === "ios" ? 12 : 8,
+    paddingBottom: Platform.OS === "ios" ? 12 : 8,
     fontSize: 14,
     fontFamily: "Outfit-Regular",
   },

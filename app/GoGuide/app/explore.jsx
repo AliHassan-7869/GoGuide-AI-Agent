@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CreateTripContext } from '../context/CreateTripContext';
 import { Colors } from '../Components/constants/constants';
 import { useTheme } from '../Components/constants/theme';
+import ScreenHeader from '../Components/ui/ScreenHeader';
 import {
   DESTINATIONS,
   DESTINATION_CATEGORIES,
@@ -85,48 +86,12 @@ export default function Explore() {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header matching My Bookings standard */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: Math.max(insets.top, 0) + 4 },
-          {
-            backgroundColor: theme.header,
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={activeAccent}
-          />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: activeAccent },
-            ]}
-          >
-            {activeInfo?.title || "Explore"}
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Handpicked destinations & top-rated sights
-          </Text>
-        </View>
-      </View>
+      {/* Header matching golden reference */}
+      <ScreenHeader
+        title={activeInfo?.title || "Explore"}
+        subtitle="Handpicked destinations & top-rated sights"
+        onBack={() => router.back()}
+      />
 
       <View>
         <ScrollView

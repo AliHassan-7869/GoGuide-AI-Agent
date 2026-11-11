@@ -7,6 +7,7 @@ import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, Sha
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
+import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
@@ -349,43 +350,38 @@ export default function PackingChecklist() {
   }, [items, activeCategory, filterMode]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Packing Checklist</Text>
-          <Text style={[styles.headerSubtitle, { color: theme.subtext }]} numberOfLines={1}>
-            {destinationName}
-          </Text>
-        </View>
-
-        <View style={styles.headerRightActions}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share"
-            onPress={handleShareChecklist}
-            style={[styles.iconActionBtn, { backgroundColor: theme.card }]}
-          >
-            <Ionicons name="share-outline" size={18} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add"
-            onPress={() => setModalVisible(true)}
-            style={[styles.iconActionBtn, { backgroundColor: Colors.PRIMARY, marginLeft: 8 }]}
-          >
-            <Ionicons name="add" size={22} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Packing Checklist"
+        subtitle={destinationName}
+        onBack={() => {
+          triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+          router.back();
+        }}
+        rightAction={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Share checklist"
+              onPress={handleShareChecklist}
+              style={[styles.iconActionBtn, { backgroundColor: theme.card }]}
+            >
+              <Ionicons name="share-outline" size={18} color={theme.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Add item"
+              onPress={() => setModalVisible(true)}
+              style={[styles.iconActionBtn, { backgroundColor: Colors.PRIMARY }]}
+            >
+              <Ionicons name="add" size={22} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       {/* Progress Card */}
       <View style={[styles.progressCard, { backgroundColor: theme.card, borderColor: theme.border }]}>

@@ -6,6 +6,7 @@ import { ActivityIndicator, Linking, Modal, Platform, ScrollView, StyleSheet, Te
 import { Colors } from '../Components/constants/constants';
 import { CreateTripContext } from '../context/CreateTripContext';
 import { fetchDestinationSafety } from '../Configs/AiModel';
+import ScreenHeader from '../Components/ui/ScreenHeader';
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 // Fallback Standard Data for Safety Alerts
@@ -130,48 +131,12 @@ export default function SafetyAlerts() {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header matching My Bookings standard */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: Math.max(insets.top, 0) + 4 },
-          {
-            backgroundColor: theme.card,
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={activeAccent}
-          />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: activeAccent },
-            ]}
-          >
-            Safety Alerts
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Travel advisories, weather & emergency contacts
-          </Text>
-        </View>
-      </View>
+      {/* Header matching golden reference */}
+      <ScreenHeader
+        title="Safety Alerts"
+        subtitle="Travel advisories, weather & emergency contacts"
+        onBack={() => router.back()}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -194,12 +159,12 @@ export default function SafetyAlerts() {
                 <Text style={[styles.weatherValue, { color: theme.text }]}>{weather.temperature}°C</Text>
                 <Text style={[styles.weatherLabel, { color: theme.subText }]}>Temp</Text>
               </View>
-              <View style={styles.weatherDivider} />
+              <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
               <View style={styles.weatherItem}>
                 <Text style={[styles.weatherValue, { color: theme.text }]}>{weather.windspeed} km/h</Text>
                 <Text style={[styles.weatherLabel, { color: theme.subText }]}>Wind</Text>
               </View>
-              <View style={styles.weatherDivider} />
+              <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
               <View style={styles.weatherItem}>
                 <Text style={[styles.weatherValue, { color: theme.text }]}>Stable</Text>
                 <Text style={[styles.weatherLabel, { color: theme.subText }]}>Status</Text>
@@ -466,6 +431,7 @@ const styles = StyleSheet.create({
   },
   weatherItem: {
     alignItems: 'center',
+    flex: 1,
   },
   weatherValue: {
     fontFamily: 'Outfit-Bold',

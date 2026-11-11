@@ -7,6 +7,7 @@ import { useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../Components/constants/constants';
 import { useTheme } from '../Components/constants/theme';
+import ScreenHeader from '../Components/ui/ScreenHeader';
 import { CreateTripContext } from '../context/CreateTripContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../Configs/FirebaseConfig';
@@ -163,28 +164,18 @@ export default function LocationPage() {
   const weatherMeta = weather ? getWeatherMeta(weather.weathercode) : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
       
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            router.back();
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Live Weather Forecast</Text>
-          <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
-            Real-time conditions via Open-Meteo
-          </Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
+      {/* Golden Reference Header */}
+      <ScreenHeader
+        title="Live Weather Forecast"
+        subtitle="Real-time conditions via Open-Meteo"
+        onBack={() => {
+          triggerHaptic();
+          router.back();
+        }}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

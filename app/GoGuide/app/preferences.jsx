@@ -6,6 +6,7 @@ import React, { useContext, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
+import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
@@ -62,43 +63,12 @@ export default function Preferences() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 12 },
-          {
-            backgroundColor: theme.header,
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={theme.isDark ? theme.text : activeAccent}
-          />
-        </TouchableOpacity>
-        <View>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: theme.isDark ? theme.text : activeAccent },
-            ]}
-          >
-            Preferences
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Customize AI recommendations & display
-          </Text>
-        </View>
-      </View>
+      {/* Header matching golden reference */}
+      <ScreenHeader
+        title="Preferences"
+        subtitle="Customize AI recommendations & display"
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

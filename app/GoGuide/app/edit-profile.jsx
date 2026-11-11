@@ -9,6 +9,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
+import ScreenHeader from "../Components/ui/ScreenHeader";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 import { clearLocalUserData, deleteAllUserData, hasRecentLogin } from "../Components/utils/AccountService";
@@ -306,47 +307,14 @@ export default function EditProfile() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.isDark ? "#0C0C12" : "#F8FAFC" }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <ScreenHeader
+        title="Account & Security"
+        subtitle="Manage your credentials, privacy & profile"
+        onBack={() => router.back()}
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 12 },
-          {
-            backgroundColor: theme.isDark ? "#14141F" : "#FFFFFF",
-            borderBottomColor: theme.isDark ? "#20202F" : "#E2E8F0",
-          },
-        ]}
-      >
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={theme.isDark ? "#FFFFFF" : Colors.PRIMARY}
-          />
-        </TouchableOpacity>
-        <View>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: theme.isDark ? "#FFFFFF" : Colors.PRIMARY },
-            ]}
-          >
-            Account & Security
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
-            ]}
-          >
-            Manage your credentials, privacy & profile
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView keyboardShouldPersistTaps="handled"
+        <ScrollView keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

@@ -2,7 +2,40 @@ import { useContext } from "react";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Colors } from "./constants";
 
-// Centralized theme colors for light and dark mode with unified primary brand color
+// Centralized theme tokens for colors, spacing, radius, and typography
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  gutter: 16,
+};
+
+export const Radius = {
+  xs: 6,
+  sm: 8,
+  md: 12,
+  card: 18,
+  pill: 20,
+  full: 9999,
+};
+
+export const Typography = {
+  fontRegular: "Outfit-Regular",
+  fontMedium: "Outfit-Medium",
+  fontBold: "Outfit-Bold",
+  sizeXs: 11,
+  sizeSm: 12,
+  sizeMd: 14,
+  sizeBase: 16,
+  sizeLg: 18,
+  sizeXl: 20,
+  sizeXxl: 24,
+};
+
+// Centralized theme colors for light and dark mode with unified primary brand color (#0A7EA4)
 export const lightTheme = {
   bg: "#F1F5F9",        // Soft Luxury Slate
   card: "#FFFFFF",      // Pure White floating cards
@@ -10,13 +43,16 @@ export const lightTheme = {
   subtext: "#64748B",   // Slate 500
   border: "#E2E8F0",    // Crisp, subtle border
   primary: "#0A7EA4",   // Unified Signature Brand Color
+  accent: "#0A7EA4",
   header: "#FFFFFF",
   headerText: "#0F172A",
+  headerBorder: "#E2E8F0",
   input: "#FFFFFF",
   inputText: "#0F172A",
   icon: "#0A7EA4",
   tabBar: "#FFFFFF",
   tabBarBorder: "#E2E8F0",
+  badgeBg: "#F1F5F9",
   isDark: false,
 };
 
@@ -27,13 +63,16 @@ export const darkTheme = {
   subtext: "#94A3B8",   // Slate 400
   border: "#243044",    // Subtle Dark Slate border
   primary: "#0A7EA4",   // Unified Signature Brand Color
+  accent: "#0A7EA4",
   header: "#0B0F17",
   headerText: "#F8FAFC",
+  headerBorder: "#20202F",
   input: "#161E2E",
   inputText: "#F8FAFC",
   icon: "#38BDF8",
   tabBar: "#0E1522",
   tabBarBorder: "#1E293B",
+  badgeBg: "#222232",
   isDark: true,
 };
 

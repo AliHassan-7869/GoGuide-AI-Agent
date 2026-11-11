@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, StatusBar } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, StatusBar, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import React, { useContext, useState, useRef, useEffect } from "react";
@@ -146,6 +146,24 @@ export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const timeoutRef = useRef(null);
+  const scrollViewRef = useRef(null);
+  const searchBarYRef = useRef(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : 260)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // AI Magic Prompt State
   const [aiPrompt, setAiPrompt] = useState("");
@@ -724,7 +742,13 @@ export default function Discover() {
 
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(30, keyboardHeight + 30) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         
         {/* Top Header */}
         <View style={styles.header}>
@@ -892,7 +916,12 @@ export default function Discover() {
         </View>
 
         {/* Regular Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}>
+        <View
+          onLayout={(e) => {
+            searchBarYRef.current = e.nativeEvent.layout.y;
+          }}
+          style={[styles.searchContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
+        >
           <Ionicons name="search" size={20} color={themeStyles.subTextColor} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: themeStyles.textColor }]}
@@ -900,9 +929,25 @@ export default function Discover() {
             placeholderTextColor={themeStyles.subTextColor}
             value={searchQuery}
             onChangeText={searchPlace}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollTo({
+                  y: Math.max(0, searchBarYRef.current - 16),
+                  animated: true,
+                });
+              }, 120);
+            }}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => { setSearchQuery(""); setResults([]); }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              onPress={() => {
+                setSearchQuery("");
+                setResults([]);
+              }}
+            >
               <Ionicons name="close-circle" size={18} color={themeStyles.subTextColor} />
             </TouchableOpacity>
           )}
