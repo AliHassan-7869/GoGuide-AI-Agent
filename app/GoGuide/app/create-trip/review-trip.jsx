@@ -13,6 +13,7 @@ import { detectCurrencyFromLocation, detectUserHomeCurrency, convertAmount, form
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
@@ -56,13 +57,26 @@ export default function ReviewTrip() {
     // Email verification bypassed for immediate trip generation
 
     if (setTripData) {
-      setTripData((prev) => ({ ...prev, isDeepPlan }));
+      setTripData((prev) => ({ ...prev, isDeepPlan, useInstant: false }));
     }
 
     setIsGenerating(true);
     setTimeout(() => {
       router.push("/create-trip/generate-trip");
     }, 400);
+  };
+
+  // Instant Plan: verified bundled itinerary, no AI server needed (works on a sleeping/failed server).
+  const canUseInstant = hasCuratedPlan(tripData?.toLocation?.name);
+  const handleInstantPlan = () => {
+    triggerHaptic();
+    if (setTripData) {
+      setTripData((prev) => ({ ...prev, isDeepPlan: false, useInstant: true }));
+    }
+    setIsGenerating(true);
+    setTimeout(() => {
+      router.push("/create-trip/generate-trip");
+    }, 200);
   };
 
   const formatDate = (date) => {
@@ -561,6 +575,19 @@ export default function ReviewTrip() {
             </View>
           )}
         </TouchableOpacity>
+
+        {canUseInstant && (
+          <TouchableOpacity
+            onPress={handleInstantPlan}
+            disabled={isGenerating}
+            style={[styles.instantPlanBtn, { borderColor: activeAccent }]}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Instant plan, no AI needed"
+          >
+            <Text style={[styles.instantPlanBtnText, { color: activeAccent }]}>⚡ Instant Plan (verified, no AI wait)</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -847,6 +874,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 10,
     elevation: 4,
+  },
+  instantPlanBtn: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  instantPlanBtnText: {
+    fontSize: 14,
+    fontFamily: "Outfit-Bold",
   },
   generatingRow: {
     flexDirection: "row",

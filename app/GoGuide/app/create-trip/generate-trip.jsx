@@ -15,6 +15,9 @@ import * as Haptics from "expo-haptics";
 import { scheduleTripCountdown, sendLocalNotification } from "../../Components/utils/NotificationService";
 import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
+import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
+
+const CURATED_CITIES_HINT = "Tokyo, Dubai, Paris, Istanbul, London and Lahore";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 const GENERATION_STEPS = [
@@ -172,7 +175,7 @@ export default function GenerateTrip() {
     router.replace("/(tabs)/mytrip");
   };
 
-  const GenerateAiTrip = async () => {
+  const GenerateAiTrip = async (forceInstant = Boolean(tripData?.useInstant)) => {
     try {
       setLoading(true);
       setError(null);
@@ -206,7 +209,7 @@ export default function GenerateTrip() {
 
       // 1. Instant path: verified itinerary bundled in the app. No network, no AI, no waiting.
       //    Only when the user did not ask for specific interests/themes (those need the AI).
-      if (!tripData?.isDeepPlan && !wantsCustomPlan) {
+      if (forceInstant === true || (!tripData?.isDeepPlan && !wantsCustomPlan)) {
         const curated = buildCuratedPlan(destinationName, totalDays, budgetName);
         if (curated) plan = normalizeTrip(curated);
       }
@@ -311,6 +314,7 @@ export default function GenerateTrip() {
   }, [tripData]);
 
   const currentStep = GENERATION_STEPS[currentStepIndex];
+  const canUseInstant = hasCuratedPlan(tripData?.toLocation?.name);
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
@@ -394,6 +398,12 @@ export default function GenerateTrip() {
               {error.message}
             </Text>
 
+            {!error.isAuthError && !canUseInstant && (
+              <Text style={[styles.errorMessage, { color: isDark ? "#FCA5A5" : "#991B1B", marginTop: 6 }]}>
+                Instant plans (no AI needed) are available for {CURATED_CITIES_HINT}.
+              </Text>
+            )}
+
             <View style={styles.errorButtonsRow}>
               {error.isEmailUnverified ? (
                 <TouchableOpacity
@@ -424,9 +434,16 @@ export default function GenerateTrip() {
                   <Text style={styles.retryText}>Sign In</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity style={styles.retryBtn} onPress={GenerateAiTrip} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.retryBtn} onPress={() => GenerateAiTrip(false)} activeOpacity={0.8}>
                   <Ionicons name="refresh-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
                   <Text style={styles.retryText}>Retry AI</Text>
+                </TouchableOpacity>
+              )}
+
+              {!error.isAuthError && canUseInstant && (
+                <TouchableOpacity style={styles.retryBtn} onPress={() => GenerateAiTrip(true)} activeOpacity={0.8}>
+                  <Ionicons name="flash-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.retryText}>Instant Plan</Text>
                 </TouchableOpacity>
               )}
 
@@ -590,10 +607,12 @@ const styles = StyleSheet.create({
   },
   errorButtonsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   retryBtn: {
     flex: 1,
+    minWidth: 120,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -608,6 +627,7 @@ const styles = StyleSheet.create({
   },
   offlineBtn: {
     flex: 1,
+    minWidth: 120,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

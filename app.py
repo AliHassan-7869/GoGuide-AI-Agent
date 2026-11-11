@@ -301,7 +301,8 @@ def call_nvidia(messages: list, temperature: float = 0.5, max_tokens: int = 4096
     )
     response.raise_for_status()
     res_json = response.json()
-    choice = res_json.get("choices", [{}])[0].get("message", {})
+    choices = res_json.get("choices") or [{}]
+    choice = (choices[0] or {}).get("message") or {}
     text = choice.get("content") or choice.get("reasoning_content") or ""
     clean = re.sub(r"<think>[\s\S]*?</think>", "", text).strip()
     return clean
