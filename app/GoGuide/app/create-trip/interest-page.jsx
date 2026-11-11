@@ -1,15 +1,13 @@
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
-import { DEFAULT_INTERESTS, DEFAULT_TRANSPORTS } from "../../Components/constants/Option";
 import { fetchDestinationInterests } from "../../Configs/AiModel";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -579,12 +577,12 @@ export default function YourInterest() {
     return Number.isFinite(n) ? n : 0;
   };
 
-  // Ensure selected transport is always synchronized with available transports
-  useEffect(() => {
-    if (transportList.length > 0 && !transportList.some((t) => t.id === selectedTransport)) {
-      setSelectedTransport(transportList[0].id);
+  const updateTransports = (list) => {
+    if (Array.isArray(list) && list.length > 0) {
+      setTransportList(list);
+      setSelectedTransport((prev) => (list.some((t) => t.id === prev) ? prev : list[0].id));
     }
-  }, [transportList, selectedTransport]);
+  };
 
   const GetDynamicInterests = async () => {
     try {
@@ -614,9 +612,7 @@ export default function YourInterest() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed?.interests) && parsed.interests.length > 0) {
             setPlacesList(parsed.interests);
-            if (Array.isArray(parsed?.transports) && parsed.transports.length > 0) {
-              setTransportList(parsed.transports);
-            }
+            updateTransports(parsed?.transports);
             setLoadingInterests(false);
             return;
           }
@@ -636,9 +632,7 @@ export default function YourInterest() {
 
       if (aiResponse && Array.isArray(aiResponse.interests) && aiResponse.interests.length > 0) {
         setPlacesList(aiResponse.interests);
-        if (Array.isArray(aiResponse.transports) && aiResponse.transports.length > 0) {
-          setTransportList(aiResponse.transports);
-        }
+        updateTransports(aiResponse.transports);
         try {
           await AsyncStorage.setItem(cacheKey, JSON.stringify(aiResponse));
         } catch (e) {}
@@ -685,9 +679,6 @@ export default function YourInterest() {
     } catch (error) {
       console.error("[Interests] Error fetching interests:", error);
     } finally {
-      setLoadingInterests(false);
-    }
-  };
       setLoadingInterests(false);
     }
   };

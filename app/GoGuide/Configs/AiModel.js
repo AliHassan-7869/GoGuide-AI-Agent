@@ -1,5 +1,3 @@
-import Constants from "expo-constants";
-import { Platform } from "react-native";
 import { auth } from "./FirebaseConfig";
 
 const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
