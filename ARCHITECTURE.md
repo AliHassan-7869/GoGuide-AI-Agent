@@ -462,8 +462,20 @@ In development the app finds the backend automatically: it takes the computer ad
 | App Mobile | Expo EAS Build (`eas.json`) | APK (`preview`) / AAB (`production`) for Play Store |
 | Firestore rules | Firebase CLI | `firebase deploy --only firestore:rules` |
 | CI / Tests | GitHub Actions | `.github/workflows/backend-tests.yml` runs tests on backend changes |
-| 24/7 Keep-Alive | GitHub Actions | `.github/workflows/keep-alive.yml` pings `/health` every 14 mins |
+| 24/7 Keep-Alive | Triple-Layer: App Daemon + UptimeRobot + GitHub Actions | Pings `/health` every 5-8 mins; 0s cold start |
 | Compliance | In-App & Web | Terms (`/terms`), Privacy (`/privacy`), GDPR Account Deletion |
+
+### 9.1 Zero-Downtime 24/7 Keep-Alive Architecture (Anti-Sleep System)
+
+Render's free tier automatically suspends (spins down) Web Services after 15 minutes of inbound HTTP inactivity, causing a 30–50 second cold-start delay for the next user. To ensure GoGuide is always instant with zero sleeping delays, we deploy a **Triple-Layer Redundant Keep-Alive System**:
+
+| Layer | Mechanism | Interval | Target Endpoint | How It Works |
+|---|---|---|---|---|
+| **Layer 1: Internal Heartbeat Daemon** | Python `threading.Thread` in `app.py` | Every 8 min | `https://goguide-ai-agent.onrender.com/health` | Starts automatically on server boot (`@app.on_event("startup")`). Pings itself before the 15-minute idle window expires. |
+| **Layer 2: External Cloud Monitor** | UptimeRobot (Free Cloud HTTP Monitor) | Every 5 min | `https://goguide-ai-agent.onrender.com/health` | Independent external cloud pinger. Resets Render's inactivity timer externally every 5 minutes and alerts on email if downtime occurs. |
+| **Layer 3: CI/CD Cron Automation** | GitHub Actions (`keep-alive.yml`) | Every 12 min | `https://goguide-ai-agent.onrender.com/health` | Automated cURL runner executing on GitHub runner infrastructure as a tertiary fallback. |
+
+> **Result**: Render's 15-minute idle counter never reaches expiration; the service remains warm 24/7 with 0s cold-start delays.
 
 ---
 
@@ -472,7 +484,7 @@ In development the app finds the backend automatically: it takes the computer ad
 | Limit | Impact | Plan & Current Status |
 |---|---|---|
 | Rate limit is in memory | Resets on restart, one server only | Move to Redis |
-| Render free sleeps after 15 min | First request takes about 1 min | **Resolved**: Automated GitHub Actions Keep-Alive workflow pings `/health` every 14 min |
+| Render free sleeps after 15 min | First request takes about 1 min | **Resolved**: Triple-Layer Keep-Alive (Internal Daemon + UptimeRobot + GitHub Actions) keeps server warm 24/7 |
 | Trip ownership is by email | Changing auth email hides old trips | Add `userId` field later |
 | Gemini free tier is small | `429` errors under load | Paid tier with spend cap; 24h plan cache in `app.py` serves repeat queries in 200ms |
 | Nominatim fair use | Heavy search can get blocked | **Resolved**: 450ms debounce and custom User-Agent in place |
