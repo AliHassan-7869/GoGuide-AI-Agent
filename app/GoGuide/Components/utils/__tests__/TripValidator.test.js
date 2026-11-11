@@ -114,3 +114,4 @@ test("buildCuratedPlan returns null when requested days exceed catalog without a
   const partialValidation = validateTripPlan(partialPlan.trip, 5);
   assert.equal(partialValidation.isValid, true);
 });
+

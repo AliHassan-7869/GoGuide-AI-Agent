@@ -24,3 +24,4 @@ globs: app/GoGuide/**/*.jsx,app/GoGuide/**/*.js,app/GoGuide/**/*.tsx,app/GoGuide
    - Never cycle days using modulo `%`.
    - Post-generation validator: unique day titles, unique attractions across all days, ordered Morning -> Afternoon -> Evening.
    - Single canonical date model: flights, dates, duration, hotel nights must derive from one source of truth.
+

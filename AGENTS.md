@@ -14,3 +14,4 @@
 6. **Scroll bottom padding:** Always add `paddingBottom: insets.bottom + 84` on primary tab/scroll views.
 7. **Day-Plan Quality:** Never cycle days using modulo math (`% base.length`). Enforce unique attractions and single date source of truth.
 8. **Verification:** Always run `npx expo export -p web` to verify 0 compilation errors across all routes before concluding any task.
+

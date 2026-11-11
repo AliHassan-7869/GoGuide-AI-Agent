@@ -87,3 +87,4 @@ Before completing any UI or data refactoring task, verify:
 - [ ] Bottom padding allows complete clearance of bottom tab bar.
 - [ ] Keyboard docks flush with zero gap on iOS/Android.
 - [ ] Static export build passes with zero errors: `npx expo export -p web`.
+
