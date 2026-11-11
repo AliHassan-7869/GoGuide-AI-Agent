@@ -38,7 +38,7 @@ logger = logging.getLogger("goguide")
 _SENTRY_DSN = os.getenv("SENTRY_DSN", "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808")
 if _SENTRY_DSN:
     try:
-        import sentry_sdk
+        import sentry_sdk  # type: ignore
 
         sentry_sdk.init(
             dsn=_SENTRY_DSN,
