@@ -1159,3 +1159,21 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"status": "error", "detail": "Internal server error"}
     )
+
+# -------------------- 24/7 RENDER KEEP-ALIVE DAEMON --------------------
+def _render_keep_alive_daemon():
+    """Background heartbeat that pings the Render service every 8 minutes to prevent idle sleep."""
+    logger.info("Keep-alive heartbeat daemon started (pings every 8 minutes)")
+    while True:
+        time.sleep(480)
+        try:
+            requests.get("https://goguide-ai-agent.onrender.com/health", timeout=15)
+        except Exception as _e:
+            logger.debug("Keep-alive heartbeat notice: %s", _e)
+
+
+@app.on_event("startup")
+def _start_keep_alive():
+    if os.getenv("RENDER") or os.getenv("PORT"):
+        t = threading.Thread(target=_render_keep_alive_daemon, daemon=True)
+        t.start()

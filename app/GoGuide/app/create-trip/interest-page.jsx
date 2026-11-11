@@ -155,6 +155,16 @@ const CITY_SPECIFIC_HIGHLIGHTS = {
     { id: 'ist-7', name: '🍴 Authentic Ottoman Kebabs & Meze', description: 'Taste legendary Iskender, kebabs & fresh grilled mezes', category: 'Food' },
     { id: 'ist-8', name: '☕ Historic Turkish Coffee & Baklava', description: 'Slow-brewed sand coffee paired with flaky pistachio baklava', category: 'Food' },
   ],
+  "united states": [
+    { id: 'usa-1', name: '🗽 Statue of Liberty & Ellis Island', description: 'World-renowned symbol of freedom in New York Harbor', category: 'History' },
+    { id: 'usa-2', name: '🏙️ Times Square & Broadway Theatres', description: 'Electrifying neon heart of NYC and legendary theatre district', category: 'Attraction' },
+    { id: 'usa-3', name: '🌉 Golden Gate Bridge & San Francisco Bay', description: 'Iconic art deco suspension bridge with Pacific ocean vistas', category: 'Viewpoint' },
+    { id: 'usa-4', name: '🏞️ Grand Canyon National Park', description: 'Breathtaking 1-mile deep canyon carved by the Colorado River', category: 'Nature' },
+    { id: 'usa-5', name: '🌳 Central Park & The Met Museum', description: '843-acre lush urban oasis surrounded by world-class art collections', category: 'Nature' },
+    { id: 'usa-6', name: '🍔 Classic American Diners & Texas BBQ', description: 'Savor legendary smash burgers, slow-smoked brisket & soul food', category: 'Food' },
+    { id: 'usa-7', name: '🏛️ The Smithsonian & National Mall', description: 'America’s premier historic monuments and free world-class museums', category: 'History' },
+    { id: 'usa-8', name: '🎬 Hollywood Walk of Fame & Sunset Blvd', description: 'Global epicenter of cinema, star-studded landmarks & Beverly Hills', category: 'Attraction' },
+  ],
   dubai: [
     { id: 'dxb-1', name: '🏙️ Burj Khalifa & Sky Deck', description: 'World’s tallest tower with stunning 360° Arabian Gulf views', category: 'Viewpoint' },
     { id: 'dxb-2', name: '🏜️ Arabian Desert Safari & Dunes', description: 'Thrilling dune bashing, camel trek & sunset Bedouin camp', category: 'Nature' },
@@ -194,26 +204,88 @@ const CITY_SPECIFIC_HIGHLIGHTS = {
     { id: 'lon-5', name: '🌳 Hyde Park & Kensington Gardens', description: 'Sprawling royal parklands and serene boating lakes', category: 'Nature' },
     { id: 'lon-6', name: '🍴 Borough Market Gourmet Food', description: 'Historic food market with artisan cheese, pastries & street food', category: 'Food' },
   ],
+  lahore: [
+    { id: 'lhr-1', name: '🕌 Badshahi Mosque & Courtyard', description: 'Grand 17th-century Mughal architectural marvel', category: 'History' },
+    { id: 'lhr-2', name: '🏰 Lahore Fort (Shahi Qila)', description: 'UNESCO World Heritage citadel with Sheesh Mahal mirror palace', category: 'History' },
+    { id: 'lhr-3', name: '🍲 Food Street Fort Road & Anarkali', description: 'Legendary Karahi, Nihari & Barbecue under illuminated minarets', category: 'Food' },
+    { id: 'lhr-4', name: '🛍️ Liberty Market & MM Alam Road', description: 'Vibrant retail hub with traditional embroidery & trendy bistros', category: 'Shopping' },
+    { id: 'lhr-5', name: '🌳 Shalimar Gardens', description: 'Historic Mughal triple-terraced water gardens & fountains', category: 'Nature' },
+    { id: 'lhr-6', name: '☕ Historic Pak Tea House & Chai', description: 'Iconic meeting place of literary legends and slow-brewed tea', category: 'Food' },
+  ],
+  bali: [
+    { id: 'bali-1', name: '🌊 Tanah Lot & Uluwatu Cliff Temple', description: 'Ancient coastal sea temples perched on dramatic ocean bluffs', category: 'History' },
+    { id: 'bali-2', name: '🐒 Ubud Sacred Monkey Forest & Rice Terraces', description: 'Lush tropical jungles, roaming macaques & emerald terraces', category: 'Nature' },
+    { id: 'bali-3', name: '🏖️ Seminyak Beach & Beach Clubs', description: 'Golden sunset sands, surfing waves & vibrant evening music', category: 'Beaches' },
+    { id: 'bali-4', name: '🌋 Mount Batur Sunrise Trek', description: 'Spectacular early morning volcano summit hike above the clouds', category: 'Nature' },
+    { id: 'bali-5', name: '🍲 Authentic Balinese Warung & Satay', description: 'Taste spicy sambal, crispy duck and grilled satay skewers', category: 'Food' },
+  ],
+  canada: [
+    { id: 'can-1', name: '🌊 Niagara Falls & Horseshoe Views', description: 'World-famous thunderous waterfalls and misty boat tours', category: 'Nature' },
+    { id: 'can-2', name: '🏞️ Banff National Park & Lake Louise', description: 'Turquoise glacial alpine lakes framed by dramatic Rocky Peaks', category: 'Nature' },
+    { id: 'can-3', name: '🗼 CN Tower & Toronto Skyline', description: '553m communications tower with glass observation floor', category: 'Viewpoint' },
+    { id: 'can-4', name: '🍁 Old Quebec Historic Walled City', description: 'Charming European cobblestones, ramparts & Château Frontenac', category: 'History' },
+    { id: 'can-5', name: '🌲 Stanley Park & Seawall Vancouver', description: 'Massive coastal rainforest park surrounded by ocean seawall', category: 'Nature' },
+    { id: 'can-6', name: '🥞 Authentic Poutine & Maple Delights', description: 'Warm crispy fries, fresh cheese curds & rich savory gravy', category: 'Food' },
+  ],
+  singapore: [
+    { id: 'sg-1', name: '🌳 Gardens by the Bay & Supertrees', description: 'Futuristic vertical gardens, Flower Dome & evening light show', category: 'Nature' },
+    { id: 'sg-2', name: '🏨 Marina Bay Sands SkyPark', description: 'Iconic triple tower observation deck with panoramic city skyline', category: 'Viewpoint' },
+    { id: 'sg-3', name: '🍜 Lau Pa Sat & Maxwell Hawker Markets', description: 'World-renowned Hainanese chicken rice, laksa & satay street', category: 'Food' },
+    { id: 'sg-4', name: '🛍️ Orchard Road Shopping Belt', description: 'Premier 2km boulevard of high-end fashion malls and boutiques', category: 'Shopping' },
+    { id: 'sg-5', name: '🦁 Merlion Park & Marina Bay', description: 'Legendary half-lion half-fish national icon spraying into the bay', category: 'Attraction' },
+  ],
+  cairo: [
+    { id: 'cai-1', name: '🏛️ The Great Pyramids of Giza & Sphinx', description: 'Last remaining Ancient Wonder of the World and colossal Sphinx', category: 'History' },
+    { id: 'cai-2', name: '🏛️ The Grand Egyptian Museum', description: 'Priceless treasures of King Tutankhamun and thousands of artifacts', category: 'History' },
+    { id: 'cai-3', name: '🛍️ Khan el-Khalili Historic Souk', description: 'Labyrinthine 14th-century marketplace with lanterns & spices', category: 'Shopping' },
+    { id: 'cai-4', name: '⛵ Nile River Sunset Felucca', description: 'Peaceful traditional wooden sailboat cruising the historic Nile', category: 'Nature' },
+    { id: 'cai-5', name: '🍲 Authentic Koshary & Street Shawarma', description: 'Egypt’s legendary national dish with spiced lentils & tomato sauce', category: 'Food' },
+  ],
 };
 
-const KNOWN_CITY_COORDINATES = {
-  istanbul: { lat: 41.0082, lng: 28.9784 },
-  dubai: { lat: 25.2048, lng: 55.2708 },
-  tokyo: { lat: 35.6762, lng: 139.6503 },
-  rome: { lat: 41.9028, lng: 12.4964 },
-  paris: { lat: 48.8566, lng: 2.3522 },
-  london: { lat: 51.5074, lng: -0.1278 },
-  bali: { lat: -8.4095, lng: 115.1889 },
-  cairo: { lat: 30.0444, lng: 31.2357 },
-  lahore: { lat: 31.5204, lng: 74.3587 },
-  karachi: { lat: 24.8607, lng: 67.0011 },
-  islamabad: { lat: 33.6844, lng: 73.0479 },
-  bangkok: { lat: 13.7563, lng: 100.5018 },
-  singapore: { lat: 1.3521, lng: 103.8198 },
-  barcelona: { lat: 41.3879, lng: 2.1699 },
-  amsterdam: { lat: 52.3676, lng: 4.9041 },
-  newyork: { lat: 40.7128, lng: -74.0060 },
-  "new york": { lat: 40.7128, lng: -74.0060 },
+const DESTINATION_CANONICAL_MAP = {
+  "united states": "united states",
+  "usa": "united states",
+  "us": "united states",
+  "america": "united states",
+  "new york": "united states",
+  "nyc": "united states",
+  "california": "united states",
+  "san francisco": "united states",
+  "los angeles": "united states",
+  "miami": "united states",
+  "chicago": "united states",
+  "washington": "united states",
+  "turkey": "istanbul",
+  "turkiye": "istanbul",
+  "istanbul": "istanbul",
+  "dubai": "dubai",
+  "uae": "dubai",
+  "emirates": "dubai",
+  "abu dhabi": "dubai",
+  "paris": "paris",
+  "france": "paris",
+  "tokyo": "tokyo",
+  "japan": "tokyo",
+  "kyoto": "tokyo",
+  "rome": "rome",
+  "italy": "rome",
+  "italia": "rome",
+  "london": "london",
+  "uk": "london",
+  "united kingdom": "london",
+  "england": "london",
+  "britain": "london",
+  "lahore": "lahore",
+  "pakistan": "lahore",
+  "bali": "bali",
+  "indonesia": "bali",
+  "canada": "canada",
+  "toronto": "canada",
+  "vancouver": "canada",
+  "singapore": "singapore",
+  "cairo": "cairo",
+  "egypt": "cairo",
 };
 
 // Curated authentic transit modes for destinations (0ms instant render)
@@ -224,6 +296,13 @@ const CITY_TRANSPORTS = {
     { id: "ist-ferry", name: "⛴️ Bosphorus Ferry" },
     { id: "ist-taxi", name: "🚕 Yellow Taxi & BiTaksi" },
     { id: "ist-walk", name: "🚶 Walking & Historic Alleys" },
+  ],
+  "united states": [
+    { id: "usa-subway", name: "🚇 Subway & Metro" },
+    { id: "usa-taxi", name: "🚕 Yellow Cab / Uber / Lyft" },
+    { id: "usa-train", name: "🚆 Amtrak Intercity Rail" },
+    { id: "usa-car", name: "🚗 Interstate Road Trip / Rental" },
+    { id: "usa-walk", name: "🚶 City Walking & Avenues" },
   ],
   dubai: [
     { id: "dxb-metro", name: "🚇 Dubai Metro" },
@@ -260,6 +339,13 @@ const CITY_TRANSPORTS = {
     { id: "lon-blackcab", name: "🚕 Traditional Black Cab" },
     { id: "lon-uberboat", name: "🛥️ Uber Thames Boat" },
   ],
+  lahore: [
+    { id: "lhr-metro", name: "🚇 Orange Line Metro" },
+    { id: "lhr-bus", name: "🚌 Speedo City Bus" },
+    { id: "lhr-rickshaw", name: "🛺 Qingqi / Auto Rickshaw" },
+    { id: "lhr-taxi", name: "🚕 Uber / Careem / Yango" },
+    { id: "lhr-walk", name: "🚶 Walled City Heritage Walk" },
+  ],
   bali: [
     { id: "bali-driver", name: "🚗 Private Driver & Car" },
     { id: "bali-scooter", name: "🛵 Scooter / Gojek Rental" },
@@ -267,14 +353,43 @@ const CITY_TRANSPORTS = {
     { id: "bali-shuttle", name: "🚐 Tourist Island Shuttle" },
     { id: "bali-walk", name: "🚶 Beachfront Walking" },
   ],
+  canada: [
+    { id: "can-subway", name: "🚇 Metro / TTC / SkyTrain" },
+    { id: "can-taxi", name: "🚕 Uber / City Taxi" },
+    { id: "can-rail", name: "🚆 VIA Rail Passenger Train" },
+    { id: "can-car", name: "🚗 Highway Car Rental" },
+    { id: "can-walk", name: "🚶 Downtown Pedestrian Walk" },
+  ],
+  singapore: [
+    { id: "sg-mrt", name: "🚇 MRT Subway Network" },
+    { id: "sg-bus", name: "🚌 Double-Decker City Bus" },
+    { id: "sg-taxi", name: "🚕 Grab / ComfortDelGro Taxi" },
+    { id: "sg-walk", name: "🚶 Marina Bay Waterfront Walk" },
+    { id: "sg-monorail", name: "🚝 Sentosa Express Monorail" },
+  ],
+  cairo: [
+    { id: "cai-metro", name: "🚇 Cairo Metro" },
+    { id: "cai-taxi", name: "🚕 White City Taxi / Uber" },
+    { id: "cai-felucca", name: "⛵ Traditional Nile Felucca" },
+    { id: "cai-walk", name: "🚶 Historic Islamic Cairo Walk" },
+    { id: "cai-shuttle", name: "🚐 Tourist Giza Shuttle" },
+  ],
+};
+
+const resolveDestinationKey = (dest = "") => {
+  const d = (dest || "").toLowerCase().trim();
+  for (const [alias, canonicalKey] of Object.entries(DESTINATION_CANONICAL_MAP)) {
+    if (d.includes(alias)) {
+      return canonicalKey;
+    }
+  }
+  return null;
 };
 
 const getSmartDestinationTransports = (dest = "") => {
-  const d = (dest || "").toLowerCase();
-  for (const [cityName, cityTransports] of Object.entries(CITY_TRANSPORTS)) {
-    if (d.includes(cityName)) {
-      return cityTransports;
-    }
+  const canonical = resolveDestinationKey(dest);
+  if (canonical && CITY_TRANSPORTS[canonical]) {
+    return CITY_TRANSPORTS[canonical];
   }
   return [
     { id: "taxi", name: "🚕 Local Taxi / Ride-Hailing" },
@@ -287,15 +402,12 @@ const getSmartDestinationTransports = (dest = "") => {
 
 // Curated highlights tailored to destination geography (0ms instant initial render)
 const getSmartDestinationInterests = (dest = "") => {
-  const d = (dest || "").toLowerCase();
-
-  // If destination matches a specific top city, return authentic real landmarks immediately
-  for (const [cityName, cityHighlights] of Object.entries(CITY_SPECIFIC_HIGHLIGHTS)) {
-    if (d.includes(cityName)) {
-      return cityHighlights;
-    }
+  const canonical = resolveDestinationKey(dest);
+  if (canonical && CITY_SPECIFIC_HIGHLIGHTS[canonical]) {
+    return CITY_SPECIFIC_HIGHLIGHTS[canonical];
   }
 
+  const d = (dest || "").toLowerCase();
   const isBeach = /beach|coast|island|bali|maldives|phuket|miami|cancun|hawaii|goa|santorini|bahamas|krabi/i.test(d);
   const isHistoric = /rome|paris|cairo|athens|kyoto|lahore|london|delhi|florence|beijing|agra/i.test(d);
   const isMountain = /alps|mountain|hike|swiss|banff|aspen|manali|nepal|queenstown|murree|swat/i.test(d);
@@ -624,7 +736,7 @@ export default function YourInterest() {
       try {
         aiResponse = await Promise.race([
           fetchDestinationInterests(locationName),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 8500)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4000)),
         ]);
       } catch (aiErr) {
         console.log("[Interests] Live AI fetch notice:", aiErr.message);
