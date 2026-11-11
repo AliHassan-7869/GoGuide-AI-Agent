@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { useColorScheme } from "react-native";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Colors } from "./constants";
 
@@ -77,11 +78,13 @@ export const darkTheme = {
 };
 
 /**
- * Hook to get the current theme based on user preferences.
+ * Hook to get the current theme based on user preferences or native system theme.
  * Usage: const theme = useTheme();
  */
 export function useTheme() {
   const context = useContext(CreateTripContext);
-  const isDark = context?.preferences?.darkMode ?? false;
+  const systemScheme = useColorScheme();
+  const explicitPref = context?.preferences?.darkMode;
+  const isDark = typeof explicitPref === "boolean" ? explicitPref : systemScheme === "dark";
   return isDark ? darkTheme : lightTheme;
 }

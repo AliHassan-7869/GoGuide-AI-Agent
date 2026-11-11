@@ -264,6 +264,60 @@ CURATED_DESTINATIONS = {
                         "coordinates": {"lat": 25.0805, "lng": 55.1396}
                     }
                 ]
+            },
+            {
+                "day": 4,
+                "theme": "Future City, Frame & Old Creek Culture",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Museum of the Future",
+                        "details": "Futuristic torus-shaped museum showcasing AI, space travel, and climate innovations.",
+                        "tickets": "$40 (book in advance)",
+                        "coordinates": {"lat": 25.2192, "lng": 55.2819}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Dubai Frame & Zabeel Park",
+                        "details": "Walk the 150-meter-high glass skydeck linking old and new Dubai.",
+                        "tickets": "$15 entry",
+                        "coordinates": {"lat": 25.2345, "lng": 55.3003}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Al Seef Heritage Waterfront & Dhow Dinner",
+                        "details": "Traditional wind-tower promenade on Dubai Creek with evening cruise dining.",
+                        "tickets": "$35 dhow cruise",
+                        "coordinates": {"lat": 25.2570, "lng": 55.3100}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Abu Dhabi Capital & Grand Mosque Day Excursion",
+                "activities": [
+                    {
+                        "time": "Morning (9:00 AM)",
+                        "placeName": "Sheikh Zayed Grand Mosque (Abu Dhabi)",
+                        "details": "One of the world's largest mosques featuring 82 white marble domes and Swarovski chandeliers.",
+                        "tickets": "Free entry",
+                        "coordinates": {"lat": 24.4128, "lng": 54.4749}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Louvre Abu Dhabi (Saadiyat Island)",
+                        "details": "Floating museum under a rain-of-light dome showcasing global art history.",
+                        "tickets": "$18 entry",
+                        "coordinates": {"lat": 24.5337, "lng": 54.3982}
+                    },
+                    {
+                        "time": "Evening (7:00 PM)",
+                        "placeName": "Abu Dhabi Corniche & Waterfront Return",
+                        "details": "Scenic coastal drive and dinner before scenic return to Dubai.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 24.4682, "lng": 54.3312}
+                    }
+                ]
             }
         ]
     },
@@ -364,6 +418,60 @@ CURATED_DESTINATIONS = {
                         "details": "Admire the gilded opera house and savor authentic French cuisine nearby.",
                         "tickets": "€15 self-guided tour",
                         "coordinates": {"lat": 48.8719, "lng": 2.3316}
+                    }
+                ]
+            },
+            {
+                "day": 4,
+                "theme": "Royal Versailles Palace & Grand Canal",
+                "activities": [
+                    {
+                        "time": "Morning (9:00 AM)",
+                        "placeName": "Château de Versailles & Hall of Mirrors",
+                        "details": "Tour the Sun King's royal apartments, king's bedchamber, and the iconic mirror gallery.",
+                        "tickets": "€21 entry (passport ticket)",
+                        "coordinates": {"lat": 48.8049, "lng": 2.1204}
+                    },
+                    {
+                        "time": "Afternoon (1:30 PM)",
+                        "placeName": "Versailles Gardens & Grand Trianon",
+                        "details": "Explore monumental fountains, Marie Antoinette's Hamlet, and rowboats on the Grand Canal.",
+                        "tickets": "Included with Passport",
+                        "coordinates": {"lat": 48.8149, "lng": 2.1066}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Saint-Germain-des-Prés & Boulevard Cafes",
+                        "details": "Return to Paris for dinner at a traditional brasserie near Café de Flore.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 48.8540, "lng": 2.3331}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Art Museums, Marais & River Bridges",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Musée Rodin & Sculptured Gardens",
+                        "details": "Admire 'The Thinker' and 'The Gates of Hell' in a tranquil historic rose garden.",
+                        "tickets": "€14 entry",
+                        "coordinates": {"lat": 48.8550, "lng": 2.3158}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Centre Pompidou & Modern Art",
+                        "details": "High-tech architecture and Europe's largest modern art collection with city views.",
+                        "tickets": "€15 entry",
+                        "coordinates": {"lat": 48.8606, "lng": 2.3522}
+                    },
+                    {
+                        "time": "Evening (7:00 PM)",
+                        "placeName": "Pont des Arts & Île Saint-Louis",
+                        "details": "Sunset stroll along the pedestrian bridge and artisan ice cream at Berthillon.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 48.8583, "lng": 2.3375}
                     }
                 ]
             }
@@ -468,6 +576,60 @@ CURATED_DESTINATIONS = {
                         "coordinates": {"lat": 41.0340, "lng": 28.9778}
                     }
                 ]
+            },
+            {
+                "day": 4,
+                "theme": "Golden Horn Heritage & Bohemian Quarters",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Fener & Balat Historic Quarters",
+                        "details": "Stroll steep cobblestone lanes filled with pastel Ottoman houses, antique shops, and the Ecumenical Patriarchate.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 41.0298, "lng": 28.9492}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Chora / Kariye Mosque & Theodosian Walls",
+                        "details": "Remarkable Byzantine mosaics and ancient 5th-century imperial fortress ramparts.",
+                        "tickets": "€20 entry",
+                        "coordinates": {"lat": 41.0312, "lng": 28.9392}
+                    },
+                    {
+                        "time": "Evening (6:30 PM)",
+                        "placeName": "Pierre Loti Hill Cable Car & Sunset",
+                        "details": "Ride the Eyüp gondola lift up to the panoramic terrace overlooking the Golden Horn for Turkish tea at dusk.",
+                        "tickets": "15 TL (Istanbulkart)",
+                        "coordinates": {"lat": 41.0538, "lng": 28.9338}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Princes' Islands (Büyükada) Island Escape",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Büyükada Historic Island Ferry & Promenade",
+                        "details": "Peaceful car-free island voyage across the Marmara Sea, passing pine forests and Victorian-era wooden villas.",
+                        "tickets": "$3 Ferry (Istanbulkart)",
+                        "coordinates": {"lat": 40.8742, "lng": 29.1287}
+                    },
+                    {
+                        "time": "Afternoon (1:30 PM)",
+                        "placeName": "Aya Yorgi Monastery & Pine Crest Viewpoint",
+                        "details": "Climb the scenic path to the 6th-century hilltop chapel for panoramic island and sea vistas.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 40.8576, "lng": 29.1192}
+                    },
+                    {
+                        "time": "Evening (6:30 PM)",
+                        "placeName": "Kuzguncuk & Ortaköy Bosphorus Waterfront",
+                        "details": "Return to European shore for sunset beside Ortaköy Mosque and famous loaded baked potatoes (kumpir).",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 41.0474, "lng": 29.0270}
+                    }
+                ]
             }
         ]
     },
@@ -568,6 +730,60 @@ CURATED_DESTINATIONS = {
                         "details": "Vibrant multicultural nightlife, dim sum, and classic British pubs.",
                         "tickets": "Free",
                         "coordinates": {"lat": 51.5136, "lng": -0.1313}
+                    }
+                ]
+            },
+            {
+                "day": 4,
+                "theme": "Soho, Greenwich Maritime & Greenwich Observatory",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Cutty Sark & National Maritime Museum",
+                        "details": "Step aboard the historic 19th-century tea clipper ship and explore British naval history.",
+                        "tickets": "£20 Cutty Sark",
+                        "coordinates": {"lat": 51.4828, "lng": -0.0096}
+                    },
+                    {
+                        "time": "Afternoon (1:30 PM)",
+                        "placeName": "Royal Observatory & Prime Meridian",
+                        "details": "Stand on the Prime Meridian line (GMT 0) with hilltop panoramic views over Canary Wharf.",
+                        "tickets": "£20 entry",
+                        "coordinates": {"lat": 51.4769, "lng": 0.0005}
+                    },
+                    {
+                        "time": "Evening (6:30 PM)",
+                        "placeName": "Thames Clipper Boat & Borough Evening",
+                        "details": "Cruise back up the Thames on the Uber Boat clipper to Southwark riverside for dinner.",
+                        "tickets": "£10 boat fare",
+                        "coordinates": {"lat": 51.5050, "lng": -0.0860}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Kensington Cultural Mile & Camden Market",
+                "activities": [
+                    {
+                        "time": "Morning (10:00 AM)",
+                        "placeName": "Natural History & Victoria and Albert Museum",
+                        "details": "World-class decorative art, fashion, and famous dinosaur halls in South Kensington.",
+                        "tickets": "Free entry",
+                        "coordinates": {"lat": 51.4967, "lng": -0.1764}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Regent's Canal & Camden Market",
+                        "details": "Walk from picturesque Little Venice to Camden Lock's vibrant food stalls and vintage fashion.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 51.5414, "lng": -0.1466}
+                    },
+                    {
+                        "time": "Evening (6:30 PM)",
+                        "placeName": "Primrose Hill Sunset & Gastropub Dinner",
+                        "details": "Iconic hilltop sunset views over the London skyline followed by a classic roast or fish & chips.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 51.5394, "lng": -0.1604}
                     }
                 ]
             }
@@ -672,6 +888,60 @@ CURATED_DESTINATIONS = {
                         "coordinates": {"lat": 31.4725, "lng": 74.3563}
                     }
                 ]
+            },
+            {
+                "day": 4,
+                "theme": "Colonial Arts, Lawrence Gardens & Gulberg Dining",
+                "activities": [
+                    {
+                        "time": "Morning (10:00 AM)",
+                        "placeName": "Alhamra Arts Council & Mall Road Walk",
+                        "details": "Explore contemporary Pakistani art exhibits, red-brick modernist architecture, and historic civil buildings.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 31.5580, "lng": 74.3275}
+                    },
+                    {
+                        "time": "Afternoon (2:00 PM)",
+                        "placeName": "Bagh-e-Jinnah (Lawrence Gardens) & Library",
+                        "details": "Stroll 140 acres of lush botanical gardens and neoclassical Victorian library halls.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 31.5510, "lng": 74.3325}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Gaddafi Stadium Food Enclave",
+                        "details": "Sample traditional Sajji, nihari, and karahi in the buzzing sports and dining hub.",
+                        "tickets": "Dining: $8 - $15 / person",
+                        "coordinates": {"lat": 31.5133, "lng": 74.3333}
+                    }
+                ]
+            },
+            {
+                "day": 5,
+                "theme": "Hiran Minar Historical Excursion & Sufi Heritage",
+                "activities": [
+                    {
+                        "time": "Morning (9:30 AM)",
+                        "placeName": "Hiran Minar & Mughal Water Tank (Sheikhupura)",
+                        "details": "Scenic 45-minute drive to Emperor Jahangir's 1606 royal hunting retreat and monumental minaret.",
+                        "tickets": "Rs. 50 - 500 ($1 - $2)",
+                        "coordinates": {"lat": 31.7454, "lng": 73.9525}
+                    },
+                    {
+                        "time": "Afternoon (2:30 PM)",
+                        "placeName": "Data Darbar & Sufi Heritage",
+                        "details": "Visit one of South Asia's oldest and most revered Sufi shrines with qawwali devotional singing.",
+                        "tickets": "Free",
+                        "coordinates": {"lat": 31.5792, "lng": 74.3044}
+                    },
+                    {
+                        "time": "Evening (7:30 PM)",
+                        "placeName": "Lake City & Ring Road Rooftop Dining",
+                        "details": "End the trip with modern open-air dining and panoramic city views.",
+                        "tickets": "Dining: $12 - $20",
+                        "coordinates": {"lat": 31.3780, "lng": 74.2480}
+                    }
+                ]
             }
         ]
     }
@@ -686,10 +956,13 @@ def find_curated_key(clean_dest: str) -> str | None:
     return None
 
 
-def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
+def get_curated_plan(destination: str, days: int, budget: str, allow_partial: bool = False) -> dict | None:
     """
     Check if a requested destination matches our pre-computed curated database.
     Returns standard GoGuide response payload if matched, or None.
+    NEVER cycles base days using modulo arithmetic. If requested days exceed
+    the catalog length, returns None so AI generation provides a bespoke plan
+    with 100% unique attractions across all days.
     """
     if not destination:
         return None
@@ -703,23 +976,27 @@ def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
         return None
 
     entry = CURATED_DESTINATIONS[matched_key]
-    max_days = max(1, min(days, 30))
-
-    # Slice or adapt day itineraries
     base_days = entry["days"]
+
+    # If the user requested more days than our verified catalog has, and allow_partial is False,
+    # return None so the AI model (Gemini) generates all requested days with zero duplicates.
+    if not allow_partial and days > len(base_days):
+        return None
+
+    actual_days = max(1, min(days, len(base_days)))
+
     selected_days = []
-    for d in range(1, max_days + 1):
-        source_idx = (d - 1) % len(base_days)
-        copied = dict(base_days[source_idx])
+    for d in range(1, actual_days + 1):
+        copied = dict(base_days[d - 1])
         copied["day"] = d
         selected_days.append(copied)
 
-    night_count = max(1, max_days - 1)
+    night_count = max(1, actual_days - 1)
 
     plan_payload = {
         "trip": {
             "destination": entry["destination"],
-            "duration": f"{max_days} Days {night_count} Nights",
+            "duration": f"{actual_days} Days {night_count} Nights",
             "budget": budget,
             "hotels": entry["hotels"],
             "itinerary": selected_days,
@@ -732,7 +1009,7 @@ def get_curated_plan(destination: str, days: int, budget: str) -> dict | None:
         "status": "success",
         "data": {
             "destination": entry["destination"],
-            "days": max_days,
+            "days": actual_days,
             "budget": budget,
             "plan": plan_payload,
         }

@@ -23,7 +23,7 @@ function AppContent() {
 
   const stack = (
     <>
-      <StatusBar style={isDark ? "light" : "dark"} translucent backgroundColor="transparent" />
+      <StatusBar style={theme.isDark ? "light" : "dark"} translucent backgroundColor="transparent" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -746,7 +746,7 @@ export default function Discover() {
         ref={scrollViewRef}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(30, keyboardHeight + 30) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 100, keyboardHeight + 30) }]}
         keyboardShouldPersistTaps="handled"
       >
         
@@ -779,7 +779,7 @@ export default function Discover() {
           <View style={[styles.aiInputBox, { backgroundColor: isDark ? "#241D3B" : "#FFFFFF" }]}>
             <TextInput
               style={[styles.aiTextInput, { color: themeStyles.textColor }]}
-              placeholder="e.g. 4 days from pak to england..."
+              placeholder="e.g. 5 days in Istanbul from Lahore"
               placeholderTextColor={themeStyles.subTextColor}
               value={aiPrompt}
               onChangeText={setAiPrompt}
@@ -1066,7 +1066,7 @@ export default function Discover() {
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
-              style={{ marginTop: 8, marginBottom: 14, overflow: "visible" }}
+              style={{ marginHorizontal: -16, marginTop: 8, marginBottom: 14, overflow: "visible" }}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
             >
               {FEED_FILTER_CHIPS.map((chip) => {
@@ -1103,7 +1103,7 @@ export default function Discover() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={{ marginTop: 4, overflow: "visible" }}
+              style={{ marginHorizontal: -16, marginTop: 4, overflow: "visible" }}
               contentContainerStyle={{ paddingHorizontal: 16 }}
             >
               {displayedDestinations.map((dest) => {
@@ -1355,6 +1355,7 @@ const styles = StyleSheet.create({
 
   // Quick Search Suggested Tags
   quickTagsScroll: {
+    marginHorizontal: -16,
     marginBottom: 6,
     overflow: "visible",
   },
@@ -1388,6 +1389,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 18, fontFamily: "Outfit-Bold" },
   categoriesContainer: {
+    marginHorizontal: -16,
     marginTop: 6,
     overflow: "visible",
   },

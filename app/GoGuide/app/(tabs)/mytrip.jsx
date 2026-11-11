@@ -950,7 +950,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
     return (
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
           <StartNewTripCard 
             userTrips={userTripsList} 
             onSelectTrip={(selectedTrip) => {
@@ -1053,7 +1053,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
         
         {/* Animated Multi-Trip Slider (when user has trips) */}
         {userTripsList.length > 0 && (
@@ -1080,7 +1080,8 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.carouselContainer}
+              style={{ marginHorizontal: -16, overflow: "visible" }}
+              contentContainerStyle={[styles.carouselContainer, { paddingVertical: 8, overflow: "visible" }]}
             >
               {userTripsList.map((t, idx) => {
                 const isSelected = activeTripId === t.id || (activeTripId === null && idx === 0);
@@ -1324,8 +1325,8 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
-          style={{ marginBottom: 20 }}
-          contentContainerStyle={{ gap: 10, paddingRight: 4 }}
+          style={{ marginBottom: 20, marginHorizontal: -16 }}
+          contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}
         >
           <TouchableOpacity 
             style={[
@@ -1802,7 +1803,7 @@ Return ONLY valid JSON matching this exact structure with morning, afternoon, an
               horizontal
               showsHorizontalScrollIndicator={false}
               style={[styles.dayTabsScroll, { marginHorizontal: -16 }]}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingRight: 24 }}
             >
               <TouchableOpacity 
                 style={[
@@ -2534,7 +2535,7 @@ const styles = StyleSheet.create({
 
   // Hotel Cards
   hotelCard: { 
-    width: 255, 
+    width: 270, 
     borderRadius: 20, 
     marginRight: 14,
     overflow: "hidden",
@@ -2576,13 +2577,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#003580", // Iconic Booking.com Navy
-    paddingVertical: 7,
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderRadius: 8,
     marginBottom: 8,
   },
   hotelBookBtnText: {
     color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   hotelButtonRow: {
@@ -2594,7 +2597,9 @@ const styles = StyleSheet.create({
     flexDirection: "row", 
     alignItems: "center", 
     justifyContent: "center",
-    paddingVertical: 6,
+    minHeight: 36,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: "rgba(10, 126, 164, 0.08)"
   },

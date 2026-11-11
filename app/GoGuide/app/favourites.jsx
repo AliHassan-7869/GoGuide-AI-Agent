@@ -441,3 +441,4 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontBold,
   },
 });
+

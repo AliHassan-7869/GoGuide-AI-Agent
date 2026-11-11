@@ -3,6 +3,7 @@
 // Maps countries & cities to real IATA airports, operating airlines,
 // flight numbers, durations, baggage, and live Google Flights / Skyscanner deep-links.
 // =====================================================================
+import { deriveTripDates } from "./TripNormalizer";
 
 const AIRPORT_DIRECTORY = [
   // South Asia & Pakistan
@@ -218,16 +219,15 @@ export function buildFlightItinerary({
   const carrier = selectRouteCarrier(originInfo, destInfo);
 
   const numDays = Math.max(1, parseInt(days, 10) || 3);
-  const startObj = startDate ? new Date(startDate) : new Date();
-  const endObj = endDate
-    ? new Date(endDate)
-    : new Date(startObj.getTime() + Math.max(1, numDays - 1) * 24 * 60 * 60 * 1000);
+  const derived = deriveTripDates(startDate, numDays);
+  const startObj = derived.startDate;
+  const endObj = endDate ? new Date(endDate) : derived.endDate;
 
   const fmtDisplay = (d) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  const depDateStr = existingFlights?.departureDate || fmtDisplay(startObj);
-  const retDateStr = existingFlights?.returnDate || fmtDisplay(endObj);
+  const depDateStr = fmtDisplay(startObj);
+  const retDateStr = fmtDisplay(endObj);
 
   const tierLower = String(budget || "Moderate").toLowerCase();
   const cabinClass = tierLower.includes("luxury")

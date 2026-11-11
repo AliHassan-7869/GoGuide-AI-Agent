@@ -1,0 +1,26 @@
+---
+description: GoGuide AI Mobile Design System & UI/UX Rules
+globs: app/GoGuide/**/*.jsx,app/GoGuide/**/*.js,app/GoGuide/**/*.tsx,app/GoGuide/**/*.ts
+---
+
+# UI Guidelines & Design System Rules
+
+1. **Tokens File:** `app/GoGuide/Components/constants/theme.js`
+   - NEVER hard-code colors, spacing, or font sizes.
+   - Primary Accent: `#0A7EA4` (Teal).
+   - Purple `#8B5CF6` is reserved exclusively for AI badges and sparkle indicators.
+2. **Typography & Touch Targets:**
+   - Minimum label text: 12px.
+   - Minimum body copy: 14px.
+   - Minimum touch target: 44px × 44px.
+3. **Containers & Spacing:**
+   - Screen gutter: 16px.
+   - Bottom padding: `insets.bottom + 84` on all main scroll views.
+   - Horizontal carousels must have `overflow: 'visible'` and `contentContainerStyle={{ paddingHorizontal: 16 }}`.
+4. **Headers:**
+   - Standard inner-page header: `<ScreenHeader title subtitle onBack rightAction badgeText />`.
+   - Back arrow and title must use signature teal `#0A7EA4`.
+5. **Day-Plan Quality:**
+   - Never cycle days using modulo `%`.
+   - Post-generation validator: unique day titles, unique attractions across all days, ordered Morning -> Afternoon -> Evening.
+   - Single canonical date model: flights, dates, duration, hotel nights must derive from one source of truth.

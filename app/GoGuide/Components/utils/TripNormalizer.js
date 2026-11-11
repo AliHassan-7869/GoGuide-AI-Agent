@@ -1,4 +1,4 @@
-import { sanitizeTripCoordinates } from "./mapsLinks";
+import { sanitizeTripCoordinates } from "./mapsLinks.js";
 /**
  * Resilient JSON Parser
  * Recovers malformed LLM outputs: unquoted property names, single quotes,
@@ -276,4 +276,141 @@ export function normalizeTrip(raw) {
     packingList,
     expenses,
   });
+}
+
+/**
+ * Canonical Date & Duration Derivation (Single Source of Truth)
+ * Guarantees flights, hotel nights, day tabs, and calendar events are 100% aligned.
+ */
+export function deriveTripDates(startDateInput, totalDaysInput) {
+  let start = startDateInput ? new Date(startDateInput) : new Date();
+  if (isNaN(start.getTime())) {
+    start = new Date();
+  }
+  // Normalize to start of day
+  const startNorm = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const totalDays = Math.max(1, parseInt(totalDaysInput, 10) || 1);
+  const endNorm = new Date(startNorm.getTime() + Math.max(0, totalDays - 1) * 86400000);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const toIsoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const departureDate = toIsoDate(startNorm);
+  const returnDate = toIsoDate(endNorm);
+  const nights = Math.max(1, totalDays - 1);
+  const durationLabel = `${totalDays} Day${totalDays > 1 ? "s" : ""} ${nights} Night${nights > 1 ? "s" : ""}`;
+
+  const days = [];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  for (let i = 0; i < totalDays; i++) {
+    const cur = new Date(startNorm.getTime() + i * 86400000);
+    const dayIndex = i + 1;
+    days.push({
+      day: dayIndex,
+      date: toIsoDate(cur),
+      displayDate: `${dayNames[cur.getDay()]}, ${monthNames[cur.getMonth()]} ${cur.getDate()}`,
+      shortDate: `${cur.getDate()} ${monthNames[cur.getMonth()]}`,
+    });
+  }
+
+  return {
+    startDate: startNorm,
+    endDate: endNorm,
+    departureDate,
+    returnDate,
+    totalDays,
+    nights,
+    durationLabel,
+    days,
+  };
+}
+
+/**
+ * Normalizes an attraction name for deduplication comparison.
+ */
+function normalizePlaceName(name) {
+  if (!name || typeof name !== "string") return "";
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Post-Generation Trip Plan Validator
+ * Enforces quality guidelines:
+ * - Expected day count matches actual days
+ * - Unique attractions across the ENTIRE itinerary (no duplicate visits)
+ * - Unique themes across all days
+ * - Pacing: 2 to 5 stops per day
+ *
+ * Returns { isValid: boolean, errors: string[], warnings: string[] }
+ */
+export function validateTripPlan(plan, expectedDays = null) {
+  const errors = [];
+  const warnings = [];
+
+  if (!plan || typeof plan !== "object") {
+    return { isValid: false, errors: ["Plan payload is empty or invalid"], warnings: [] };
+  }
+
+  const itin = Array.isArray(plan.itinerary) ? plan.itinerary : [];
+  if (itin.length === 0) {
+    return { isValid: false, errors: ["Itinerary has 0 days"], warnings: [] };
+  }
+
+  if (expectedDays && typeof expectedDays === "number" && expectedDays > 0) {
+    if (itin.length !== expectedDays) {
+      errors.push(`Itinerary has ${itin.length} days; expected ${expectedDays} days`);
+    }
+  }
+
+  const seenPlaces = new Map(); // normalizedName -> day
+  const seenThemes = new Map(); // normalizedTheme -> day
+
+  itin.forEach((d, idx) => {
+    const dayNum = Number(d.day) || idx + 1;
+    const rawTheme = (d.theme || d.title || "").trim();
+    const normTheme = rawTheme.toLowerCase();
+
+    if (normTheme) {
+      if (seenThemes.has(normTheme)) {
+        errors.push(`Duplicate day theme "${rawTheme}" on Day ${dayNum} (previously seen on Day ${seenThemes.get(normTheme)})`);
+      } else {
+        seenThemes.set(normTheme, dayNum);
+      }
+    }
+
+    const activities = Array.isArray(d.activities) ? d.activities : [];
+    if (activities.length === 0) {
+      errors.push(`Day ${dayNum} has 0 activities`);
+    } else if (activities.length < 2) {
+      warnings.push(`Day ${dayNum} has only ${activities.length} activity (recommended: 2-5 stops)`);
+    } else if (activities.length > 5) {
+      warnings.push(`Day ${dayNum} has ${activities.length} activities (might be rushed; recommended: 2-5 stops)`);
+    }
+
+    activities.forEach((act) => {
+      const rawName = act.placeName || act.name || act.activity || act.title || "";
+      const normName = normalizePlaceName(rawName);
+
+      // Skip generic placeholder labels
+      if (!normName || normName === "city highlight" || normName === "scheduled") return;
+
+      if (seenPlaces.has(normName)) {
+        errors.push(`Duplicate attraction "${rawName}" found on Day ${dayNum} (already scheduled on Day ${seenPlaces.get(normName)})`);
+      } else {
+        seenPlaces.set(normName, dayNum);
+      }
+    });
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
 }

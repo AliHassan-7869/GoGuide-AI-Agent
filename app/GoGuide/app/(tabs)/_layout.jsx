@@ -4,12 +4,12 @@ import { useContext, useEffect, useRef } from "react";
 import { BackHandler, Platform, ToastAndroid } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../Components/constants/constants";
+import { useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 export default function TabLayout() {
-  const { preferences } = useContext(CreateTripContext);
   const insets = useSafeAreaInsets();
-  const isDark = preferences?.darkMode;
+  const theme = useTheme();
   const router = useRouter();
   const lastBack = useRef(0);
 
@@ -38,15 +38,15 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: Colors.PRIMARY,
-        tabBarInactiveTintColor: isDark ? "#888888" : "#999999",
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.subtext,
         sceneStyle: {
           flex: 1,
           overflow: "hidden",
         },
         tabBarStyle: {
-          backgroundColor: isDark ? "#121212" : "#FFFFFF",
-          borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          backgroundColor: theme.tabBar,
+          borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
           height: 58 + bottomInset,
           paddingBottom: bottomInset,
