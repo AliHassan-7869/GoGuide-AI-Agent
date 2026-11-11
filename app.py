@@ -83,12 +83,12 @@ REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lo
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
 # Tried in order. If one is down or overloaded, the next one is used.
-GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-2.0-flash,gemini-1.5-flash,gemini-2.5-flash").split(",") if m.strip()]
+GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3-flash-preview").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "mistralai/mistral-large-4-1t-a52b")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
 NVIDIA_TIMEOUT = (5, 55)
 AI_ERROR = "AI service error, please try again"
 
