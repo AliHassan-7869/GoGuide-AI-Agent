@@ -5,6 +5,7 @@ import { directionsUrl, placeUrl, routeUrl } from "../../Components/utils/mapsLi
 import { useCallback, useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar, useWindowDimensions } from "react-native";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
+import useBackDismiss from "../../hooks/useBackDismiss";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
@@ -86,7 +87,10 @@ export default function MyTrip() {
     default: 16,
   });
   const [loading, setLoading] = useState(false);
-  const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number
+  // Opens on Day 1 (one day at a time keeps the page short); "All Days" is still one tap away.
+  const [selectedDay, setSelectedDay] = useState(1); // "all" or day number
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  useBackDismiss(showMoreMenu, () => setShowMoreMenu(false));
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [essentials, setEssentials] = useState(null);
   const [bookedActivities, setBookedActivities] = useState({});
@@ -125,7 +129,7 @@ export default function MyTrip() {
   const dayScrollRef = useRef(null);
 
   // Collapsible Card States
-  const [weatherCollapsed, setWeatherCollapsed] = useState(false);
+  const [weatherCollapsed, setWeatherCollapsed] = useState(true); // summary first; tap to expand
   const [advisoryCollapsed, setAdvisoryCollapsed] = useState(false);
   const [essentialsCollapsed, setEssentialsCollapsed] = useState(false);
   const [expandedEssentials, setExpandedEssentials] = useState({});
@@ -1149,40 +1153,25 @@ export default function MyTrip() {
           </View>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete" 
-            style={[styles.iconButton, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]} 
-            onPress={() => handleDeleteTrip(tripData)}
-            activeOpacity={0.7}
+          <TouchableOpacity
+            style={[styles.iconButton, isSavedToTripsLocal && { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}
+            onPress={handleSaveCurrentTripToUserTrips}
+            accessibilityRole="button"
+            accessibilityLabel={isSavedToTripsLocal ? "Saved in My Trips" : "Save to My Trips"}
+            accessibilityState={{ selected: isSavedToTripsLocal }}
           >
-            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+            <Ionicons name={isSavedToTripsLocal ? "bookmark" : "bookmark-outline"} size={20} color={isSavedToTripsLocal ? "#10B981" : theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="View itinerary document" 
-            style={[styles.iconButton, { marginLeft: 6 }]} 
+          <TouchableOpacity
+            style={[styles.iconButton, { marginLeft: 8 }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowExportModal(true);
+              setShowMoreMenu(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="More trip actions"
           >
-            <Ionicons name="document-text-outline" size={18} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.iconButton, { marginLeft: 6 }, isSavedToTripsLocal && { backgroundColor: "rgba(16, 185, 129, 0.15)" }]} 
-            onPress={handleSaveCurrentTripToUserTrips}
-            accessibilityLabel="Save to Trips"
-          >
-            <Ionicons name={isSavedToTripsLocal ? "bookmark" : "bookmark-outline"} size={18} color={isSavedToTripsLocal ? "#10B981" : theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Choose date" 
-            style={[styles.iconButton, { marginLeft: 6 }]} 
-            onPress={addToCalendar}
-          >
-            <Ionicons name="calendar-outline" size={18} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add" 
-            style={[styles.iconButton, { marginLeft: 6 }]} 
-            onPress={createNewTrip}
-          >
-            <Ionicons name="add-circle" size={24} color={Colors.PRIMARY} />
+            <Ionicons name="ellipsis-horizontal" size={22} color={theme.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -1443,95 +1432,6 @@ export default function MyTrip() {
             </View>
           </View>
           </FadeInView>
-
-          {/* Separate Action Row below Hero: Save to Bookings | Download PDF | Share | Explore */}
-          <View style={styles.heroActionRow}>
-            <TouchableOpacity 
-              style={[styles.heroActionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={handleSaveToBookings}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="ticket-outline" size={16} color="#8B5CF6" />
-              <Text style={[styles.heroActionBtnText, { color: theme.text }]}>Bookings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.heroActionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={handleDirectDownloadPDF}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="download-outline" size={16} color="#10B981" />
-              <Text style={[styles.heroActionBtnText, { color: theme.text }]}>PDF</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.heroActionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={handleNativeShare}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="share-social-outline" size={16} color="#0EA5E9" />
-              <Text style={[styles.heroActionBtnText, { color: theme.text }]}>Share</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.heroActionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={() => router.push("/(tabs)/discover")}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="compass-outline" size={16} color={Colors.PRIMARY} />
-              <Text style={[styles.heroActionBtnText, { color: theme.text }]}>Explore</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Action Chips: 2x2 Grid with Equal Styling (min 44px touch targets) */}
-          <View style={styles.quickActionGrid}>
-            <TouchableOpacity 
-              style={[
-                styles.quickActionGridBtn, 
-                { backgroundColor: isSavedToTripsLocal ? "rgba(16, 185, 129, 0.15)" : theme.card, borderColor: isSavedToTripsLocal ? "#10B981" : theme.border }
-              ]} 
-              onPress={handleSaveCurrentTripToUserTrips}
-              activeOpacity={0.8}
-            >
-              <Ionicons name={isSavedToTripsLocal ? "checkmark-circle" : "bookmark"} size={18} color={isSavedToTripsLocal ? "#10B981" : Colors.PRIMARY} />
-              <Text style={[styles.quickActionGridLabel, { color: isSavedToTripsLocal ? "#10B981" : theme.text }]}>
-                {isSavedToTripsLocal ? "Saved in Trips" : "Save to Trips"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.quickActionGridBtn, { backgroundColor: theme.card, borderColor: theme.border }]} 
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/safety-alerts");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="shield-checkmark" size={18} color="#EF4444" />
-              <Text style={[styles.quickActionGridLabel, { color: theme.text }]}>Live Safety</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.quickActionGridBtn, { backgroundColor: theme.card, borderColor: theme.border }]} 
-              onPress={addToCalendar}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="calendar" size={18} color="#0284C7" />
-              <Text style={[styles.quickActionGridLabel, { color: theme.text }]}>Add Calendar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.quickActionGridBtn, { backgroundColor: theme.card, borderColor: theme.border }]} 
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/packing-checklist");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="bag-check" size={18} color="#8B5CF6" />
-              <Text style={[styles.quickActionGridLabel, { color: theme.text }]}>Packing List</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Collapsible Weather Card */}
           <View style={[styles.collapsibleCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -1886,13 +1786,15 @@ export default function MyTrip() {
                       <View style={styles.dayBadge}>
                         <Text style={styles.dayBadgeText}>Day {day.day}</Text>
                       </View>
-                      <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={1}>{day.theme}</Text>
+                      <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={2}>{day.theme}</Text>
                     </View>
-                    <View style={styles.dayCostBadge}>
-                      <Text style={styles.dayCostBadgeText}>
-                        ~{convertPriceString(estDayCost, preferences?.currency)}/day
-                      </Text>
-                    </View>
+                    {estDayCost > 0 ? (
+                      <View style={styles.dayCostBadge}>
+                        <Text style={styles.dayCostBadgeText}>
+                          ~{convertPriceString(`$${estDayCost}`, preferences?.currency)}/day
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   {/* Row 2: Progress Track ("X of Y completed") */}
@@ -2290,7 +2192,7 @@ export default function MyTrip() {
               {/* Live Price Slot (Ready for Part 4 live fare sync) */}
               <View style={styles.livePriceSlot}>
                 <Ionicons name="sparkles-outline" size={12} color="#0D9488" />
-                <Text style={styles.livePriceSlotText}>Live fares checked: Today</Text>
+                <Text style={styles.livePriceSlotText}>Estimated fares · check live prices below</Text>
               </View>
 
               {/* Price & Booking Callout */}
@@ -2497,6 +2399,44 @@ export default function MyTrip() {
         theme={theme}
       />
 
+      {/* "More" actions sheet: everything that used to crowd the header and the 8-button grid */}
+      <Modal visible={showMoreMenu} transparent animationType="fade" onRequestClose={() => setShowMoreMenu(false)} statusBarTranslucent>
+        <View style={styles.moreOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setShowMoreMenu(false)} accessibilityRole="button" accessibilityLabel="Close menu" />
+          <View style={[styles.moreSheet, { backgroundColor: theme.card, borderColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
+            <View style={[styles.moreHandle, { backgroundColor: theme.border }]} />
+            <Text style={[styles.moreTitle, { color: theme.text }]}>Trip actions</Text>
+            {[
+              { icon: "download-outline", label: "Download PDF", color: "#10B981", onPress: handleDirectDownloadPDF },
+              { icon: "document-text-outline", label: "Printable itinerary", color: theme.text, onPress: () => setShowExportModal(true) },
+              { icon: "share-social-outline", label: "Share trip", color: "#0EA5E9", onPress: handleNativeShare },
+              { icon: "calendar-outline", label: "Add to calendar", color: "#0284C7", onPress: addToCalendar },
+              { icon: "ticket-outline", label: "Save to My Bookings", color: "#8B5CF6", onPress: handleSaveToBookings },
+              { icon: "bag-check-outline", label: "Packing list", color: "#8B5CF6", onPress: () => router.push("/packing-checklist") },
+              { icon: "shield-checkmark-outline", label: "Live safety alerts", color: "#EF4444", onPress: () => router.push("/safety-alerts") },
+              { icon: "compass-outline", label: "Explore destinations", color: Colors.PRIMARY, onPress: () => router.push("/(tabs)/discover") },
+              { icon: "add-circle-outline", label: "Plan a new trip", color: Colors.PRIMARY, onPress: createNewTrip },
+              { icon: "trash-outline", label: "Delete this trip", color: "#EF4444", danger: true, onPress: () => handleDeleteTrip(tripData) },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.moreRow, item.danger && { borderTopWidth: 1, borderTopColor: theme.border, marginTop: 4 }]}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                onPress={() => {
+                  setShowMoreMenu(false);
+                  // let the sheet close before opening another modal or navigating
+                  setTimeout(() => item.onPress?.(), 150);
+                }}
+              >
+                <Ionicons name={item.icon} size={20} color={item.color} />
+                <Text style={[styles.moreRowText, { color: item.danger ? "#EF4444" : theme.text }]} maxFontSizeMultiplier={1.3}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
       {/* Interactive Day Route Map Modal */}
       <DayRouteModal
         visible={!!selectedDayForRoute}
@@ -2587,6 +2527,34 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     marginLeft: 2,
   },
+  // Day chips (styles were lost in the Part 2 redesign, so the chips rendered as bare text)
+  dayTabsScroll: { marginBottom: 12, flexGrow: 0 },
+  dayTabPill: {
+    minHeight: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  dayTabActive: { backgroundColor: Colors.PRIMARY, borderWidth: 1, borderColor: Colors.PRIMARY },
+  dayTabText: { fontSize: 14, fontFamily: "Outfit-Medium" },
+  dayTabTextActive: { color: "#FFFFFF", fontFamily: "Outfit-Bold" },
+  moreOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15, 23, 42, 0.55)" },
+  moreSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
+  },
+  moreHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 10 },
+  moreTitle: { fontSize: 16, fontFamily: "Outfit-Bold", marginBottom: 4, paddingHorizontal: 4 },
+  moreRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 48, paddingHorizontal: 4 },
+  moreRowText: { fontSize: 15, fontFamily: "Outfit-Medium", flexShrink: 1 },
   headerActions: { flexDirection: "row", alignItems: "center", flexShrink: 0, marginLeft: "auto" },
   iconButton: { 
     width: 44, 
