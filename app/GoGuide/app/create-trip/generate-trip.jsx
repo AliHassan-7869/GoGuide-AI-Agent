@@ -177,7 +177,7 @@ export default function GenerateTrip() {
 
     setLoading(false);
     // Navigate directly to the primary, beautiful My Trips tab that the user loves!
-    router.replace("/(tabs)/mytrip");
+    router.replace({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
   };
 
   const GenerateAiTrip = async (forceInstant = Boolean(tripData?.useInstant)) => {

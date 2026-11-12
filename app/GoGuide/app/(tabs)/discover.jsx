@@ -658,7 +658,7 @@ export default function Discover() {
       setAiLoading(false);
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
-      router.push("/(tabs)/mytrip");
+      router.push({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
     } catch (err) {
       console.error("[AI-Copilot] Generation error:", err);
       clearTimeout(stepTimer1);

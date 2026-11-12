@@ -62,6 +62,7 @@ function AppContent() {
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
         <Stack.Screen name="trip" options={{ headerShown: false }} />
+        <Stack.Screen name="my-trips" options={{ headerShown: false }} />
         <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
         <Stack.Screen name="terms-of-service" options={{ headerShown: false }} />
       </Stack>

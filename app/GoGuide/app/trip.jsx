@@ -574,10 +574,7 @@ export default function SharedTripView() {
                 if (router.canGoBack()) {
                   router.back();
                 } else {
-                  router.replace({
-                    pathname: "/(tabs)/profile",
-                    params: { openSaved: "true" },
-                  });
+                  router.replace("/my-trips");
                 }
                 return;
               }

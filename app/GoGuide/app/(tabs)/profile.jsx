@@ -647,10 +647,10 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => {
               triggerHaptic();
-              router.push("/(tabs)/mytrip");
+              router.push("/my-trips");
             }}
             accessibilityRole="button"
-            accessibilityLabel="Trips"
+            accessibilityLabel="My Trips"
             activeOpacity={0.7}
           >
             <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
@@ -971,7 +971,7 @@ export default function Profile() {
                             setTripData(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip });
                           }
                           setShowSavedTripsModal(false);
-                          router.push("/(tabs)/mytrip");
+                          router.push({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
                         }}
                       >
                         <Text style={styles.openTripBtnText}>Open Itinerary</Text>

@@ -1,8 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { openExternalUrl } from "../../Components/utils/openExternalUrl";
 import { directionsUrl, placeUrl, routeUrl } from "../../Components/utils/mapsLinks";
-import { useContext, useEffect, useState, useRef, useMemo } from "react";
+import { useCallback, useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar, useWindowDimensions } from "react-native";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -103,7 +103,19 @@ export default function MyTrip() {
   const [showNotificationBanner, setShowNotificationBanner] = useState(true);
   const [userTripsList, setUserTripsList] = useState([]);
   const [activeTripId, setActiveTripId] = useState(null);
-  const [showHubView, setShowHubView] = useState(false);
+  // Home always opens on the "Plan My Trip" hub (even if a trip was restored from storage).
+  // A trip's plan is shown only when the user opens it: a saved trip, My Trips, or a fresh generation
+  // (those navigate here with ?view=plan).
+  const [showHubView, setShowHubView] = useState(true);
+  const routeParams = useLocalSearchParams();
+  useFocusEffect(
+    useCallback(() => {
+      if (routeParams?.view === "plan") {
+        setShowHubView(false);
+        router.setParams({ view: "" });
+      }
+    }, [routeParams?.view, router])
+  );
 
   // Section Navigation & Scroll Tracking
   const [activeSection, setActiveSection] = useState("overview"); // overview, schedule, stays, flights, budget
@@ -1096,7 +1108,8 @@ export default function MyTrip() {
       
       {/* Top Header */}
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 6 }}>
+        {/* minWidth: on narrow phones the action buttons wrap to their own row instead of crushing the title */}
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 6, minWidth: 220 }}>
           <TouchableOpacity
             onPress={async () => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -2536,6 +2549,8 @@ const styles = StyleSheet.create({
   },
   header: { 
     flexDirection: 'row', 
+    flexWrap: 'wrap',
+    rowGap: 8,
     justifyContent: 'space-between', 
     alignItems: 'center', 
     paddingHorizontal: 16,
@@ -2572,7 +2587,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     marginLeft: 2,
   },
-  headerActions: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
+  headerActions: { flexDirection: "row", alignItems: "center", flexShrink: 0, marginLeft: "auto" },
   iconButton: { 
     width: 44, 
     height: 44, 
