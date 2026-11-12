@@ -454,9 +454,9 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
             }}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Plan my first trip"
+            accessibilityLabel="Plan my trip"
           >
-            <Text style={styles.primaryPlanBtnText} maxFontSizeMultiplier={1.3}>Plan My First Trip</Text>
+            <Text style={styles.primaryPlanBtnText} maxFontSizeMultiplier={1.3}>Plan My Trip</Text>
             <View style={styles.btnIconCircle}>
               <Ionicons name="rocket-outline" size={18} color={activeAccent} />
             </View>
