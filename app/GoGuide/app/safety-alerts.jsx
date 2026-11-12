@@ -13,6 +13,7 @@ import { fetchDestinationSafety } from '../Configs/AiModel';
 import ScreenHeader from '../Components/ui/ScreenHeader';
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 // Fallback Standard Data for Safety Alerts
 const safetyMockData = [
   {
@@ -131,7 +132,7 @@ export default function SafetyAlerts() {
       <ScreenHeader
         title="Safety Alerts"
         subtitle="Travel advisories, weather & emergency contacts"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
 
       <ScrollView

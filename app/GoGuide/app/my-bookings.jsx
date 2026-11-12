@@ -16,6 +16,7 @@ import { CreateTripContext } from "../context/CreateTripContext";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const STATUS_TABS = ["Upcoming", "Completed", "Cancelled"];
 const CATEGORY_FILTERS = ["All", "Hotels", "Flights", "Activities"];
 
@@ -117,7 +118,7 @@ export default function MyBookings() {
       <ScreenHeader
         title="My Bookings"
         subtitle="Digital boarding passes, hotel vouchers & tickets"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
 
       {/* Status Segmented Tabs */}

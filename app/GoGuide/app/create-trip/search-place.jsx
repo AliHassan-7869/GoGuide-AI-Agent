@@ -12,6 +12,7 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { goBack } from "../../Components/utils/navigation";
 const POPULAR_DESTINATIONS = [
   {
     name: "Tokyo",
@@ -289,7 +290,7 @@ export default function SearchPlace() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
-            router.back();
+            goBack(router);
           }}
           style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
         >

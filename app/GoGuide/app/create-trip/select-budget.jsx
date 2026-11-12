@@ -17,6 +17,7 @@ import {
 } from "../../Components/constants/Currency";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { goBack } from "../../Components/utils/navigation";
 export default function SelectBudget() {
   const router = useRouter();
   const theme = useTheme();
@@ -130,7 +131,7 @@ export default function SelectBudget() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
-            router.back();
+            goBack(router);
           }}
           style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
         >

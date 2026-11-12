@@ -12,6 +12,7 @@ import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { goBack } from "../../Components/utils/navigation";
 export default function SelectTraveler() {
   const router = useRouter();
   const theme = useTheme();
@@ -50,7 +51,7 @@ export default function SelectTraveler() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
-            router.back();
+            goBack(router);
           }}
           style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
         >

@@ -16,6 +16,7 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
+import { goBack } from "../../Components/utils/navigation";
 export default function TripSummer() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -120,7 +121,7 @@ export default function TripSummer() {
             style={styles.image}
             onError={() => setImgFailed(true)}
           />
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => goBack(router)}>
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
 

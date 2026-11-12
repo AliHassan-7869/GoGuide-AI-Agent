@@ -108,107 +108,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
             showsVerticalScrollIndicator={true}
             bounces={true}
           >
-            {isTerms ? (
-              <>
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  1. Acceptance of Terms
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  By downloading, accessing, or using GoGuide AI Travel Agent (&ldquo;the App&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, please discontinue using the application.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  2. AI-Generated Content Disclaimer
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  GoGuide utilizes advanced artificial intelligence models (including Google Gemini and DeepSeek) to generate customized travel itineraries, suggestions, safety advisories, and budget estimates.{"\n\n"}
-                  • AI recommendations are provided for informational and planning purposes only.{"\n"}
-                  • Travel conditions, opening hours, local pricing, flight schedules, visa requirements, and safety advisories can change rapidly.{"\n"}
-                  • Travelers are solely responsible for independently verifying details, local laws, and travel safety with official authorities.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  3. Bookings and Third-Party Links
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  The App may display links to third-party booking providers (e.g. Booking.com, Google Maps, airline portals). GoGuide does not process financial transactions for external stays, flights, or tickets and is not liable for bookings made through third-party platforms.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  4. User Accounts & Security
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  You are responsible for maintaining the confidentiality of your login credentials.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  5. Account Deletion & Termination
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  You have the right to permanently delete your account and all associated travel records at any time from your Profile Settings. Upon deletion, your data is irreversibly purged from our servers.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  6. Contact & Disputes
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  For any legal inquiries, questions about these terms, or support assistance, reach out to support@goguide.com or submit a ticket through our in-app Help Center.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  1. Information We Collect
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  We collect information necessary to deliver personalized AI travel experiences:{"\n\n"}
-                  • Account Information: Name, email address, profile avatar, and account credentials.{"\n"}
-                  • Travel Preferences: Desired destinations, trip duration, traveler type, budget tier, and curated activity interests.{"\n"}
-                  • Technical Data: Device model, operating system, and crash analytics for app reliability.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  2. How We Use Your Information
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  Your data is strictly utilized to:{"\n\n"}
-                  • Generate hyper-personalized multi-day day-by-day travel itineraries.{"\n"}
-                  • Synchronize your booked trips, wishlist favorites, and custom packing checklists across your devices.{"\n"}
-                  • Send critical security verification OTPs and trip departure notifications.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  3. Zero Third-Party Data Selling
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  We do NOT sell, rent, or trade your personal information or travel history to data brokers or advertising networks. Your data remains solely yours.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  4. Data Storage & Security
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  All user data is encrypted in transit using industry-standard TLS 1.3 and at rest using enterprise Firebase Firestore rules with strict user-level authentication scoping.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  5. Your Privacy Rights (GDPR & CCPA)
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  You have full ownership of your data:{"\n\n"}
-                  • Right to Access: View all your saved trips, bookings, and profile data anytime.{"\n"}
-                  • Right to Export: Export your itineraries and profile records as JSON from Account Settings.{"\n"}
-                  • Right to Erasure: Instantly delete your profile, trips, and authentication records permanently with one click.
-                </Text>
-
-                <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
-                  6. Contact Privacy Officer
-                </Text>
-                <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
-                  For privacy requests, GDPR inquiries, or data queries, contact our Data Protection Officer at privacy@goguide.com.
-                </Text>
-              </>
-            )}
+            <PolicyBody type={type} />
           </ScrollView>
 
           {/* Footer Action */}
@@ -232,6 +132,118 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
         </View>
       </View>
     </Modal>
+  );
+}
+
+/** The policy text itself, shared by the pop-up and the full-screen Privacy / Terms pages. */
+export function PolicyBody({ type = "terms" }) {
+  const theme = useTheme();
+  const isDark = theme.isDark;
+  const isTerms = type === "terms";
+  return (
+    <>
+    {isTerms ? (
+      <>
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          1. Acceptance of Terms
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          By downloading, accessing, or using GoGuide AI Travel Agent (&ldquo;the App&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, please discontinue using the application.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          2. AI-Generated Content Disclaimer
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          GoGuide utilizes advanced artificial intelligence models (including Google Gemini and DeepSeek) to generate customized travel itineraries, suggestions, safety advisories, and budget estimates.{"\n\n"}
+          • AI recommendations are provided for informational and planning purposes only.{"\n"}
+          • Travel conditions, opening hours, local pricing, flight schedules, visa requirements, and safety advisories can change rapidly.{"\n"}
+          • Travelers are solely responsible for independently verifying details, local laws, and travel safety with official authorities.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          3. Bookings and Third-Party Links
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          The App may display links to third-party booking providers (e.g. Booking.com, Google Maps, airline portals). GoGuide does not process financial transactions for external stays, flights, or tickets and is not liable for bookings made through third-party platforms.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          4. User Accounts & Security
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          You are responsible for maintaining the confidentiality of your login credentials.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          5. Account Deletion & Termination
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          You have the right to permanently delete your account and all associated travel records at any time from your Profile Settings. Upon deletion, your data is irreversibly purged from our servers.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          6. Contact & Disputes
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          For any legal inquiries, questions about these terms, or support assistance, reach out to support@goguide.com or submit a ticket through our in-app Help Center.
+        </Text>
+      </>
+    ) : (
+      <>
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          1. Information We Collect
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          We collect information necessary to deliver personalized AI travel experiences:{"\n\n"}
+          • Account Information: Name, email address, profile avatar, and account credentials.{"\n"}
+          • Travel Preferences: Desired destinations, trip duration, traveler type, budget tier, and curated activity interests.{"\n"}
+          • Technical Data: Device model, operating system, and crash analytics for app reliability.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          2. How We Use Your Information
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          Your data is strictly utilized to:{"\n\n"}
+          • Generate hyper-personalized multi-day day-by-day travel itineraries.{"\n"}
+          • Synchronize your booked trips, wishlist favorites, and custom packing checklists across your devices.{"\n"}
+          • Send critical security verification OTPs and trip departure notifications.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          3. Zero Third-Party Data Selling
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          We do NOT sell, rent, or trade your personal information or travel history to data brokers or advertising networks. Your data remains solely yours.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          4. Data Storage & Security
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          All user data is encrypted in transit using industry-standard TLS 1.3 and at rest using enterprise Firebase Firestore rules with strict user-level authentication scoping.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          5. Your Privacy Rights (GDPR & CCPA)
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          You have full ownership of your data:{"\n\n"}
+          • Right to Access: View all your saved trips, bookings, and profile data anytime.{"\n"}
+          • Right to Export: Export your itineraries and profile records as JSON from Account Settings.{"\n"}
+          • Right to Erasure: Instantly delete your profile, trips, and authentication records permanently with one click.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: isDark ? "#F8FAFC" : "#0F172A" }]}>
+          6. Contact Privacy Officer
+        </Text>
+        <Text style={[styles.paragraph, { color: isDark ? "#CBD5E1" : "#475569" }]}>
+          For privacy requests, GDPR inquiries, or data queries, contact our Data Protection Officer at privacy@goguide.com.
+        </Text>
+      </>
+    )}
+    </>
   );
 }
 
@@ -307,7 +319,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   paragraph: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: "Outfit-Regular",
     lineHeight: 21,
     marginBottom: 12,

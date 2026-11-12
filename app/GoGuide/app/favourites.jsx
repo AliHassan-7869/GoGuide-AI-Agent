@@ -24,6 +24,7 @@ import {
 import { selectHaptic, tapHaptic } from "../Components/utils/haptics";
 import { CreateTripContext } from "../context/CreateTripContext";
 
+import { goBack } from "../Components/utils/navigation";
 export default function Favourites() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -121,7 +122,7 @@ export default function Favourites() {
         title="Favourites"
         subtitle="Your saved destinations"
         badgeText={favorites.length}
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
 
       {loading ? (

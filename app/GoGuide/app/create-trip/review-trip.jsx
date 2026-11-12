@@ -17,6 +17,7 @@ import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
+import { goBack } from "../../Components/utils/navigation";
 export default function ReviewTrip() {
   const { tripData, setTripData } = useContext(CreateTripContext);
   const [isDeepPlan, setIsDeepPlan] = useState(false);
@@ -167,7 +168,7 @@ export default function ReviewTrip() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
-            router.back();
+            goBack(router);
           }}
           style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
         >

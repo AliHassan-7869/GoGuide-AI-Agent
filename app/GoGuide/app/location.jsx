@@ -13,6 +13,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../Configs/FirebaseConfig';
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const QUICK_CITIES = [
   { name: "Tokyo", country: "Japan", lat: 35.6764, lng: 139.65 },
   { name: "Dubai", country: "UAE", lat: 25.2048, lng: 55.2708 },
@@ -173,7 +174,7 @@ export default function LocationPage() {
         subtitle="Real-time conditions via Open-Meteo"
         onBack={() => {
           triggerHaptic();
-          router.back();
+          goBack(router);
         }}
       />
 

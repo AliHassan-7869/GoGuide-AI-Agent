@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import FavoriteHeartButton from '../Components/FavoriteHeartButton';
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const isKnownCategory = (id) => DESTINATION_CATEGORIES.some((c) => c.id === id);
 
 function DestinationImage({ uri, style }) {
@@ -90,7 +91,7 @@ export default function Explore() {
       <ScreenHeader
         title={activeInfo?.title || "Explore"}
         subtitle="Handpicked destinations & top-rated sights"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
 
       <View>

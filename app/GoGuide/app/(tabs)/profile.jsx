@@ -517,14 +517,14 @@ export default function Profile() {
       title: "Privacy Policy",
       subtitle: "Data protection, GDPR & traveler rights",
       icon: "shield-checkmark-outline",
-      onPress: () => setPolicyModal({ visible: true, type: "privacy" }),
+      onPress: () => router.push("/privacy-policy"),
     },
     {
       id: "terms",
       title: "Terms of Service",
       subtitle: "AI disclaimer, bookings & terms of use",
       icon: "document-text-outline",
-      onPress: () => setPolicyModal({ visible: true, type: "terms" }),
+      onPress: () => router.push("/terms-of-service"),
     },
   ];
 

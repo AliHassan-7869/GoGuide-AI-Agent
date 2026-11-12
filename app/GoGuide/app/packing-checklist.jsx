@@ -15,6 +15,7 @@ import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const STORAGE_PREFIX = "@goguide_packing_list_v1_";
 
 const CATEGORIES = [
@@ -752,7 +753,7 @@ export default function PackingChecklist() {
         subtitle={destinationName}
         onBack={() => {
           triggerHaptic("Light");
-          router.back();
+          goBack(router);
         }}
         rightAction={
           <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>

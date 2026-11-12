@@ -11,6 +11,7 @@ import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const Segments = ({ items, current, onSelect, label }) => {
   const theme = useTheme();
   return (
@@ -150,7 +151,7 @@ export default function Preferences() {
       <ScreenHeader
         title="Preferences"
         subtitle="Customise AI recommendations & display"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
 
       <ScrollView

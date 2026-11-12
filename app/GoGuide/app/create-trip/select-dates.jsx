@@ -12,6 +12,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
+import { goBack } from "../../Components/utils/navigation";
 const getTomorrow = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -449,7 +450,7 @@ export default function SelectDates() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
           onPress={() => {
             triggerHaptic();
-            router.back();
+            goBack(router);
           }}
           style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
         >

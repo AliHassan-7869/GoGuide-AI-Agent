@@ -21,6 +21,7 @@ import { useReduceMotion } from "../../hooks/useReduceMotion";
 const CURATED_CITIES_HINT = "Tokyo, Dubai, Paris, Istanbul, London and Lahore";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { goBack } from "../../Components/utils/navigation";
 // Visual progress only (the server does not report stages): four calm steps, advancing on a timer.
 const GENERATION_STEPS = [
   { text: "Analyzing preferences", icon: "options-outline" },
@@ -100,7 +101,7 @@ export default function GenerateTrip() {
   const handleCancel = () => {
     cancelledRef.current = true;
     setLoading(false);
-    router.back();
+    goBack(router);
   };
 
   const handleSaveAndProceed = async (plan) => {
@@ -489,7 +490,7 @@ export default function GenerateTrip() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={styles.offlineBtn} onPress={() => router.back()} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.offlineBtn} onPress={() => goBack(router)} activeOpacity={0.8}>
                 <Ionicons name="arrow-back-outline" size={15} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
                 <Text style={styles.offlineText}>Go Back</Text>
               </TouchableOpacity>

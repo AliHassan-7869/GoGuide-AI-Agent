@@ -14,6 +14,7 @@ import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+import { goBack } from "../Components/utils/navigation";
 const CATEGORIES = ["All", "AI Planner", "Budget & Trips", "Account & Offline"];
 
 const FAQS = [
@@ -272,7 +273,7 @@ export default function HelpCenter() {
       <ScreenHeader
         title="Help & Support"
         subtitle="Quick answers, AI assistance & direct support"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView

@@ -17,6 +17,7 @@ import { clearLocalUserData, deleteAllUserData, hasRecentLogin } from "../Compon
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 
+import { goBack } from "../Components/utils/navigation";
 const Field = ({ label, optional, badge, icon, right, ...inputProps }) => {
   const theme = useTheme();
   return (
@@ -342,7 +343,7 @@ export default function EditProfile() {
       <ScreenHeader
         title="Account & Security"
         subtitle="Manage your credentials, privacy & profile"
-        onBack={() => router.back()}
+        onBack={() => goBack(router)}
       />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView

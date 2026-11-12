@@ -10,6 +10,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Te
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
+import { goBack } from "../../../Components/utils/navigation";
 export default function Signup() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -176,7 +177,7 @@ export default function Signup() {
       >
       <View style={styles.card}>
         {/* Back */}
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => goBack(router, "/auth/sign-in")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={26} color={Colors.PRIMARY} />
         </TouchableOpacity>
 

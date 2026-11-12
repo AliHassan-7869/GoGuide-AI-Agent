@@ -8,9 +8,11 @@ import { useTheme } from "../Components/constants/theme";
 import { CreateTripProvider } from "../context/CreateTripContext";
 import ErrorBoundary from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
+import { installWebAlert } from "../Components/utils/webAlert";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 installAndroidTextDefaults();
+installWebAlert();
 
 function AppContent() {
   const { width } = useWindowDimensions();
@@ -60,6 +62,8 @@ function AppContent() {
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
         <Stack.Screen name="trip" options={{ headerShown: false }} />
+        <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+        <Stack.Screen name="terms-of-service" options={{ headerShown: false }} />
       </Stack>
     </>
   );
