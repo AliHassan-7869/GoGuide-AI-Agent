@@ -277,7 +277,7 @@ export default function SearchPlace() {
       toLocationImage: destinationImage,
     }));
 
-    router.push("/create-trip/select-traveler");
+    router.push("/create-trip/interest-page");
   };
 
   return (
@@ -305,7 +305,7 @@ export default function SearchPlace() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
       >
-        <StepProgressBar currentStep={1} totalSteps={6} stepTitle="Select Route" />
+        <StepProgressBar currentStep={1} totalSteps={5} stepTitle="Select Route" />
 
         <Text style={styles.heroPreTitle}>EXPLORE NEW HORIZONS</Text>
         <Text style={[styles.mainHeading, { color: theme.text }]}>Where does your journey begin?</Text>

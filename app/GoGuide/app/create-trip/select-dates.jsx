@@ -464,7 +464,7 @@ export default function SelectDates() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <StepProgressBar currentStep={4} totalSteps={6} stepTitle="Duration & Pace" />
+        <StepProgressBar currentStep={3} totalSteps={5} stepTitle="Duration & Pace" />
 
         <Text style={styles.heroPreTitle}>DURATION & PACE</Text>
         <Text style={[styles.heroTitle, { color: theme.text }]}>

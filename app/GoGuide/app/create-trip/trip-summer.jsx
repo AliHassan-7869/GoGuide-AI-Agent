@@ -87,7 +87,7 @@ export default function TripSummer() {
         photoRef: imageUri,
       },
     }));
-    router.push("/create-trip/select-traveler");
+    router.push("/create-trip/interest-page");
   };
 
   const handleInstantAIPlan = () => {

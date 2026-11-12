@@ -947,7 +947,7 @@ export default function YourInterest() {
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 84 }]}
         ListHeaderComponent={
           <View style={styles.headerArea}>
-            <StepProgressBar currentStep={3} totalSteps={6} stepTitle="Select Interests" />
+            <StepProgressBar currentStep={2} totalSteps={5} stepTitle="Select Interests" />
             <Text style={[styles.heroPreTitle, { color: Colors.PRIMARY }]}>TRIP DNA</Text>
             <View style={styles.titleBadgeRow}>
               <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">

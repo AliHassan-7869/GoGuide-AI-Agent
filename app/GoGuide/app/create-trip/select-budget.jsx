@@ -9,6 +9,7 @@ import { Colors } from "../../Components/constants/constants";
 import { useTheme } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
+import { SelectTravelerList } from "../../Components/constants/Option";
 import {
   CURRENCY_RATES,
   detectCurrencyFromLocation,
@@ -23,6 +24,9 @@ export default function SelectBudget() {
   const theme = useTheme();
   const { tripData, setTripData } = useContext(CreateTripContext);
   const [selectedBudget, setSelectedBudget] = useState(tripData?.budget || null);
+  // Travellers were a separate step; they now live here with the budget (wizard is 5 steps).
+  const [selectedTraveler, setSelectedTraveler] = useState(tripData?.traveler || null);
+  const canContinue = Boolean(selectedTraveler && selectedBudget);
   const [customAmount, setCustomAmount] = useState(tripData?.customBudgetAmount ? String(tripData.customBudgetAmount) : "");
   const [isCustomMode, setIsCustomMode] = useState(Boolean(tripData?.isCustomBudget || (tripData?.budget && tripData.budget.startsWith("Custom:"))));
 
@@ -95,9 +99,15 @@ export default function SelectBudget() {
     }
   };
 
+  const handleSelectTraveler = (item) => {
+    triggerHaptic();
+    setSelectedTraveler(item);
+    setTripData((prev) => ({ ...prev, traveler: item }));
+  };
+
   const handleContinue = () => {
     triggerHaptic();
-    if (!selectedBudget) return;
+    if (!canContinue) return;
 
     let finalBudgetString = selectedBudget;
     let numericCustom = null;
@@ -109,6 +119,7 @@ export default function SelectBudget() {
 
     setTripData((prev) => ({
       ...prev,
+      traveler: selectedTraveler,
       budget: finalBudgetString,
       isCustomBudget: Boolean(isCustomMode && numericCustom),
       customBudgetAmount: numericCustom,
@@ -137,7 +148,7 @@ export default function SelectBudget() {
         >
           <Ionicons name="arrow-back" size={20} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Trip Budget</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Travellers & Budget</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -145,9 +156,44 @@ export default function SelectBudget() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <StepProgressBar currentStep={5} totalSteps={6} stepTitle="Select Budget" />
+        <StepProgressBar currentStep={4} totalSteps={5} stepTitle="Travellers & Budget" />
 
-        <Text style={styles.heroPreTitle}>FINANCIAL COMFORT</Text>
+        {/* WHO IS TRAVELLING (merged from the old Travellers step) */}
+        <Text style={styles.heroPreTitle}>COMPANIONS</Text>
+        <Text style={[styles.mainHeading, { color: theme.text }]}>{"Who's travelling?"}</Text>
+        <Text style={[styles.subHeading, { color: theme.subtext }]}>Choose one. AI tailors stays and activities to your group.</Text>
+        <View style={styles.travelerGrid} accessibilityRole="radiogroup">
+          {SelectTravelerList.map((item) => {
+            const isSelected = selectedTraveler?.id === item.id;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => handleSelectTraveler(item)}
+                activeOpacity={0.85}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={`${item.title}, ${item.people}`}
+                style={[
+                  styles.travelerCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: isSelected ? activeAccent : theme.border,
+                    borderWidth: isSelected ? 2 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.travelerTopRow}>
+                  <Text style={styles.travelerEmoji}>{item.icon}</Text>
+                  {isSelected ? <Ionicons name="checkmark-circle" size={20} color={activeAccent} /> : null}
+                </View>
+                <Text style={[styles.travelerTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{item.title}</Text>
+                <Text style={[styles.travelerPeople, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{item.people}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.heroPreTitle, { marginTop: 24 }]}>FINANCIAL COMFORT</Text>
         <Text style={[styles.mainHeading, { color: theme.text }]}>Choose your spending style</Text>
         <Text style={[styles.subHeading, { color: theme.subtext }]}>
           Our AI tailors hotel ratings, dining experiences, and activity prices to your tier.
@@ -194,6 +240,9 @@ export default function SelectBudget() {
               <TouchableOpacity
                 key={b.id}
                 onPress={() => handleSelectBudget(b.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={`Budget: ${b.label}`}
                 activeOpacity={0.8}
                 style={[
                   styles.budgetCard,
@@ -471,17 +520,21 @@ export default function SelectBudget() {
       >
         <TouchableOpacity
           onPress={handleContinue}
-          disabled={!selectedBudget}
+          disabled={!canContinue}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canContinue }}
           activeOpacity={0.85}
           style={[
             styles.continueBtn,
             {
-              backgroundColor: selectedBudget ? activeAccent : theme.border,
-              opacity: selectedBudget ? 1 : 0.6,
+              backgroundColor: canContinue ? activeAccent : theme.border,
+              opacity: canContinue ? 1 : 0.6,
             },
           ]}
         >
-          <Text style={styles.continueBtnText}>Continue to Review</Text>
+          <Text style={styles.continueBtnText}>
+            {canContinue ? "Continue to Review" : !selectedTraveler ? "Choose who's travelling" : "Choose a budget"}
+          </Text>
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
@@ -684,6 +737,37 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  travelerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 4,
+  },
+  travelerCard: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    minHeight: 92,
+    borderRadius: 16,
+    padding: 12,
+  },
+  travelerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  travelerEmoji: {
+    fontSize: 24,
+  },
+  travelerTitle: {
+    fontSize: 15,
+    fontFamily: "Outfit-Bold",
+  },
+  travelerPeople: {
+    fontSize: 12,
+    fontFamily: "Outfit-Regular",
+    marginTop: 2,
   },
   footerContainer: {
     paddingHorizontal: 20,

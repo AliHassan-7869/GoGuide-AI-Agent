@@ -182,7 +182,7 @@ export default function ReviewTrip() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <StepProgressBar currentStep={6} totalSteps={6} stepTitle="Final Verification" />
+        <StepProgressBar currentStep={5} totalSteps={5} stepTitle="Final Verification" />
 
         <Text style={styles.heroPreTitle}>FINAL VERIFICATION</Text>
         <Text style={[styles.heroTitle, { color: theme.text }]}>
@@ -339,7 +339,7 @@ export default function ReviewTrip() {
             {/* Travelers */}
             <TouchableOpacity
               style={styles.matrixItem}
-              onPress={() => router.push("/create-trip/select-traveler")}
+              onPress={() => router.push("/create-trip/select-budget")}
               activeOpacity={0.7}
             >
               <View style={styles.matrixHeaderRow}>
