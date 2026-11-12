@@ -269,3 +269,12 @@ def test_destination_input_rejected(client, providers, dest):
     res = client.post("/destination/safety", json={"destination": dest}, headers=USER_HEADERS)
     assert res.status_code in (400, 422)
     assert providers.calls == []
+
+
+def test_copilot_is_told_not_to_write_full_itineraries(client, providers):
+    """The Copilot helps; full plans come from the trip planner (they can be saved, mapped, budgeted)."""
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    sent = str(providers.calls[0].get("json"))
+    assert "NO FULL ITINERARIES" in sent
+    assert "Plan this trip" in sent

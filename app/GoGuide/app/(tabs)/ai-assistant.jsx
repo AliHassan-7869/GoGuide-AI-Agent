@@ -23,10 +23,18 @@ const nowTime = () => new Date().toLocaleTimeString(undefined, { hour: "numeric"
 
 const PROMPT_CARDS = [
   { icon: "restaurant-outline", title: "Halal food in Istanbul", query: "What are the best halal food spots in Istanbul?" },
-  { icon: "wallet-outline", title: "3-day budget plan", query: "Plan a 3-day budget trip for me with daily costs." },
+  { icon: "wallet-outline", title: "Budget tips for my trip", query: "Give me practical budget tips for my trip: daily costs, cheap eats and free things to do." },
   { icon: "partly-sunny-outline", title: "Weather & packing tips", query: "What is the expected weather and what essential items should I pack?" },
   { icon: "location-outline", title: "Hidden gems near me", query: "What are the top hidden gems near me, off the beaten tourist path?" },
 ];
+
+/**
+ * The Copilot helps with questions; full plans come from the trip planner (saved, mapped, budgeted).
+ * When the user asks for a plan, the reply gets a "Plan this trip" button that opens the planner.
+ */
+const PLAN_REQUEST_RE =
+  /\b(plan|itinerary|schedule|bana\s*do|banao)\b[\s\S]*\b(trip|tour|days?|din|week|weekend|itinerary|vacation|holiday)\b|\b\d+\s*-?\s*(days?|din|nights?)\b[\s\S]*\b(trip|plan|itinerary|in|to)\b|\b(plan|create|make|build|generate)\s+(a|my|me\s+a)\b[\s\S]*\b(trip|itinerary)\b/i;
+const isPlanRequest = (text) => PLAN_REQUEST_RE.test(String(text || ""));
 
 const QUICK_CHIPS = [
   { label: "🍜 Best Local & Halal Food", query: "What are the top local and halal food spots I must try?" },
@@ -246,6 +254,7 @@ export default function AiAssistant() {
         sender: "ai",
         text: aiReplyText,
         time: nowTime(),
+        showPlanCta: isPlanRequest(textToSend),
       };
 
       const finalMsgs = [...updatedWithUser, aiMsg];
@@ -345,6 +354,19 @@ export default function AiAssistant() {
 
           {/* Markdown-parsed message body without raw asterisks */}
           <FormattedMarkdownText text={item.text} isAi={isAi} theme={theme} />
+
+          {isAi && item.showPlanCta ? (
+            <TouchableOpacity
+              onPress={() => router.push("/create-trip/search-place")}
+              accessibilityRole="button"
+              accessibilityLabel="Plan this trip with the trip planner"
+              style={[styles.planCtaBtn, { backgroundColor: Colors.PRIMARY }]}
+            >
+              <Ionicons name="map-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.planCtaText} maxFontSizeMultiplier={1.3}>Plan this trip</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : null}
 
           <Text
             maxFontSizeMultiplier={1.3}
@@ -623,6 +645,18 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   liveModelText: { fontSize: Typography.sizeSm, color: AI_ACCENT, fontFamily: Typography.fontMedium },
+  planCtaBtn: {
+    marginTop: 10,
+    minHeight: 44,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+  },
+  planCtaText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
   messageTime: { fontSize: Typography.sizeSm, marginTop: 6, fontFamily: Typography.fontRegular },
   welcomeWrap: { marginTop: Spacing.lg },
   welcomeTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold, marginBottom: Spacing.md },
