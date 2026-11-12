@@ -1218,6 +1218,14 @@ export default function MyTrip() {
             );
           })}
         </ScrollView>
+        {/* Right-edge fade: hints that the tab row scrolls (last tab is otherwise cut off on small phones) */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={[theme.bg + "00", theme.bg]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.stickyNavFade}
+        />
       </View>
 
       <ScrollView
@@ -2720,8 +2728,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     zIndex: 30,
   },
+  stickyNavFade: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 40,
+  },
   stickyNavScroll: {
     paddingHorizontal: 16,
+    paddingRight: 40, // last tab can scroll fully clear of the fade
     gap: 8,
     alignItems: "center",
   },

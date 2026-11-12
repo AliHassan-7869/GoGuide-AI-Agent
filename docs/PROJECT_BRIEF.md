@@ -59,5 +59,5 @@ GoGuide AI is a premium, AI-powered travel planning companion and real-time co-p
 - Standardize British/Commonwealth spelling: "Favourites" (not "Favorites").
 - Capitalize categories ("Cities", not "cities").
 - Render markdown in AI bubbles (no raw `**` asterisks).
-- Discover placeholder: "e.g. 5 days in Istanbul from Lahore".
+- Discover placeholder: "e.g. 5 days in Istanbul" (short enough to fit on 360px phones).
 

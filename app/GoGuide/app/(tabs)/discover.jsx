@@ -841,7 +841,7 @@ export default function Discover() {
               <Ionicons name="sparkles" size={18} color={AI_ACCENT} style={styles.inputLeadIcon} />
               <TextInput
                 style={[styles.aiTextInput, { color: themeStyles.textColor }]}
-                placeholder="e.g. 5 days in Istanbul from Lahore"
+                placeholder="e.g. 5 days in Istanbul"
                 placeholderTextColor={themeStyles.subTextColor}
                 value={aiPrompt}
                 onChangeText={handleAiPromptChange}
