@@ -1,6 +1,8 @@
 import React, { useRef, useCallback } from "react";
 import { Pressable, StyleSheet } from "react-native";
 
+const PRESS_SCALE = { transform: [{ scale: 0.98 }] };
+
 const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 
 /**
@@ -45,6 +47,8 @@ const Touchable = React.forwardRef(function Touchable(
       style={(state) => [
         typeof style === "function" ? style(state) : style,
         state.pressed && !android_ripple ? { opacity: activeOpacity } : null,
+        // 0.98 press feedback, skipped when the element already sets its own transform
+        state.pressed && !disabled && !hasOwnTransform(style, state) ? PRESS_SCALE : null,
         disabled ? styles.disabled : null,
       ]}
       {...rest}
@@ -53,6 +57,11 @@ const Touchable = React.forwardRef(function Touchable(
     </Pressable>
   );
 });
+
+function hasOwnTransform(style, state) {
+  const flat = StyleSheet.flatten(typeof style === "function" ? style(state) : style);
+  return Boolean(flat && flat.transform);
+}
 
 const styles = StyleSheet.create({ disabled: { opacity: 0.5 } });
 

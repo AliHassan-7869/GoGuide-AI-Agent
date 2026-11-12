@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Outfit-Bold',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   rangeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Outfit-Regular',
   },
   adviceText: {

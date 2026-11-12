@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   heroPreTitle: {
     color: "#0A7EA4",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     marginTop: 8,

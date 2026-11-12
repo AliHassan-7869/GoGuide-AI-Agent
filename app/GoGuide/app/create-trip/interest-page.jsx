@@ -1,18 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
+import { doc, setDoc } from "firebase/firestore";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
-
-import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
-import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
-import { fetchDestinationInterests } from "../../Configs/AiModel";
-import { CreateTripContext } from "../../context/CreateTripContext";
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Colors } from "../../Components/constants/constants";
+import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
+import EmptyState from "../../Components/ui/EmptyState";
+import FadeInView from "../../Components/ui/FadeInView";
+import ScreenHeader from "../../Components/ui/ScreenHeader";
+import { Skeleton } from "../../Components/ui/Skeleton";
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
+import { fetchDestinationInterests } from "../../Configs/AiModel";
+import { auth, db } from "../../Configs/FirebaseConfig";
+import { CreateTripContext } from "../../context/CreateTripContext";
+
+const GUTTER = Spacing.lg;
+
 // Distinct category colors for visual distinction
 const getCategoryBadgeStyle = (category, isDark) => {
   switch (category) {
@@ -63,83 +71,110 @@ const getCategoryBadgeStyle = (category, isDark) => {
   }
 };
 
+
+// ---- Icon helpers: split "🕌 Name" into icon + title and keep icons unique per list ----
+const hasLetterOrDigit = (s) => /[A-Za-z0-9À-ɏ؀-ۿ]/.test(s);
+const splitIcon = (name = "") => {
+  const trimmed = String(name).trim();
+  const idx = trimmed.indexOf(" ");
+  if (idx > 0 && !hasLetterOrDigit(trimmed.slice(0, idx))) {
+    return { icon: trimmed.slice(0, idx), title: trimmed.slice(idx + 1).trim() };
+  }
+  return { icon: "", title: trimmed };
+};
+
+const ICON_POOLS = {
+  History: ["🏛️", "🕌", "⛪", "🏰", "🕍", "⛩️", "🗿", "🏺", "📜", "🎭", "🕰️", "🗽"],
+  Museum: ["🏛️", "🖼️", "🏺", "📜", "🎨"],
+  Nature: ["🌳", "🏞️", "🌊", "⛰️", "🌋", "🌲", "🏜️", "🦋", "🌿", "🍁"],
+  Adventure: ["🥾", "🧗", "🚵", "🪂", "🛶"],
+  Beaches: ["🏖️", "🌊", "🏝️", "🐚", "⛱️", "🐠"],
+  Viewpoint: ["👀", "🗼", "🎡", "🌄", "🔭", "🌇"],
+  Food: ["🍴", "☕", "🍲", "🍜", "🍣", "🥐", "🍰", "🍝", "🥘", "🍢"],
+  Shopping: ["🛍️", "🧵", "🏬", "🎁", "👜"],
+  Attraction: ["📍", "🎬", "🎢", "🎪", "⛲", "🦁"],
+};
+const GENERIC_ICONS = ["📍", "🧭", "✨", "🎯", "🗺️", "📸", "🎈", "🔖", "🏷️", "🌟"];
+
+/** Returns the list with a unique leading icon per item (where distinct ones are available). */
+const dedupeInterestIcons = (list) => {
+  const used = new Set();
+  return list.map((item) => {
+    const { icon, title } = splitIcon(item.name);
+    let chosen = icon;
+    if (!chosen || used.has(chosen)) {
+      const pool = [...(ICON_POOLS[item.category] || []), ...GENERIC_ICONS];
+      chosen = pool.find((p) => !used.has(p)) || icon || "📍";
+    }
+    used.add(chosen);
+    return { ...item, _icon: chosen, _title: title };
+  });
+};
+
 const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
-  const fadeAnim = useMemo(() => new Animated.Value(0), []);
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      delay: Math.min(index * 40, 300),
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
+  const [wrapped, setWrapped] = useState(false);
+  const accent = Colors.PRIMARY;
   const catStyle = getCategoryBadgeStyle(item.category, theme.isDark);
+  const badge = item.category ? (
+    <View style={[styles.categoryBadge, { backgroundColor: catStyle.bg, borderColor: catStyle.border }]}>
+      <Text style={[styles.categoryText, { color: catStyle.text }]} numberOfLines={1}>
+        {item.category}
+      </Text>
+    </View>
+  ) : null;
 
   return (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [
-          {
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [12, 0],
-            }),
-          },
-        ],
-      }}
-    >
+    <FadeInView index={index}>
       <TouchableOpacity
         activeOpacity={0.85}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isSelected }}
+        accessibilityLabel={`${item._title}${item.category ? `, ${item.category}` : ""}`}
+        accessibilityHint={item.description || undefined}
         style={[
           styles.card,
           {
-            backgroundColor: theme.card,
-            borderColor: isSelected
-              ? Colors.PRIMARY
-              : theme.isDark
-              ? "#2C2C2C"
-              : Colors.LIGHT_GRAY,
+            backgroundColor: isSelected ? (theme.isDark ? "rgba(10, 126, 164, 0.12)" : "rgba(10, 126, 164, 0.06)") : theme.card,
+            borderColor: isSelected ? accent : theme.border,
           },
-          isSelected && [
-            styles.selectedCard,
-            { backgroundColor: theme.isDark ? "rgba(10, 126, 164, 0.1)" : "#F0F9FF" },
-          ],
         ]}
         onPress={() => onPress(item.id)}
       >
         <View style={styles.cardHeader}>
-          <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
-          <View style={styles.cardHeaderRight}>
-            {item.category && (
-              <View
-                style={[
-                  styles.categoryBadge,
-                  { backgroundColor: catStyle.bg, borderColor: catStyle.border },
-                ]}
+          <Text style={styles.cardIcon} accessibilityElementsHidden importantForAccessibility="no">
+            {item._icon}
+          </Text>
+          <View style={styles.cardTextCol}>
+            <View style={styles.cardTitleRow}>
+              <Text
+                style={[styles.cardName, { color: theme.text }]}
+                onTextLayout={(e) => {
+                  if (!wrapped && e?.nativeEvent?.lines?.length > 1) setWrapped(true);
+                }}
               >
-                <Text style={[styles.categoryText, { color: catStyle.text }]}>
-                  {item.category}
-                </Text>
-              </View>
-            )}
-            <Ionicons
-              name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-              size={22}
-              color={isSelected ? Colors.PRIMARY : theme.isDark ? "#555" : "#D1D5DB"}
-              style={{ marginLeft: 8 }}
-            />
+                {item._title}
+              </Text>
+              {!wrapped ? badge : null}
+            </View>
+            {wrapped ? <View style={styles.badgeUnder}>{badge}</View> : null}
+            {item.description ? (
+              <Text style={[styles.cardDescription, { color: theme.subtext }]}>{item.description}</Text>
+            ) : null}
+          </View>
+          <View
+            style={[
+              styles.checkbox,
+              {
+                borderColor: isSelected ? accent : theme.subtext,
+                backgroundColor: isSelected ? accent : "transparent",
+              },
+            ]}
+          >
+            {isSelected ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
           </View>
         </View>
-        {item.description && (
-          <Text style={[styles.cardDescription, { color: theme.subtext }]}>
-            {item.description}
-          </Text>
-        )}
       </TouchableOpacity>
-    </Animated.View>
+    </FadeInView>
   );
 };
 
@@ -466,13 +501,7 @@ export default function YourInterest() {
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale || "en";
   const lang = deviceLocale.split("-")[0]?.toLowerCase() || "en";
 
-  const triggerHaptic = () => {
-    try {
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-    } catch (e) {}
-  };
+  const triggerHaptic = () => tapHaptic();
 
   const parseCoord = (v) => {
     const n = typeof v === "string" ? Number(v) : v;
@@ -789,7 +818,8 @@ export default function YourInterest() {
         console.log("[Interests] Nominatim search note:", nomErr.message);
       }
     } catch (error) {
-      console.error("[Interests] Error fetching interests:", error);
+      console.log("[Interests] Error fetching interests:", error?.message);
+      setErrorMessage("We couldn't load live highlights. Check your connection and try again.");
     } finally {
       setLoadingInterests(false);
     }
@@ -843,13 +873,27 @@ export default function YourInterest() {
     return placesList.filter((p) => (p.category || "General") === activeCategory);
   }, [placesList, activeCategory]);
 
+  const displayPlaces = useMemo(() => dedupeInterestIcons(filteredPlaces), [filteredPlaces]);
+
   const togglePlace = (id) => {
-    triggerHaptic();
+    selectHaptic();
     if (selectedPlaces.includes(id)) {
       setSelectedPlaces(selectedPlaces.filter((p) => p !== id));
     } else {
       setSelectedPlaces([...selectedPlaces, id]);
     }
+  };
+
+  const persistSavedInterests = (names) => {
+    (async () => {
+      try {
+        await AsyncStorage.setItem("@goguide_saved_interests", JSON.stringify(names));
+      } catch (e) {}
+      try {
+        const uid = auth?.currentUser?.uid;
+        if (uid) await setDoc(doc(db, "users", uid), { savedInterests: names }, { merge: true });
+      } catch (e) {}
+    })();
   };
 
   const handleContinue = () => {
@@ -866,6 +910,13 @@ export default function YourInterest() {
         new Set(selectedInterestItems.map((i) => i.category).filter(Boolean))
       );
 
+      // Persist chosen interest names to the user profile (additive field; never blocks navigation)
+      const savedNames = dedupeInterestIcons(placesList)
+        .filter((p) => selectedPlaces.includes(p.id))
+        .map((p) => p._title)
+        .filter(Boolean);
+      persistSavedInterests(savedNames);
+
       setTripData((prev) => ({
         ...prev,
         interests: selectedPlaces,
@@ -878,114 +929,89 @@ export default function YourInterest() {
     }
   };
 
+  const selectedCount = selectedPlaces.length;
+  const showSkeleton = loadingInterests && placesList.length === 0;
+  const showFatalError = !!errorMessage && !loadingInterests && placesList.length === 0;
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Top Header Bar with Back Button */}
-      <View style={[styles.topBar, { borderBottomColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            router.back();
-          }}
-          style={[styles.backButton, { backgroundColor: theme.isDark ? "#262626" : "#F3F4F6" }]}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.topBarTitle, { color: theme.subtext }]}>Step 3 of 6</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Your interests" />
 
       <FlatList
-        data={filteredPlaces}
+        data={showSkeleton || showFatalError ? [] : displayPlaces}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={() => (
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 84 }]}
+        ListHeaderComponent={
           <View style={styles.headerArea}>
             <StepProgressBar currentStep={3} totalSteps={6} stepTitle="Select Interests" />
-            <Text style={styles.heroPreTitle}>TRIP DNA</Text>
+            <Text style={[styles.heroPreTitle, { color: Colors.PRIMARY }]}>TRIP DNA</Text>
             <View style={styles.titleBadgeRow}>
-              <Text style={[styles.title, { color: theme.text }]}>What excites you most?</Text>
-              {selectedPlaces.length > 0 && (
-                <View style={styles.counterBadge}>
-                  <Text style={styles.counterBadgeText}>
-                    {selectedPlaces.length} Selected
-                  </Text>
+              <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+                What excites you most?
+              </Text>
+              {selectedCount > 0 && (
+                <View
+                  style={[styles.counterBadge, { backgroundColor: theme.isDark ? "rgba(10, 126, 164, 0.22)" : "rgba(10, 126, 164, 0.12)" }]}
+                  accessibilityLiveRegion="polite"
+                >
+                  <Text style={[styles.counterBadgeText, { color: Colors.PRIMARY }]}>{selectedCount} Selected</Text>
                 </View>
               )}
             </View>
             <Text style={[styles.subtitle, { color: theme.subtext }]}>
               Curated highlights for{" "}
-              <Text style={styles.locationHighlight}>{destinationName}</Text>
+              <Text style={[styles.locationHighlight, { color: Colors.PRIMARY }]}>{destinationName}</Text>
             </Text>
+            <Text style={[styles.helperText, { color: theme.subtext }]}>Select all that interest you</Text>
 
-            {/* Dynamic Recommendations Chips Bar */}
             {availableCategories.length > 1 && !loadingInterests && (
               <View style={styles.categorySection}>
-                <Text style={[styles.categoryHeading, { color: theme.subtext }]}>
-                  RECOMMENDED CATEGORIES FOR {destinationName.toUpperCase()}
+                <Text style={[styles.categoryHeading, { color: theme.subtext }]} numberOfLines={1}>
+                  Categories for {destinationName}
                 </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
+                  style={styles.categoryScrollWrap}
                   contentContainerStyle={styles.categoryScroll}
+                  accessibilityLabel="Filter by category"
                 >
                   {availableCategories.map((cat) => {
                     const isActive = activeCategory === cat.id;
                     return (
                       <TouchableOpacity
                         key={cat.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${cat.label}, ${cat.count} places`}
+                        accessibilityState={{ selected: isActive }}
                         style={[
                           styles.categoryChip,
                           {
-                            backgroundColor: isActive
-                              ? Colors.PRIMARY
-                              : theme.isDark
-                              ? "#1F1F1F"
-                              : "#F3F4F6",
-                            borderColor: isActive
-                              ? Colors.PRIMARY
-                              : theme.isDark
-                              ? "#333333"
-                              : "#E5E7EB",
+                            backgroundColor: isActive ? Colors.PRIMARY : theme.card,
+                            borderColor: isActive ? Colors.PRIMARY : theme.border,
                           },
                         ]}
                         onPress={() => {
-                          triggerHaptic();
+                          selectHaptic();
                           setActiveCategory(cat.id);
                         }}
                         activeOpacity={0.75}
                       >
                         <Text style={styles.categoryChipIcon}>{cat.icon}</Text>
-                        <Text
-                          style={[
-                            styles.categoryChipLabel,
-                            { color: isActive ? "#FFFFFF" : theme.text },
-                          ]}
-                        >
+                        <Text style={[styles.categoryChipLabel, { color: isActive ? "#FFFFFF" : theme.text }]}>
                           {cat.label}
                         </Text>
                         <View
                           style={[
                             styles.countBadge,
-                            {
-                              backgroundColor: isActive
-                                ? "rgba(255, 255, 255, 0.25)"
-                                : theme.isDark
-                                ? "#333"
-                                : "#E5E7EB",
-                            },
+                            { backgroundColor: isActive ? "rgba(255, 255, 255, 0.25)" : theme.border },
                           ]}
                         >
-                          <Text
-                            style={[
-                              styles.countBadgeText,
-                              { color: isActive ? "#FFFFFF" : theme.subtext },
-                            ]}
-                          >
+                          <Text style={[styles.countBadgeText, { color: isActive ? "#FFFFFF" : theme.subtext }]}>
                             {cat.count}
                           </Text>
                         </View>
@@ -997,52 +1023,75 @@ export default function YourInterest() {
             )}
 
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]} accessibilityRole="header">
                 {activeCategory === "all"
                   ? "Popular Highlights"
                   : availableCategories.find((c) => c.id === activeCategory)?.label || "Activities"}
               </Text>
               {!loadingInterests && (
-                <TouchableOpacity onPress={GetDynamicInterests} activeOpacity={0.7}>
-                  <Text style={styles.refreshText}>🔄 Refresh</Text>
+                <TouchableOpacity
+                  onPress={GetDynamicInterests}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh highlights"
+                  style={styles.refreshBtn}
+                >
+                  <Ionicons name="refresh" size={16} color={Colors.PRIMARY} />
+                  <Text style={[styles.refreshText, { color: Colors.PRIMARY }]}>Refresh</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            {loadingInterests && placesList.length === 0 && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.PRIMARY} />
-                <Text style={[styles.loadingText, { color: theme.subtext }]}>
-                  Curating local highlights for {destinationName}...
-                </Text>
+            {showSkeleton && (
+              <View accessibilityLabel={`Loading highlights for ${destinationName}`} style={styles.skeletonList}>
+                {[0, 1, 2, 3].map((i) => (
+                  <View key={i} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, gap: Spacing.sm }]}>
+                    <Skeleton width="65%" height={18} />
+                    <Skeleton width="90%" height={14} />
+                  </View>
+                ))}
               </View>
             )}
 
             {loadingInterests && placesList.length > 0 && (
-              <View style={[styles.loadingBannerPill, { backgroundColor: theme.isDark ? "#1F1F1F" : "#F0F9FF", borderColor: theme.isDark ? "#333" : "#BAE6FD" }]}>
-                <ActivityIndicator size="small" color={Colors.PRIMARY} style={{ marginRight: 8 }} />
+              <View style={[styles.loadingBannerPill, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <ActivityIndicator size="small" color={Colors.PRIMARY} style={{ marginRight: Spacing.sm }} />
                 <Text style={[styles.loadingBannerText, { color: theme.subtext }]}>
                   Discovering live local highlights for {destinationName}...
                 </Text>
               </View>
             )}
 
-            {errorMessage && !loadingInterests && (
-              <View style={[styles.errorContainer, { backgroundColor: theme.card }]}>
-                <Text style={styles.errorText}>⚠️ Notice: {errorMessage}</Text>
+            {showFatalError && (
+              <EmptyState
+                icon="cloud-offline-outline"
+                title="Couldn't load highlights"
+                text={errorMessage}
+                actionLabel={retryAfterSeconds > 0 ? `Retry in ${retryAfterSeconds}s` : "Try again"}
+                onAction={retryAfterSeconds > 0 ? undefined : GetDynamicInterests}
+              />
+            )}
+
+            {errorMessage && !loadingInterests && placesList.length > 0 && (
+              <View style={[styles.errorContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Ionicons name="alert-circle-outline" size={20} color={theme.subtext} />
+                <Text style={[styles.errorText, { color: theme.text }]}>{errorMessage}</Text>
                 <TouchableOpacity
                   onPress={GetDynamicInterests}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading highlights"
+                  accessibilityState={{ disabled: retryAfterSeconds > 0 }}
                   style={[styles.retryBtn, retryAfterSeconds > 0 && styles.retryBtnDisabled]}
                   disabled={retryAfterSeconds > 0}
                 >
                   <Text style={styles.retryText}>
-                    {retryAfterSeconds > 0 ? `Retry in ${retryAfterSeconds}s` : "Retry Connection"}
+                    {retryAfterSeconds > 0 ? `Retry in ${retryAfterSeconds}s` : "Retry"}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
-        )}
+        }
         renderItem={({ item, index }) => (
           <InterestCard
             item={item}
@@ -1052,390 +1101,201 @@ export default function YourInterest() {
             theme={theme}
           />
         )}
-        ListEmptyComponent={() =>
-          !loadingInterests && (
+        ListEmptyComponent={
+          !loadingInterests && !showFatalError ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: theme.subtext }]}>
-                No activities found in this category.
-              </Text>
+              <Text style={[styles.emptyText, { color: theme.subtext }]}>No activities found in this category.</Text>
               <TouchableOpacity
                 onPress={() => setActiveCategory("all")}
+                accessibilityRole="button"
+                accessibilityLabel="View all activities"
                 style={styles.retryMinBtn}
               >
                 <Text style={styles.retryMinText}>View All Activities</Text>
               </TouchableOpacity>
             </View>
-          )
+          ) : null
         }
-        ListFooterComponent={() => (
+        ListFooterComponent={
           <View style={styles.footerArea}>
-            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]} accessibilityRole="header">
               Best Way to Travel
             </Text>
+            <Text style={[styles.helperText, { color: theme.subtext }]}>Choose one</Text>
 
-            <View style={styles.transportContainer}>
-              {transportList.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.transportCard,
-                    {
-                      backgroundColor: theme.card,
-                      borderColor:
-                        selectedTransport === item.id
-                          ? Colors.PRIMARY
-                          : theme.isDark
-                          ? "#333"
-                          : Colors.LIGHT_GRAY,
-                    },
-                    selectedTransport === item.id && styles.selectedTransport,
-                  ]}
-                  onPress={() => {
-                    triggerHaptic();
-                    setSelectedTransport(item.id);
-                  }}
-                >
-                  <Text
+            <View style={styles.transportContainer} accessibilityRole="radiogroup">
+              {transportList.map((item) => {
+                const active = selectedTransport === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.8}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active, selected: active }}
+                    accessibilityLabel={splitIcon(item.name).title}
                     style={[
-                      styles.transportText,
-                      { color: theme.text },
-                      selectedTransport === item.id && styles.selectedTransportText,
+                      styles.transportCard,
+                      {
+                        backgroundColor: active ? (theme.isDark ? "rgba(10, 126, 164, 0.12)" : "rgba(10, 126, 164, 0.06)") : theme.card,
+                        borderColor: active ? Colors.PRIMARY : theme.border,
+                      },
                     ]}
+                    onPress={() => {
+                      selectHaptic();
+                      setSelectedTransport(item.id);
+                    }}
                   >
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    {active ? <Ionicons name="checkmark-circle" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} /> : null}
+                    <Text style={[styles.transportText, { color: active ? Colors.PRIMARY : theme.text }]}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
-        )}
+        }
       />
 
-      {/* Floating Bottom Button Bar */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#262626" : "#F3F4F6" }]}>
+      {/* Sticky confirm bar */}
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
+            backgroundColor: theme.card,
+            borderTopColor: theme.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={selectedCount > 0 ? `Confirm ${selectedCount} selected and continue` : "Select at least 1"}
+          accessibilityState={{ disabled: selectedCount === 0 }}
           style={[
             styles.button,
-            selectedPlaces.length === 0 && styles.buttonDisabled,
+            { backgroundColor: Colors.PRIMARY },
+            selectedCount === 0 && { backgroundColor: theme.border },
           ]}
           onPress={handleContinue}
-          disabled={selectedPlaces.length === 0}
+          disabled={selectedCount === 0}
         >
-          <Text style={styles.buttonText}>
-            {selectedPlaces.length > 0
-              ? `Confirm (${selectedPlaces.length}) & Continue`
-              : "Select at least 1 Activity"}
+          <Text style={[styles.buttonText, selectedCount === 0 && { color: theme.subtext }]}>
+            {selectedCount > 0 ? `Confirm (${selectedCount}) & Continue` : "Select at least 1"}
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  topBarTitle: {
-    fontSize: 14,
-    fontFamily: "Outfit-Medium",
-  },
-  listContent: {
-    paddingHorizontal: 22,
-    paddingBottom: 110,
-  },
-  headerArea: {
-    paddingTop: 16,
-  },
+  container: { flex: 1 },
+  listContent: { paddingHorizontal: GUTTER },
+  headerArea: { paddingTop: Spacing.sm },
   heroPreTitle: {
-    color: "#0A7EA4",
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
     letterSpacing: 1.5,
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
-  titleBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
-  title: {
-    fontSize: 26,
-    fontFamily: "Outfit-Bold",
-    letterSpacing: -0.5,
-    flex: 1,
-  },
-  counterBadge: {
-    backgroundColor: "rgba(10, 126, 164, 0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  counterBadgeText: {
-    color: Colors.PRIMARY || "#0A7EA4",
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
-  },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 6,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  locationHighlight: {
-    color: Colors.PRIMARY,
-    fontFamily: "Outfit-Bold",
-  },
-  categorySection: {
-    marginBottom: 16,
-  },
-  categoryHeading: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  categoryScroll: {
-    paddingVertical: 4,
-    gap: 8,
-  },
+  titleBadgeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: Spacing.xs, gap: Spacing.sm },
+  title: { fontSize: Typography.sizeXxl, fontFamily: Typography.fontBold, letterSpacing: -0.5, flex: 1, flexShrink: 1 },
+  counterBadge: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.md },
+  counterBadgeText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
+  subtitle: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, marginTop: 6 },
+  locationHighlight: { fontFamily: Typography.fontBold },
+  helperText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, marginTop: 4 },
+  categorySection: { marginTop: Spacing.lg },
+  categoryHeading: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold, marginBottom: Spacing.sm },
+  categoryScrollWrap: { marginHorizontal: -GUTTER },
+  categoryScroll: { paddingHorizontal: GUTTER, gap: Spacing.sm },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    marginRight: 6,
   },
-  categoryChipIcon: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  categoryChipLabel: {
-    fontSize: 13,
-    fontFamily: "Outfit-Medium",
-  },
-  countBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    marginLeft: 6,
-  },
-  countBadgeText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: "Outfit-Bold",
-  },
-  refreshText: {
-    color: Colors.PRIMARY,
-    fontFamily: "Outfit-Bold",
-    fontSize: 13,
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    fontFamily: "Outfit-Medium",
-  },
+  categoryChipIcon: { fontSize: Typography.sizeMd, marginRight: 6 },
+  categoryChipLabel: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
+  countBadge: { marginLeft: 6, paddingHorizontal: 7, paddingVertical: 2, borderRadius: Radius.md, minWidth: 22, alignItems: "center" },
+  countBadgeText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: Spacing.xl, marginBottom: Spacing.md },
+  sectionTitle: { fontSize: Typography.sizeLg, fontFamily: Typography.fontBold, flexShrink: 1 },
+  refreshBtn: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 44, paddingHorizontal: Spacing.sm },
+  refreshText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
+  skeletonList: { gap: Spacing.md },
   loadingBannerPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 12,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  loadingBannerText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-  },
+  loadingBannerText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, flex: 1 },
   errorContainer: {
-    padding: 16,
-    borderRadius: 16,
-    marginVertical: 10,
-    alignItems: "center",
-  },
-  errorText: {
-    color: "#DC2626",
-    fontSize: 13,
-    fontFamily: "Outfit-Medium",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  retryBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: 12,
-  },
-  retryBtnDisabled: {
-    opacity: 0.5,
-  },
-  retryText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "Outfit-Bold",
-  },
-  emptyContainer: {
-    padding: 30,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: "Outfit-Medium",
-    marginBottom: 12,
-  },
-  retryMinBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.PRIMARY,
-  },
-  retryMinText: {
-    color: Colors.PRIMARY,
-    fontFamily: "Outfit-Bold",
-    fontSize: 13,
-  },
-  card: {
-    marginVertical: 6,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  selectedCard: {
-    borderColor: Colors.PRIMARY,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  cardHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  cardName: {
-    fontSize: 17,
-    fontFamily: "Outfit-Bold",
-    flex: 1,
-    marginRight: 10,
-  },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  cardDescription: {
-    fontSize: 13,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 18,
-  },
-  footerArea: {
-    paddingBottom: 20,
-  },
-  transportContainer: {
-    flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
+  errorText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, flex: 1, minWidth: 140 },
+  retryBtn: { minHeight: 44, paddingHorizontal: Spacing.lg, borderRadius: Radius.pill, backgroundColor: Colors.PRIMARY, alignItems: "center", justifyContent: "center" },
+  retryBtnDisabled: { opacity: 0.5 },
+  retryText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  emptyContainer: { alignItems: "center", paddingVertical: Spacing.xxl },
+  emptyText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, marginBottom: Spacing.md },
+  retryMinBtn: { minHeight: 44, paddingHorizontal: Spacing.lg, justifyContent: "center" },
+  retryMinText: { color: Colors.PRIMARY, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  card: {
+    borderWidth: 1,
+    borderRadius: Radius.card,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    minHeight: 64,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.md },
+  cardIcon: { fontSize: Typography.sizeXxl, width: 32, textAlign: "center" },
+  cardTextCol: { flex: 1, flexShrink: 1 },
+  cardTitleRow: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm },
+  cardName: { flex: 1, flexShrink: 1, fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
+  badgeUnder: { flexDirection: "row", marginTop: 6 },
+  categoryBadge: { flexShrink: 0, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.sm, borderWidth: 1 },
+  categoryText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
+  cardDescription: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, lineHeight: 20, marginTop: 6 },
+  checkbox: {
+    width: 26,
+    height: 26,
+    borderRadius: Radius.xs,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerArea: { marginTop: Spacing.xl },
+  transportContainer: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.md },
   transportCard: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
   },
-  selectedTransport: {
-    backgroundColor: Colors.PRIMARY,
-    borderColor: Colors.PRIMARY,
-  },
-  transportText: {
-    fontSize: 14,
-    fontFamily: "Outfit-Medium",
-  },
-  selectedTransportText: {
-    color: "#FFFFFF",
-    fontFamily: "Outfit-Bold",
-  },
+  transportText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 36 : 20,
+    paddingHorizontal: GUTTER,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
   },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    backgroundColor: Colors.PRIMARY,
-    shadowColor: Colors.PRIMARY,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.BUTTON_DISABLED || "#CCCCCC",
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Outfit-Bold",
-  },
+  button: { minHeight: 52, borderRadius: Radius.pill, alignItems: "center", justifyContent: "center" },
+  buttonText: { color: "#FFFFFF", fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
 });

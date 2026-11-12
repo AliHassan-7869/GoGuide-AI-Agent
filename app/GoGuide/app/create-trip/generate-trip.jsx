@@ -16,28 +16,32 @@ import { scheduleTripCountdown, sendLocalNotification } from "../../Components/u
 import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 
 const CURATED_CITIES_HINT = "Tokyo, Dubai, Paris, Istanbul, London and Lahore";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+// Visual progress only (the server does not report stages): four calm steps, advancing on a timer.
 const GENERATION_STEPS = [
-  { text: "Grounding with verified destination data...", icon: "shield-checkmark-outline" },
-  { text: "Scanning flights & local logistics...", icon: "airplane-outline" },
-  { text: "Finding top boutique stays & hotels...", icon: "business-outline" },
-  { text: "Designing day-by-day sightseeing plan...", icon: "calendar-outline" },
-  { text: "Verifying budget & pacing confidence...", icon: "checkmark-done-outline" },
+  { text: "Analyzing preferences", icon: "options-outline" },
+  { text: "Selecting stays", icon: "business-outline" },
+  { text: "Mapping routes", icon: "map-outline" },
+  { text: "Finalizing schedule", icon: "calendar-outline" },
 ];
+const STEP_INTERVAL_MS = 2600;
 
 export default function GenerateTrip() {
   const { tripData, setTripData, preferences, userData } = useContext(CreateTripContext);
   const theme = useTheme();
-  const isDark = preferences?.darkMode;
+  const isDark = theme.isDark;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const router = useRouter();
   const hasGenerated = useRef(false);
+  const cancelledRef = useRef(false);
+  const reduceMotion = useReduceMotion();
 
   // Animations
   const floatAnim = useMemo(() => new Animated.Value(0), []);
@@ -53,54 +57,54 @@ export default function GenerateTrip() {
   }, [currentStepIndex, stepFade]);
 
   useEffect(() => {
+    if (reduceMotion) {
+      progressAnim.setValue(0.6);
+      return undefined;
+    }
     // Hover floating loop
-    Animated.loop(
+    const floatLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -8,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 6,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(floatAnim, { toValue: -8, duration: 1200, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 6, duration: 1200, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    floatLoop.start();
 
     // Radar pulse expansion loop
-    Animated.loop(
+    const radarLoop = Animated.loop(
       Animated.parallel([
-        Animated.timing(radarScale, {
-          toValue: 1.8,
-          duration: 1800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(radarOpacity, {
-          toValue: 0,
-          duration: 1800,
-          useNativeDriver: true,
-        }),
+        Animated.timing(radarScale, { toValue: 1.8, duration: 1800, useNativeDriver: true }),
+        Animated.timing(radarOpacity, { toValue: 0, duration: 1800, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    radarLoop.start();
 
     // Smooth progress bar fill
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 8500,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(progressAnim, { toValue: 1, duration: STEP_INTERVAL_MS * GENERATION_STEPS.length, useNativeDriver: false }).start();
 
-    // Step cycler
+    return () => {
+      floatLoop.stop();
+      radarLoop.stop();
+    };
+  }, [reduceMotion, floatAnim, radarScale, radarOpacity, progressAnim]);
+
+  // Step cycler: restarts from the first step every time (re)generation begins; stops on error.
+  useEffect(() => {
+    if (!loading) return undefined;
     const interval = setInterval(() => {
       setCurrentStepIndex((prev) => (prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev));
-    }, 1900);
-
+    }, STEP_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [loading]);
+
+  const handleCancel = () => {
+    cancelledRef.current = true;
+    setLoading(false);
+    router.back();
+  };
 
   const handleSaveAndProceed = async (plan) => {
+    if (cancelledRef.current) return;
     const cleanOrigin =
       tripData?.fromLocation?.name?.split(",")[0]?.trim() ||
       plan?.origin ||
@@ -176,6 +180,8 @@ export default function GenerateTrip() {
   };
 
   const GenerateAiTrip = async (forceInstant = Boolean(tripData?.useInstant)) => {
+    cancelledRef.current = false;
+    setCurrentStepIndex(0);
     try {
       setLoading(true);
       setError(null);
@@ -287,6 +293,7 @@ export default function GenerateTrip() {
 
       await handleSaveAndProceed(plan);
     } catch (err) {
+      if (cancelledRef.current) return;
       setLoading(false);
       console.error("[GenerateTrip] Error:", err.message);
 
@@ -313,7 +320,6 @@ export default function GenerateTrip() {
     }
   }, [tripData]);
 
-  const currentStep = GENERATION_STEPS[currentStepIndex];
   const canUseInstant = hasCuratedPlan(tripData?.toLocation?.name);
 
   return (
@@ -353,16 +359,40 @@ export default function GenerateTrip() {
           </Text>
         </View>
 
-        {/* Dynamic Animated Status Step Pill */}
-        <Animated.View style={[styles.stepBox, { opacity: stepFade, backgroundColor: isDark ? "#242432" : "#F0F9FF", borderColor: isDark ? "#38384C" : "#BAE6FD" }]}>
-          <Ionicons
-            name={currentStep.icon}
-            size={16}
-            color={Colors.PRIMARY}
-            style={{ marginRight: 8 }}
-          />
-          <Text style={[styles.stepText, { color: Colors.PRIMARY }]}>{currentStep.text}</Text>
-        </Animated.View>
+        {/* Stepped progress (visual only) */}
+        <View
+          style={styles.stepList}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Step ${Math.min(currentStepIndex + 1, GENERATION_STEPS.length)} of ${GENERATION_STEPS.length}: ${GENERATION_STEPS[currentStepIndex]?.text}`}
+        >
+          {GENERATION_STEPS.map((step, i) => {
+            const done = !error && i < currentStepIndex;
+            const active = !error && i === currentStepIndex;
+            return (
+              <Animated.View key={step.text} style={[styles.stepRow, active && { opacity: stepFade }]}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    {
+                      backgroundColor: done || active ? Colors.PRIMARY : "transparent",
+                      borderColor: done || active ? Colors.PRIMARY : theme.border,
+                    },
+                  ]}
+                >
+                  <Ionicons name={done ? "checkmark" : step.icon} size={14} color={done || active ? "#FFFFFF" : theme.subtext} />
+                </View>
+                <Text
+                  maxFontSizeMultiplier={1.3}
+                  style={[styles.stepLabel, { color: done || active ? theme.text : theme.subtext, fontFamily: active ? "Outfit-Bold" : "Outfit-Medium" }]}
+                >
+                  {step.text}
+                  {active ? "…" : ""}
+                </Text>
+                {done ? <Text style={styles.stepDoneText} accessibilityLabel="done">Done</Text> : null}
+              </Animated.View>
+            );
+          })}
+        </View>
 
         {/* Animated Progress Bar */}
         <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : "#E2E8F0" }]}>
@@ -386,6 +416,18 @@ export default function GenerateTrip() {
             Structuring your morning-to-night itinerary with verified stays and local routes.
           </Text>
         </View>
+
+        {!error && (
+          <TouchableOpacity
+            onPress={handleCancel}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel trip generation"
+            style={[styles.cancelBtn, { borderColor: theme.border }]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.cancelText, { color: theme.subtext }]}>Cancel</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Polished Error & Fallback Card */}
         {error && (
@@ -536,19 +578,46 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Medium",
     textAlign: "center",
   },
-  stepBox: {
+  stepList: {
+    width: "100%",
+    gap: 10,
+    marginBottom: 18,
+  },
+  stepRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-    width: "100%",
+    minHeight: 32,
+    gap: 10,
   },
-  stepText: {
-    fontSize: 13,
+  stepDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepLabel: {
+    flex: 1,
+    fontSize: 14,
+  },
+  stepDoneText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
+    color: "#10B981",
+  },
+  cancelBtn: {
+    minHeight: 44,
+    minWidth: 120,
+    marginTop: 14,
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelText: {
+    fontSize: 14,
     fontFamily: "Outfit-Medium",
   },
   progressBarTrack: {

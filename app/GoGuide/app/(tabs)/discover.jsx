@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, StatusBar, Keyboard } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, Keyboard } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import React, { useContext, useState, useRef, useEffect } from "react";
@@ -20,6 +21,43 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import EmptyState from "../../Components/ui/EmptyState";
+import FadeInView from "../../Components/ui/FadeInView";
+import { Skeleton } from "../../Components/ui/Skeleton";
+import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+
+// Fixed overlay colours for text on photos (always white on a dark scrim, independent of theme)
+const ON_IMAGE = "#FFFFFF";
+const SCRIM_COLORS = ["rgba(0,0,0,0)", "rgba(0,0,0,0.78)"];
+const FAVOURITE_RED = "#EF4444";
+const AI_ACCENT = "#8B5CF6"; // small AI sparkle accents only
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const DATE_PRESETS = [
+  { id: "today", label: "Today" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "weekend", label: "This weekend" },
+  { id: "next_week", label: "Next week" },
+  { id: "next_month", label: "Next month" },
+  { id: "custom", label: "Custom date" },
+];
+
+const fmtDay = (d) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+function detectDatePreset(text) {
+  const lower = (text || "").toLowerCase();
+  if (lower.includes("tomorrow")) return "tomorrow";
+  if (lower.includes("weekend")) return "weekend";
+  if (lower.includes("next week")) return "next_week";
+  if (lower.includes("next month")) return "next_month";
+  return null;
+}
+
+function detectDays(text) {
+  const m = (text || "").toLowerCase().match(/(\d+)\s*day/);
+  const n = m ? parseInt(m[1], 10) : 3;
+  return Math.min(30, Math.max(1, n || 3));
+}
 // Safe image component with error fallback and HD optimization
 function SafeImage({ sourceUri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
   const [hasError, setHasError] = useState(false);
@@ -134,7 +172,9 @@ export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { preferences, setTripData } = useContext(CreateTripContext);
-  const isDark = preferences?.darkMode;
+  const theme = useTheme();
+  const isDark = theme.isDark;
+  const accent = Colors.PRIMARY || theme.primary;
 
   const safeTopPadding = Platform.select({
     android: insets.top + 8,
@@ -172,6 +212,16 @@ export default function Discover() {
   const [aiError, setAiError] = useState(null);
   const [selectedDatePreset, setSelectedDatePreset] = useState("today");
   const [customDateInput, setCustomDateInput] = useState("");
+  const [searchStatus, setSearchStatus] = useState("idle"); // idle | loading | empty | error
+  // The destination feed is bundled locally, so there is no load to wait for (no artificial delay).
+  const feedLoading = false;
+
+  // A date hint typed in the AI prompt (e.g. "tomorrow") moves the single selected chip
+  const handleAiPromptChange = (text) => {
+    setAiPrompt(text);
+    const hint = detectDatePreset(text);
+    if (hint) setSelectedDatePreset(hint);
+  };
 
   // Category Feed & Saved Wishlist State
   const [activeFeedCategory, setActiveFeedCategory] = useState("all");
@@ -449,11 +499,11 @@ export default function Discover() {
     : popularDestinations.filter((d) => d.category === activeFeedCategory);
 
   const themeStyles = {
-    backgroundColor: isDark ? "#121212" : "#F8F9FA",
-    textColor: isDark ? "#FFFFFF" : "#1A1A1A",
-    subTextColor: isDark ? "#A0A0A0" : "#666666",
-    cardBg: isDark ? "#1E1E1E" : "#FFFFFF",
-    borderColor: isDark ? "#2C2C2C" : "#E2E8F0",
+    backgroundColor: theme.bg,
+    textColor: theme.text,
+    subTextColor: theme.subtext,
+    cardBg: theme.card,
+    borderColor: theme.border,
   };
 
   // Helper to normalize and title-case place names & common country shorthands
@@ -625,20 +675,12 @@ export default function Discover() {
     const lower = aiPrompt.toLowerCase();
 
     // Extract days if typed (e.g. 4 days)
-    const daysMatch = lower.match(/(\d+)\s*day/);
-    const days = daysMatch ? parseInt(daysMatch[1], 10) : 3;
+    const days = detectDays(aiPrompt);
 
     // Extract budget hint
     let budget = "Moderate";
     if (lower.includes("luxury") || lower.includes("expensive")) budget = "Luxury";
     else if (lower.includes("cheap") || lower.includes("budget") || lower.includes("economical")) budget = "Economical";
-
-    // Detect natural language departure date hints if typed in prompt
-    let promptDatePreset = null;
-    if (lower.includes("tomorrow")) promptDatePreset = "tomorrow";
-    else if (lower.includes("weekend")) promptDatePreset = "weekend";
-    else if (lower.includes("next week")) promptDatePreset = "next_week";
-    else if (lower.includes("next month")) promptDatePreset = "next_month";
 
     // Strip common noise phrases first
     let cleaned = aiPrompt
@@ -671,7 +713,7 @@ export default function Discover() {
 
     if (!dest) dest = aiPrompt.trim();
 
-    const chosenStartDate = getSelectedDepartureDate(promptDatePreset);
+    const chosenStartDate = getSelectedDepartureDate();
     executeAiTrip(dest, days, budget, null, origin, chosenStartDate);
   };
 
@@ -679,11 +721,14 @@ export default function Discover() {
     setSearchQuery(text);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
+    if (text.length < 3) {
+      setResults([]);
+      setSearchStatus("idle");
+    }
+
     timeoutRef.current = setTimeout(async () => {
-      if (text.length < 3) {
-        setResults([]);
-        return;
-      }
+      if (text.length < 3) return;
+      setSearchStatus("loading");
 
       try {
         const response = await fetch(
@@ -695,9 +740,13 @@ export default function Discover() {
           }
         );
         const data = await response.json();
-        setResults(data);
+        const list = Array.isArray(data) ? data : [];
+        setResults(list);
+        setSearchStatus(list.length === 0 ? "empty" : "idle");
       } catch (error) {
         console.log("Search error:", error);
+        setResults([]);
+        setSearchStatus("error");
       }
     }, 500);
   };
@@ -719,6 +768,7 @@ export default function Discover() {
 
     setSearchQuery("");
     setResults([]);
+    setSearchStatus("idle");
     router.push("/create-trip/trip-summer");
   };
 
@@ -740,260 +790,282 @@ export default function Discover() {
     router.push("/create-trip/trip-summer");
   };
 
+  const tripDays = detectDays(aiPrompt);
+  const depObj = getSelectedDepartureDate();
+  const retObj = new Date(depObj.getTime() + Math.max(0, tripDays - 1) * DAY_MS);
+  const rangeLabel = `${fmtDay(depObj)} - ${fmtDay(retObj)} · ${tripDays} ${tripDays === 1 ? "day" : "days"}`;
+  const heroGradient = isDark ? [accent + "55", theme.card] : [accent + "26", theme.card];
+  const inputSurface = isDark ? theme.bg : theme.card;
+  const showSearchResults = results.length > 0;
+
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
       <ScrollView
         ref={scrollViewRef}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 100, keyboardHeight + 30) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 84, keyboardHeight + 30) }]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
-        
         {/* Top Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: themeStyles.textColor }]}>Discover</Text>
-          <Text style={[styles.subtitle, { color: themeStyles.subTextColor }]}>
+        <FadeInView index={0} style={styles.header}>
+          <Text style={[styles.title, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">Discover</Text>
+          <Text style={[styles.subtitle, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>
             Explore the world with AI
           </Text>
-        </View>
+        </FadeInView>
 
-        {/* 🌟 AI MAGIC COMMAND BAR (Top-tier Hero Card) */}
-        <View style={[styles.aiHeroCard, { backgroundColor: isDark ? "#1A1528" : "#F5F3FF", borderColor: isDark ? "#6D28D9" : "#DDD6FE" }]}>
-          <View style={styles.aiBadgeRow}>
-            <View style={styles.aiGlowBadge}>
-              <Ionicons name="sparkles" size={13} color="#8B5CF6" />
-              <Text style={styles.aiGlowBadgeText}>AI TRIP GENERATOR</Text>
-            </View>
-            <Text style={styles.aiStatusDot}>• Ready</Text>
-          </View>
-
-          <Text style={[styles.aiHeroTitle, { color: themeStyles.textColor }]}>
-            Where should AI take you today? ✨
-          </Text>
-          <Text style={[styles.aiHeroSub, { color: themeStyles.subTextColor }]}>
-            Type any destination to generate a full personalized itinerary instantly
-          </Text>
-
-          {/* AI Magic Prompt Input */}
-          <View style={[styles.aiInputBox, { backgroundColor: isDark ? "#241D3B" : "#FFFFFF" }]}>
-            <TextInput
-              style={[styles.aiTextInput, { color: themeStyles.textColor }]}
-              placeholder="e.g. 5 days in Istanbul from Lahore"
-              placeholderTextColor={themeStyles.subTextColor}
-              value={aiPrompt}
-              onChangeText={setAiPrompt}
-              onSubmitEditing={handleCustomAiPrompt}
-              returnKeyType="go"
-            />
-            <TouchableOpacity 
-              style={styles.aiSendBtn} 
-              onPress={handleCustomAiPrompt}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="sparkles" size={15} color="#FFF" style={{ marginRight: 3 }} />
-              <Text style={styles.aiSendBtnText}>Plan</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 🛫 Quick Departure Date Picker for Outbound & Return Flights */}
-          {(() => {
-            const previewDaysMatch = aiPrompt.toLowerCase().match(/(\d+)\s*day/);
-            const previewDays = previewDaysMatch ? parseInt(previewDaysMatch[1], 10) : 3;
-            const depObj = getSelectedDepartureDate();
-            const retObj = new Date(depObj.getTime() + Math.max(1, previewDays - 1) * 24 * 60 * 60 * 1000);
-            const fmtShort = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            const datePresets = [
-              { id: "today", label: "🛫 Today" },
-              { id: "tomorrow", label: "📅 Tomorrow" },
-              { id: "weekend", label: "🌴 This Weekend" },
-              { id: "next_week", label: "✈️ Next Week" },
-              { id: "next_month", label: "🗓️ Next Month" },
-              { id: "custom", label: "✏️ Custom Date" },
-            ];
-
-            return (
-              <View style={{ marginTop: 12, padding: 12, borderRadius: 16, borderWidth: 1, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: isDark ? "#3B3054" : "#DDD6FE" }}>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: themeStyles.subTextColor }}>
-                    DEPARTURE DATE:
-                  </Text>
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#8B5CF6", flexShrink: 1 }}>
-                    🛫 {fmtShort(depObj)} ➔ 🛬 {fmtShort(retObj)}
-                  </Text>
-                </View>
-
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-                  {datePresets.map((dp) => {
-                    const isSel = selectedDatePreset === dp.id;
-                    return (
-                      <TouchableOpacity
-                        key={dp.id}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSelectedDatePreset(dp.id);
-                        }}
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          borderRadius: 14,
-                          borderWidth: 1,
-                          backgroundColor: isSel ? "#8B5CF6" : isDark ? "#251F3A" : "#FFFFFF",
-                          borderColor: isSel ? "#8B5CF6" : isDark ? "#3B3054" : "#DDD6FE",
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            fontFamily: "Outfit-Bold",
-                            color: isSel ? "#FFFFFF" : themeStyles.textColor,
-                          }}
-                        >
-                          {dp.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {selectedDatePreset === "custom" && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 8,
-                      backgroundColor: isDark ? "#241D3B" : "#FFFFFF",
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                      borderWidth: 1,
-                      borderColor: "#8B5CF6",
-                    }}
-                  >
-                    <Ionicons name="calendar-outline" size={15} color="#8B5CF6" style={{ marginRight: 6 }} />
-                    <TextInput
-                      placeholder="Enter Departure Date (YYYY-MM-DD, e.g. 2026-11-15)"
-                      placeholderTextColor={themeStyles.subTextColor}
-                      value={customDateInput}
-                      onChangeText={setCustomDateInput}
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        fontFamily: "Outfit-Medium",
-                        color: themeStyles.textColor,
-                        paddingVertical: 2,
-                      }}
-                    />
-                  </View>
-                )}
+        {/* AI generator card (teal system, purple only as a small sparkle accent) */}
+        <FadeInView index={1}>
+          <LinearGradient colors={heroGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.aiHeroCard, { borderColor: accent + "66" }]}>
+            <View style={styles.aiBadgeRow}>
+              <View style={[styles.aiGlowBadge, { backgroundColor: accent + "26" }]}>
+                <Ionicons name="sparkles" size={14} color={AI_ACCENT} />
+                <Text style={[styles.aiGlowBadgeText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>Generate with AI</Text>
               </View>
-            );
-          })()}
+              <View style={[styles.aiTinyBadge, { backgroundColor: AI_ACCENT + "26" }]}>
+                <Text style={styles.aiTinyBadgeText} maxFontSizeMultiplier={1.3}>AI</Text>
+              </View>
+            </View>
 
-          {/* Quick-Vibe Prompt Cards */}
-          <View style={{ marginTop: 12, padding: 12, borderRadius: 16, borderWidth: 1, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: isDark ? "#3B3054" : "#DDD6FE" }}>
-          <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: themeStyles.subTextColor, marginBottom: 8 }}>
-            QUICK TRIP IDEAS:
-          </Text>
-          <View style={styles.vibeScroll}>
-            {QUICK_AI_VIBES.map((vibe) => (
+            <Text style={[styles.aiHeroTitle, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>
+              Where should AI take you today?
+            </Text>
+            <Text style={[styles.aiHeroSub, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>
+              Describe a trip and AI plans it
+            </Text>
+
+            {/* AI prompt input */}
+            <View style={[styles.aiInputBox, { backgroundColor: inputSurface, borderColor: accent + "80" }]}>
+              <Ionicons name="sparkles" size={18} color={AI_ACCENT} style={styles.inputLeadIcon} />
+              <TextInput
+                style={[styles.aiTextInput, { color: themeStyles.textColor }]}
+                placeholder="e.g. 5 days in Istanbul from Lahore"
+                placeholderTextColor={themeStyles.subTextColor}
+                value={aiPrompt}
+                onChangeText={handleAiPromptChange}
+                onSubmitEditing={handleCustomAiPrompt}
+                returnKeyType="go"
+                accessibilityLabel="Describe a trip for AI to plan"
+                maxFontSizeMultiplier={1.3}
+              />
+              {aiPrompt.length > 0 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear trip description"
+                  style={styles.clearBtn}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  onPress={() => setAiPrompt("")}
+                >
+                  <Ionicons name="close-circle" size={20} color={themeStyles.subTextColor} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                key={vibe.id}
-                style={[styles.vibeCard, { backgroundColor: isDark ? "#251F3A" : "#FFFFFF", borderColor: vibe.color + "40" }]}
-                onPress={() => executeAiTrip(vibe.destination, vibe.days, vibe.budget, vibe.image)}
-                activeOpacity={0.85}
+                style={[styles.aiSendBtn, { backgroundColor: accent, opacity: aiPrompt.trim() ? 1 : 0.6 }]}
+                onPress={handleCustomAiPrompt}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Plan trip with AI"
+                accessibilityState={{ disabled: !aiPrompt.trim() }}
               >
-                <View style={[styles.vibeIconCircle, { backgroundColor: vibe.color + "18" }]}>
-                  <Ionicons name={vibe.icon} size={15} color={vibe.color} />
-                </View>
-                <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={2}>{vibe.title}</Text>
-                <Text style={[styles.vibeCardTag, { color: vibe.color }]} numberOfLines={2}>{vibe.tag}</Text>
+                <Text style={styles.aiSendBtnText} maxFontSizeMultiplier={1.3}>Plan</Text>
               </TouchableOpacity>
-            ))}
-          </View>
-          </View>
-        </View>
+            </View>
 
-        {/* Regular Search Bar */}
-        <View
-          onLayout={(e) => {
-            searchBarYRef.current = e.nativeEvent.layout.y;
-          }}
-          style={[styles.searchContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
-        >
-          <Ionicons name="search" size={20} color={themeStyles.subTextColor} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: themeStyles.textColor }]}
-            placeholder="Search a city (e.g. London)"
-            placeholderTextColor={themeStyles.subTextColor}
-            value={searchQuery}
-            onChangeText={searchPlace}
-            onFocus={() => {
-              setTimeout(() => {
-                scrollViewRef.current?.scrollTo({
-                  y: Math.max(0, searchBarYRef.current - 16),
-                  animated: true,
-                });
-              }, 120);
+            {/* Departure date: one selected chip, range derived from start + duration */}
+            <View style={[styles.innerPanel, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: accent + "40" }]}>
+              <Text style={[styles.panelLabel, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>Departure date</Text>
+              <View style={styles.rangeRow} accessibilityLabel={`Trip dates ${rangeLabel}`}>
+                <Ionicons name="calendar-outline" size={16} color={accent} />
+                <Text style={[styles.rangeText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>{rangeLabel}</Text>
+              </View>
+
+              <View style={styles.chipWrap}>
+                {DATE_PRESETS.map((dp) => {
+                  const isSel = selectedDatePreset === dp.id;
+                  return (
+                    <TouchableOpacity
+                      key={dp.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedDatePreset(dp.id);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={dp.label}
+                      accessibilityState={{ selected: isSel }}
+                      style={[
+                        styles.dateChip,
+                        isSel
+                          ? { backgroundColor: accent, borderColor: accent }
+                          : { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      {isSel && <Ionicons name="checkmark" size={14} color={ON_IMAGE} style={{ marginRight: 4 }} />}
+                      <Text style={[styles.dateChipText, { color: isSel ? ON_IMAGE : themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>
+                        {dp.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {selectedDatePreset === "custom" && (
+                <View style={[styles.customDateBox, { backgroundColor: inputSurface, borderColor: accent }]}>
+                  <Ionicons name="calendar-outline" size={16} color={accent} style={{ marginRight: 6 }} />
+                  <TextInput
+                    placeholder="YYYY-MM-DD, e.g. 2026-11-15"
+                    placeholderTextColor={themeStyles.subTextColor}
+                    value={customDateInput}
+                    onChangeText={setCustomDateInput}
+                    accessibilityLabel="Custom departure date"
+                    maxFontSizeMultiplier={1.3}
+                    style={[styles.customDateInput, { color: themeStyles.textColor }]}
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Quick trip ideas */}
+            <View style={[styles.innerPanel, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: accent + "40" }]}>
+              <Text style={[styles.panelLabel, { color: themeStyles.subTextColor, marginBottom: Spacing.sm }]} maxFontSizeMultiplier={1.3}>Quick trip ideas</Text>
+              <View style={styles.vibeScroll}>
+                {QUICK_AI_VIBES.map((vibe) => (
+                  <TouchableOpacity
+                    key={vibe.id}
+                    style={[styles.vibeCard, { backgroundColor: themeStyles.cardBg, borderColor: accent + "40" }]}
+                    onPress={() => executeAiTrip(vibe.destination, vibe.days, vibe.budget, vibe.image)}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Plan ${vibe.title}, ${vibe.days} days`}
+                  >
+                    <View style={[styles.vibeIconCircle, { backgroundColor: accent + "1F" }]}>
+                      <Ionicons name={vibe.icon} size={16} color={accent} />
+                    </View>
+                    <Text style={[styles.vibeCardTitle, { color: themeStyles.textColor }]} numberOfLines={2} maxFontSizeMultiplier={1.3}>{vibe.title}</Text>
+                    <Text style={[styles.vibeCardTag, { color: themeStyles.subTextColor }]} numberOfLines={2} maxFontSizeMultiplier={1.3}>{vibe.tag}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </LinearGradient>
+        </FadeInView>
+
+        {/* Search places: a plain lookup, visually separate from the AI generator */}
+        <FadeInView index={2}>
+          <View
+            onLayout={(e) => {
+              searchBarYRef.current = e.nativeEvent.layout.y;
             }}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              onPress={() => {
-                setSearchQuery("");
-                setResults([]);
-              }}
-            >
-              <Ionicons name="close-circle" size={18} color={themeStyles.subTextColor} />
-            </TouchableOpacity>
-          )}
-        </View>
+            style={styles.searchBlock}
+          >
+            <View style={styles.searchLabelRow}>
+              <Ionicons name="location-outline" size={18} color={themeStyles.subTextColor} />
+              <Text style={[styles.searchLabel, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>Search places</Text>
+            </View>
+            <Text style={[styles.searchHelper, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>Find a city or landmark</Text>
+            <View style={[styles.searchContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}>
+              <Ionicons name="search" size={20} color={themeStyles.subTextColor} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, { color: themeStyles.textColor }]}
+                placeholder="Search a city (e.g. London)"
+                placeholderTextColor={themeStyles.subTextColor}
+                value={searchQuery}
+                onChangeText={searchPlace}
+                accessibilityLabel="Search places"
+                maxFontSizeMultiplier={1.3}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({
+                      y: Math.max(0, searchBarYRef.current - 16),
+                      animated: true,
+                    });
+                  }, 120);
+                }}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                  style={styles.clearBtn}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  onPress={() => {
+                    setSearchQuery("");
+                    setResults([]);
+                    setSearchStatus("idle");
+                  }}
+                >
+                  <Ionicons name="close-circle" size={20} color={themeStyles.subTextColor} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </FadeInView>
 
-        {/* Quick Trending Search Tags */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.quickTagsScroll}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 14 }}
+        {/* Quick trending search tags */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={styles.hScroll}
+          contentContainerStyle={styles.hScrollContent}
         >
-          {QUICK_SEARCH_TAGS.map((tag, idx) => (
+          {QUICK_SEARCH_TAGS.map((tag) => (
             <TouchableOpacity
-              key={idx}
-              style={[
-                styles.quickTagPill,
-                { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }
-              ]}
+              key={tag.query}
+              style={[styles.quickTagPill, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSearchQuery(tag.query);
                 searchPlace(tag.query);
               }}
               activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={`Search ${tag.query}`}
             >
-              <Text style={[styles.quickTagText, { color: themeStyles.textColor }]}>
-                {tag.label}
-              </Text>
+              <Text style={[styles.quickTagText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>{tag.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Search Results Dropdown */}
-        {results.length > 0 && (
+        {/* Search status */}
+        {searchStatus === "loading" && (
+          <View style={styles.searchSkeletons}>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} height={44} radius={Radius.md} style={{ marginBottom: Spacing.sm }} />
+            ))}
+          </View>
+        )}
+        {searchStatus === "error" && (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Couldn't search right now"
+            text="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => searchPlace(searchQuery)}
+          />
+        )}
+        {searchStatus === "empty" && (
+          <EmptyState icon="search-outline" title="No places found" text="Try a different city or landmark name." />
+        )}
+
+        {/* Search results */}
+        {showSearchResults && (
           <View style={[styles.searchResultsContainer, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}>
-            {results.slice(0, 5).map((item, index) => (
+            {results.slice(0, 5).map((item, index, arr) => (
               <TouchableOpacity
                 key={item.place_id || index}
                 onPress={() => selectPlace(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Plan a trip to ${item.display_name}`}
                 style={[
                   styles.resultItem,
-                  index < results.length - 1 && { borderBottomColor: themeStyles.borderColor, borderBottomWidth: 1 }
+                  index < arr.length - 1 && { borderBottomColor: themeStyles.borderColor, borderBottomWidth: 1 },
                 ]}
               >
-                <Ionicons name="location" size={16} color={Colors.PRIMARY} style={{ marginRight: 10 }} />
-                <Text style={[{ color: themeStyles.textColor, flex: 1 }]} numberOfLines={2}>
+                <Ionicons name="location" size={16} color={accent} style={{ marginRight: 10 }} />
+                <Text style={{ color: themeStyles.textColor, flex: 1, fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular }} numberOfLines={2} maxFontSizeMultiplier={1.3}>
                   {item.display_name}
                 </Text>
               </TouchableOpacity>
@@ -1001,53 +1073,59 @@ export default function Discover() {
           </View>
         )}
 
-        {/* Categories Section */}
-        {results.length === 0 && (
+        {!showSearchResults && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Categories</Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/explore");
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: Colors.PRIMARY, fontFamily: "Outfit-Medium" }}>See all</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Categories */}
+            <FadeInView index={3}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">Categories</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push("/explore");
+                  }}
+                  style={styles.seeAllBtn}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="See all categories"
+                >
+                  <Text style={[styles.seeAllText, { color: accent }]} maxFontSizeMultiplier={1.3}>See all</Text>
+                </TouchableOpacity>
+              </View>
+            </FadeInView>
 
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={styles.categoriesContainer}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.hScroll}
+              contentContainerStyle={styles.hScrollContent}
             >
               {categories.map((item) => (
-                <TouchableOpacity 
-                  key={item.id} 
+                <TouchableOpacity
+                  key={item.id}
                   style={[styles.categoryCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    if (item.route) {
-                      router.push(item.route);
-                    }
+                    if (item.route) router.push(item.route);
                   }}
                   activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.title} category`}
                 >
-                  <View style={[styles.categoryIconWrap, { backgroundColor: Colors.PRIMARY + '12' }]}>
-                    <Ionicons name={item.icon} size={22} color={Colors.PRIMARY} />
+                  <View style={[styles.categoryIconWrap, { backgroundColor: accent + "1F" }]}>
+                    <Ionicons name={item.icon} size={20} color={accent} />
                   </View>
-                  <Text style={[styles.categoryText, { color: themeStyles.textColor }]}>{item.title}</Text>
+                  <Text style={[styles.categoryText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>{item.title}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            {/* Trending Places Header */}
-            <View style={[styles.sectionHeader, { marginTop: 25 }]}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]}>Trending Places</Text>
-                <Text style={{ fontSize: 12, fontFamily: "Outfit-Regular", color: themeStyles.subTextColor, marginTop: 2 }}>
+            {/* Trending places */}
+            <FadeInView index={4} style={[styles.sectionHeader, { marginTop: Spacing.xl }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">Trending Places</Text>
+                <Text style={[styles.sectionSub, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>
                   Curated world destinations & 1-tap AI plans
                 </Text>
               </View>
@@ -1056,18 +1134,22 @@ export default function Discover() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push("/explore");
                 }}
+                style={styles.seeAllBtn}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="See all trending places"
               >
-                <Text style={{ color: Colors.PRIMARY, fontFamily: "Outfit-Medium" }}>See all</Text>
+                <Text style={[styles.seeAllText, { color: accent }]} maxFontSizeMultiplier={1.3}>See all</Text>
               </TouchableOpacity>
-            </View>
+            </FadeInView>
 
-            {/* Inline Category Filter Chips */}
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={{ marginHorizontal: -16, marginTop: 8, marginBottom: 14, overflow: "visible" }}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+            {/* Feed filter chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={[styles.hScroll, { marginTop: Spacing.sm, marginBottom: Spacing.md }]}
+              contentContainerStyle={styles.hScrollContent}
             >
               {FEED_FILTER_CHIPS.map((chip) => {
                 const isSelected = activeFeedCategory === chip.id;
@@ -1076,22 +1158,21 @@ export default function Discover() {
                     key={chip.id}
                     style={[
                       styles.feedFilterChip,
-                      isSelected 
-                        ? { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY }
-                        : { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }
+                      isSelected
+                        ? { backgroundColor: accent, borderColor: accent }
+                        : { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor },
                     ]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setActiveFeedCategory(chip.id);
                     }}
                     activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${chip.label.replace(/^\S+\s/, "")} filter`}
+                    accessibilityState={{ selected: isSelected }}
                   >
-                    <Text 
-                      style={[
-                        styles.feedFilterChipText, 
-                        { color: isSelected ? "#FFFFFF" : themeStyles.textColor }
-                      ]}
-                    >
+                    {isSelected && <Ionicons name="checkmark" size={14} color={ON_IMAGE} style={{ marginRight: 4 }} />}
+                    <Text style={[styles.feedFilterChipText, { color: isSelected ? ON_IMAGE : themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>
                       {chip.label}
                     </Text>
                   </TouchableOpacity>
@@ -1099,166 +1180,174 @@ export default function Discover() {
               })}
             </ScrollView>
 
-            {/* Horizontal Destinations Carousel */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginHorizontal: -16, marginTop: 4, overflow: "visible" }}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-            >
-              {displayedDestinations.map((dest) => {
-                const isSaved = !!savedPlaces[dest.id || dest.title];
-                return (
-                  <View
-                    key={dest.id}
-                    style={[styles.popularCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
-                  >
-                    <View style={styles.cardImageContainer}>
-                      <SafeImage sourceUri={dest.image} style={styles.popularImage} />
-                      
-                      {/* Rating Badge */}
-                      <View style={styles.ratingBadge}>
-                        <Ionicons name="star" size={12} color="#FFD700" />
-                        <Text style={styles.ratingText}>{dest.rating}</Text>
-                      </View>
-
-                      {/* Interactive Heart (Wishlist) Button */}
-                      <TouchableOpacity
-                        accessibilityRole="button"
-                        accessibilityLabel="Save to favourites"
-                        style={styles.heartButton}
-                        onPress={() => toggleSavePlace(dest)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons 
-                          name={isSaved ? "heart" : "heart-outline"} 
-                          size={17} 
-                          color={isSaved ? "#EF4444" : "#FFFFFF"} 
-                        />
-                      </TouchableOpacity>
-                    </View>
-
+            {/* Destinations carousel */}
+            {feedLoading ? (
+              <ScrollView horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.hScrollContent}>
+                {[0, 1].map((i) => (
+                  <View key={i} style={[styles.popularCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}>
+                    <Skeleton height={170} radius={0} />
                     <View style={styles.popularInfo}>
-                      <Text style={[styles.popularTitle, { color: themeStyles.textColor }]} numberOfLines={1}>
-                        {dest.title}
-                      </Text>
-                      
-                      {/* Rich Information Badges */}
-                      <View style={styles.richMetaRow}>
-                        <View style={[styles.metaBadge, { backgroundColor: isDark ? "#282828" : "#F3F4F6" }]}>
-                          <Ionicons name="calendar-outline" size={11} color={themeStyles.subTextColor} />
-                          <Text style={[styles.metaBadgeText, { color: themeStyles.subTextColor }]}>{dest.season}</Text>
-                        </View>
-                        <View style={[styles.metaBadge, { backgroundColor: isDark ? "#282828" : "#F3F4F6", marginLeft: 6 }]}>
-                          <Ionicons name="pricetag-outline" size={11} color={Colors.PRIMARY} />
-                          <Text style={[styles.metaBadgeText, { color: Colors.PRIMARY }]}>{dest.priceEst}</Text>
-                        </View>
-                      </View>
-
-                      <Text style={[styles.vibeText, { color: themeStyles.subTextColor }]} numberOfLines={1}>
-                        ✨ {dest.vibe}
-                      </Text>
-
-                      {/* Action Buttons Row */}
-                      <View style={styles.popularActionRow}>
-                        <TouchableOpacity
-                          style={[styles.aiPlanPillBtn, { backgroundColor: Colors.PRIMARY }]}
-                          onPress={() => executeAiTrip(dest.title, 3, "Moderate", dest.image)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="sparkles" size={12} color="#FFF" style={{ marginRight: 3 }} />
-                          <Text style={styles.aiPlanPillText}>1-Tap AI</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.wizardPillBtn, { borderColor: themeStyles.borderColor }]}
-                          onPress={() => selectPopularDestination(dest)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={[styles.wizardPillText, { color: themeStyles.textColor }]}>Customize</Text>
-                          <Ionicons name="chevron-forward" size={13} color={themeStyles.subTextColor} />
-                        </TouchableOpacity>
-                      </View>
+                      <Skeleton height={14} width="70%" style={{ marginBottom: Spacing.sm }} />
+                      <Skeleton height={44} radius={Radius.sm} />
                     </View>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : displayedDestinations.length === 0 ? (
+              <EmptyState
+                icon="compass-outline"
+                title="No places here yet"
+                text="Try another category to see more destinations."
+                actionLabel="Show all"
+                onAction={() => setActiveFeedCategory("all")}
+              />
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                style={styles.hScroll}
+                contentContainerStyle={styles.hScrollContent}
+              >
+                {displayedDestinations.map((dest, idx) => {
+                  const isSaved = !!savedPlaces[dest.id || dest.title];
+                  return (
+                    <FadeInView
+                      key={dest.id}
+                      index={idx}
+                      style={[styles.popularCard, { backgroundColor: themeStyles.cardBg, borderColor: themeStyles.borderColor }]}
+                    >
+                      <View style={styles.cardImageContainer}>
+                        <SafeImage sourceUri={dest.image} style={styles.popularImage} />
+                        <LinearGradient colors={SCRIM_COLORS} style={styles.cardScrim} pointerEvents="none" />
+
+                        <View style={styles.ratingBadge}>
+                          <Ionicons name="star" size={12} color="#FFD700" />
+                          <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{dest.rating}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={isSaved ? `Remove ${dest.title} from favourites` : `Save ${dest.title} to favourites`}
+                          accessibilityState={{ selected: isSaved }}
+                          style={styles.heartButton}
+                          onPress={() => toggleSavePlace(dest)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.heartCircle}>
+                            <Ionicons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? FAVOURITE_RED : ON_IMAGE} />
+                          </View>
+                        </TouchableOpacity>
+
+                        <View style={styles.cardOverlayText} pointerEvents="none">
+                          <Text style={styles.overlayTitle} numberOfLines={2} maxFontSizeMultiplier={1.3}>{dest.title}</Text>
+                          <Text style={styles.overlaySub} numberOfLines={1} maxFontSizeMultiplier={1.3}>{dest.vibe}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.popularInfo}>
+                        <View style={styles.richMetaRow}>
+                          <View style={[styles.metaBadge, { backgroundColor: theme.badgeBg }]}>
+                            <Ionicons name="calendar-outline" size={12} color={themeStyles.subTextColor} />
+                            <Text style={[styles.metaBadgeText, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>{dest.season}</Text>
+                          </View>
+                          <View style={[styles.metaBadge, { backgroundColor: theme.badgeBg }]}>
+                            <Ionicons name="pricetag-outline" size={12} color={accent} />
+                            <Text style={[styles.metaBadgeText, { color: accent }]} maxFontSizeMultiplier={1.3}>{dest.priceEst}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.popularActionRow}>
+                          <TouchableOpacity
+                            style={[styles.aiPlanPillBtn, { backgroundColor: accent }]}
+                            onPress={() => executeAiTrip(dest.title, 3, "Moderate", dest.image)}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Generate a 3 day AI plan for ${dest.title}`}
+                          >
+                            <Ionicons name="sparkles" size={14} color={ON_IMAGE} style={{ marginRight: 4 }} />
+                            <Text style={styles.aiPlanPillText} maxFontSizeMultiplier={1.3}>1-Tap AI</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.wizardPillBtn, { borderColor: themeStyles.borderColor }]}
+                            onPress={() => selectPopularDestination(dest)}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Customise trip to ${dest.title}`}
+                          >
+                            <Text style={[styles.wizardPillText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>Customise</Text>
+                            <Ionicons name="chevron-forward" size={14} color={themeStyles.subTextColor} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </FadeInView>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Live AI thinking modal */}
+      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.aiModalOverlay}>
+          <View style={[styles.aiModalContent, { backgroundColor: themeStyles.cardBg }]}>
+            <View style={[styles.aiPulseCircle, { backgroundColor: accent + "26" }]}>
+              <Ionicons name="sparkles" size={28} color={AI_ACCENT} />
+            </View>
+
+            <Text style={[styles.aiModalTitle, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>
+              AI is planning your trip
+            </Text>
+            <Text style={[styles.aiModalSub, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>
+              Crafting your seamless, personalised itinerary
+            </Text>
+
+            <View style={styles.aiStepsBox}>
+              {[
+                { n: 1, text: "Analysing destination & climate" },
+                { n: 2, text: "Curating top boutique stays & dining" },
+                { n: 3, text: "Structuring morning-to-night itinerary" },
+              ].map((step) => {
+                const done = aiStep > step.n || (step.n === 1 && aiStep >= 1 && aiStep > 1);
+                const active = aiStep === step.n;
+                return (
+                  <View key={step.n} style={styles.aiStepItem}>
+                    <Ionicons
+                      name={done ? "checkmark-circle" : active ? "sync-outline" : "ellipse-outline"}
+                      size={20}
+                      color={done ? accent : active ? AI_ACCENT : themeStyles.subTextColor}
+                    />
+                    <Text style={[styles.aiStepText, { color: done || active ? themeStyles.textColor : themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>
+                      {step.text}
+                    </Text>
                   </View>
                 );
               })}
-            </ScrollView>
-          </>
-        )}
-
-      </ScrollView>
-
-      {/* 🔮 LIVE AI THINKING STREAM MODAL */}
-      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => {}}>
-        <View style={styles.aiModalOverlay}>
-          <View style={[styles.aiModalContent, { backgroundColor: isDark ? "#1E1833" : "#FFFFFF" }]}>
-            <View style={styles.aiPulseCircle}>
-              <Ionicons name="sparkles" size={28} color="#8B5CF6" />
             </View>
 
-            <Text style={[styles.aiModalTitle, { color: themeStyles.textColor }]}>
-              AI Trip Generator at Work ✨
-            </Text>
-            <Text style={[styles.aiModalSub, { color: themeStyles.subTextColor }]}>
-              Crafting your seamless, personalized itinerary
-            </Text>
-
-            {/* Thinking Progress Steps */}
-            <View style={styles.aiStepsBox}>
-              <View style={styles.aiStepItem}>
-                <Ionicons 
-                  name={aiStep >= 1 ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={aiStep >= 1 ? "#10B981" : "#A0A0A0"} 
-                />
-                <Text style={[styles.aiStepText, { color: aiStep >= 1 ? themeStyles.textColor : themeStyles.subTextColor }]}>
-                  Analyzing destination & climate
-                </Text>
-              </View>
-
-              <View style={styles.aiStepItem}>
-                <Ionicons 
-                  name={aiStep >= 2 ? "checkmark-circle" : aiStep === 1 ? "sync-outline" : "ellipse-outline"} 
-                  size={18} 
-                  color={aiStep >= 2 ? "#10B981" : aiStep === 1 ? "#8B5CF6" : "#A0A0A0"} 
-                />
-                <Text style={[styles.aiStepText, { color: aiStep >= 2 ? themeStyles.textColor : themeStyles.subTextColor }]}>
-                  Curating top boutique stays & dining
-                </Text>
-              </View>
-
-              <View style={styles.aiStepItem}>
-                <Ionicons 
-                  name={aiStep >= 3 ? "checkmark-circle" : "sync-outline"} 
-                  size={18} 
-                  color={aiStep >= 3 ? "#10B981" : "#8B5CF6"} 
-                />
-                <Text style={[styles.aiStepText, { color: aiStep >= 3 ? themeStyles.textColor : themeStyles.subTextColor }]}>
-                  Structuring morning-to-night itinerary
-                </Text>
-              </View>
-            </View>
-
-            <ActivityIndicator size="small" color="#8B5CF6" style={{ marginTop: 15 }} />
+            <ActivityIndicator size="small" color={accent} style={{ marginTop: Spacing.lg }} />
           </View>
         </View>
       </Modal>
 
-      {/* Error Alert Modal if generation fails */}
+      {/* Error modal if generation fails */}
       {aiError && (
         <Modal statusBarTranslucent visible={!!aiError} transparent={true} animationType="fade" onRequestClose={() => setAiError(null)}>
           <View style={styles.aiModalOverlay}>
-            <View style={[styles.aiModalContent, { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" }]}>
-              <Ionicons name="alert-circle-outline" size={36} color="#EF4444" />
-              <Text style={[styles.aiModalTitle, { color: themeStyles.textColor, marginTop: 10 }]}>Oops!</Text>
-              <Text style={[styles.aiModalSub, { color: themeStyles.subTextColor }]}>{aiError}</Text>
-              <TouchableOpacity 
-                style={[styles.aiSendBtn, { width: "100%", marginTop: 15, paddingVertical: 12 }]}
+            <View style={[styles.aiModalContent, { backgroundColor: themeStyles.cardBg }]}>
+              <Ionicons name="alert-circle-outline" size={36} color={FAVOURITE_RED} />
+              <Text style={[styles.aiModalTitle, { color: themeStyles.textColor, marginTop: Spacing.sm }]} maxFontSizeMultiplier={1.3}>Something went wrong</Text>
+              <Text style={[styles.aiModalSub, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>{aiError}</Text>
+              <TouchableOpacity
+                style={[styles.aiSendBtn, { backgroundColor: accent, width: "100%", justifyContent: "center" }]}
                 onPress={() => setAiError(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss error"
               >
-                <Text style={styles.aiSendBtnText}>Dismiss</Text>
+                <Text style={styles.aiSendBtnText} maxFontSizeMultiplier={1.3}>Dismiss</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1270,184 +1359,181 @@ export default function Discover() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingTop: 0, paddingBottom: 90 },
-  header: { paddingHorizontal: 16, marginBottom: 15 },
-  title: { fontSize: 28, fontFamily: "Outfit-Bold" },
-  subtitle: { fontSize: 14, fontFamily: "Outfit-Medium", marginTop: 2 },
+  scrollContent: { paddingTop: 0 },
+  header: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontFamily: Typography.fontBold },
+  subtitle: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium, marginTop: 2 },
 
-  // AI Hero Card
+  // AI hero card
   aiHeroCard: {
-    marginHorizontal: 16,
+    marginHorizontal: Spacing.lg,
     borderRadius: 24,
-    padding: 18,
-    borderWidth: 1.5,
-    marginBottom: 20,
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.xl,
+    overflow: "hidden",
   },
-  aiBadgeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  aiBadgeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Spacing.sm },
   aiGlowBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(139, 92, 246, 0.15)",
+    minHeight: 28,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: Radius.md,
   },
-  aiGlowBadgeText: { color: "#8B5CF6", fontSize: 11, fontFamily: "Outfit-Bold", marginLeft: 4, letterSpacing: 0.5 },
-  aiStatusDot: { color: "#10B981", fontSize: 12, fontFamily: "Outfit-Bold" },
-  aiHeroTitle: { fontSize: 20, fontFamily: "Outfit-Bold", marginBottom: 4 },
-  aiHeroSub: { fontSize: 12, fontFamily: "Outfit-Regular", marginBottom: 14 },
+  aiGlowBadgeText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold, marginLeft: 6 },
+  aiTinyBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.xs },
+  aiTinyBadgeText: { color: AI_ACCENT, fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
+  aiHeroTitle: { fontSize: Typography.sizeXl, fontFamily: Typography.fontBold, marginBottom: 4 },
+  aiHeroSub: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, marginBottom: Spacing.md },
 
   aiInputBox: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-    marginBottom: 14,
+    minHeight: 52,
+    borderRadius: Radius.card,
+    borderWidth: 1.5,
+    paddingLeft: Spacing.md,
+    paddingRight: 4,
+    marginBottom: Spacing.md,
   },
-  aiTextInput: { flex: 1, minWidth: 0, fontSize: 13, fontFamily: "Outfit-Regular", paddingVertical: 8 },
+  inputLeadIcon: { marginRight: Spacing.sm },
+  aiTextInput: { flex: 1, minWidth: 0, fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, paddingVertical: Spacing.sm, minHeight: 44 },
+  clearBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   aiSendBtn: {
     flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#8B5CF6",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.md,
   },
-  aiSendBtnText: { color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold", marginLeft: 4 },
+  aiSendBtnText: { color: ON_IMAGE, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
 
-  vibeScroll: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10 },
-  vibeCard: {
-    borderRadius: 14,
-    padding: 10,
-    borderWidth: 1,
-    width: "48%",
-    minWidth: 0,
-  },
-  vibeIconCircle: { width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center", marginBottom: 6 },
-  vibeCardTitle: { fontSize: 13, fontFamily: "Outfit-Bold", marginBottom: 2 },
-  vibeCardTag: { fontSize: 10, fontFamily: "Outfit-Bold" },
-
-  // Regular Search Bar
-  searchContainer: {
-    marginHorizontal: 16,
+  innerPanel: { marginTop: Spacing.md, padding: Spacing.md, borderRadius: Radius.card, borderWidth: 1 },
+  panelLabel: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold, letterSpacing: 0.3 },
+  rangeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginBottom: Spacing.sm },
+  rangeText: { flexShrink: 1, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  dateChip: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
+  },
+  dateChipText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
+  customDateBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    marginTop: Spacing.sm,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    borderWidth: 1,
+  },
+  customDateInput: { flex: 1, fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium, minHeight: 44 },
+
+  vibeScroll: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: Spacing.sm },
+  vibeCard: { borderRadius: Radius.md, padding: 10, borderWidth: 1, width: "48.5%", minWidth: 0, minHeight: 44 },
+  vibeIconCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center", marginBottom: 6 },
+  vibeCardTitle: { fontSize: Typography.sizeMd, fontFamily: Typography.fontBold, marginBottom: 2 },
+  vibeCardTag: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
+
+  // Search places
+  searchBlock: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
+  searchLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  searchLabel: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
+  searchHelper: { fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2, marginBottom: Spacing.sm },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 48,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingLeft: Spacing.md,
+    paddingRight: 4,
   },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 14, fontFamily: "Outfit-Regular" },
+  searchInput: { flex: 1, minHeight: 44, fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular },
 
-  // Quick Search Suggested Tags
-  quickTagsScroll: {
-    marginHorizontal: -16,
-    marginBottom: 6,
-    overflow: "visible",
-  },
+  hScroll: { overflow: "visible", flexGrow: 0 },
+  hScrollContent: { paddingHorizontal: Spacing.lg, gap: Spacing.sm, paddingBottom: Spacing.sm, alignItems: "center" },
   quickTagPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  quickTagText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-  },
+  quickTagText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
 
+  searchSkeletons: { paddingHorizontal: Spacing.lg, marginTop: Spacing.sm },
   searchResultsContainer: {
-    marginHorizontal: 16,
-    borderRadius: 16,
+    marginHorizontal: Spacing.lg,
+    borderRadius: Radius.card,
     borderWidth: 1,
-    padding: 10,
-    marginBottom: 20,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xl,
   },
-  resultItem: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
+  resultItem: { flexDirection: "row", alignItems: "center", minHeight: 48, paddingVertical: 10 },
 
-  // Categories
+  // Sections
   sectionHeader: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: Spacing.sm,
+    gap: Spacing.sm,
   },
-  sectionTitle: { fontSize: 18, fontFamily: "Outfit-Bold" },
-  categoriesContainer: {
-    marginHorizontal: -16,
-    marginTop: 6,
-    overflow: "visible",
-  },
+  sectionTitle: { fontSize: Typography.sizeLg, fontFamily: Typography.fontBold },
+  sectionSub: { fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 },
+  seeAllBtn: { minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: Spacing.xs },
+  seeAllText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
   categoryCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
+    minHeight: 52,
+    borderRadius: Radius.card,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginRight: 10,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
-  categoryIconWrap: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", marginRight: 8 },
-  categoryText: { fontSize: 13, fontFamily: "Outfit-Medium" },
+  categoryIconWrap: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", marginRight: Spacing.sm },
+  categoryText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
 
-  // Feed Filter Chips
   feedFilterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
     borderWidth: 1,
   },
-  feedFilterChipText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
-  },
+  feedFilterChipText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
 
-  // Trending Places Cards
+  // Trending cards
   popularCard: {
-    width: 240,
-    borderRadius: 20,
-    marginRight: 14,
+    width: 250,
+    borderRadius: Radius.card,
     borderWidth: 1,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
   },
-  cardImageContainer: {
-    width: "100%",
-    height: 135,
-    position: "relative",
-  },
+  cardImageContainer: { width: "100%", height: 170, position: "relative" },
   popularImage: { width: "100%", height: "100%" },
-  heartButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  cardScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "65%" },
+  cardOverlayText: { position: "absolute", left: Spacing.md, right: Spacing.md, bottom: Spacing.md },
+  overlayTitle: { color: ON_IMAGE, fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
+  overlaySub: { color: ON_IMAGE, fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, marginTop: 2 },
+  heartButton: { position: "absolute", top: 4, right: 4, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  heartCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
   ratingBadge: {
     position: "absolute",
     top: 10,
@@ -1456,105 +1542,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.65)",
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.md,
   },
-  ratingText: { color: "#FFF", fontSize: 11, fontFamily: "Outfit-Bold", marginLeft: 3 },
-  popularInfo: { padding: 12 },
-  popularTitle: { fontSize: 15, fontFamily: "Outfit-Bold", marginBottom: 2 },
-  richMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  metaBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  metaBadgeText: {
-    fontSize: 10,
-    fontFamily: "Outfit-Medium",
-    marginLeft: 3,
-  },
-  vibeText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Regular",
-    marginBottom: 10,
-  },
-  popularActionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 6,
-  },
+  ratingText: { color: ON_IMAGE, fontSize: Typography.sizeSm, fontFamily: Typography.fontBold, marginLeft: 3 },
+  popularInfo: { padding: Spacing.md },
+  richMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: Spacing.md },
+  metaBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.xs },
+  metaBadgeText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, marginLeft: 4 },
+  popularActionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
   aiPlanPillBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 44,
     paddingHorizontal: 6,
-    paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: Radius.md,
   },
-  aiPlanPillText: {
-    color: "#FFF",
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    marginLeft: 3,
-  },
+  aiPlanPillText: { color: ON_IMAGE, fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
   wizardPillBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 44,
     paddingHorizontal: 6,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     borderWidth: 1,
   },
-  wizardPillText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Medium",
-    marginRight: 2,
-  },
+  wizardPillText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, marginRight: 2 },
 
-  // AI Thinking Stream Modal
-  aiModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  aiModalContent: {
-    width: "100%",
-    borderRadius: 24,
-    padding: 24,
-    alignItems: "center",
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  aiPulseCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(139, 92, 246, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  aiModalTitle: { fontSize: 20, fontFamily: "Outfit-Bold" },
-  aiModalSub: { fontSize: 13, fontFamily: "Outfit-Regular", textAlign: "center", marginTop: 4, marginBottom: 20 },
-  aiStepsBox: { width: "100%", gap: 12 },
+  // AI modal
+  aiModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: Spacing.xxl },
+  aiModalContent: { width: "100%", borderRadius: 24, padding: Spacing.xxl, alignItems: "center" },
+  aiPulseCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: "center", alignItems: "center", marginBottom: Spacing.md },
+  aiModalTitle: { fontSize: Typography.sizeXl, fontFamily: Typography.fontBold, textAlign: "center" },
+  aiModalSub: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, textAlign: "center", marginTop: 4, marginBottom: Spacing.xl },
+  aiStepsBox: { width: "100%", gap: Spacing.md },
   aiStepItem: { flexDirection: "row", alignItems: "center", gap: 10 },
-  aiStepText: { fontSize: 13, fontFamily: "Outfit-Medium" },
+  aiStepText: { flex: 1, fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
 });

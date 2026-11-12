@@ -206,7 +206,7 @@ export default function TripSummer() {
           onPress={handleInstantAIPlan}
         >
           <Ionicons name="sparkles" size={18} color="#FFF" style={{ marginRight: 8 }} />
-          <Text style={styles.instantBtnText}>✨ Generate 3-Day Plan</Text>
+          <Text style={styles.instantBtnText}>Generate 3-Day Plan</Text>
         </TouchableOpacity>
 
         {/* Custom Wizard Button */}
@@ -216,7 +216,7 @@ export default function TripSummer() {
           onPress={handleStartPlanning}
         >
           <Text style={[styles.customBtnText, { color: theme.text }]}>
-            Customize Dates & Budget
+            Customise Dates & Budget
           </Text>
           <Ionicons name="chevron-forward" size={16} color={theme.subtext} style={{ marginLeft: 4 }} />
         </TouchableOpacity>

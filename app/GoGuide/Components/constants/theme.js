@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useSyncExternalStore } from "react";
 import { useColorScheme } from "react-native";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Colors } from "./constants";
@@ -81,9 +81,22 @@ export const darkTheme = {
  * Hook to get the current theme based on user preferences or native system theme.
  * Usage: const theme = useTheme();
  */
+const noopSubscribe = () => () => {};
+
+/**
+ * Web pages are pre-rendered in light mode. During hydration React keeps the pre-rendered
+ * styles (it does not patch style mismatches), so we report "light" until hydration is done,
+ * then the real scheme, which triggers a proper re-render. Native always gets true at once.
+ */
+function useHydrated() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 export function useTheme() {
   const context = useContext(CreateTripContext);
-  const systemScheme = useColorScheme();
+  const hydrated = useHydrated();
+  const liveScheme = useColorScheme();
+  const systemScheme = hydrated ? liveScheme : "light";
   const explicitPref = context?.preferences?.darkMode;
   const isDark = typeof explicitPref === "boolean" ? explicitPref : systemScheme === "dark";
   return isDark ? darkTheme : lightTheme;

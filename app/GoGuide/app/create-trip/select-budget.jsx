@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   heroPreTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     color: "#64748B",
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   currencyBadgeSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   dividerText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.2,
   },
@@ -782,13 +782,13 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   customHintText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     lineHeight: 16,
     marginTop: 2,
   },
   customEstimateSubText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },

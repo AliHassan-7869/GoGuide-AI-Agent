@@ -8,7 +8,13 @@ export default function StepProgressBar({ currentStep = 1, totalSteps = 5, stepT
   const percentage = Math.min(100, Math.max(0, (currentStep / totalSteps) * 100));
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Step ${currentStep} of ${totalSteps}`}
+      accessibilityValue={{ min: 1, max: totalSteps, now: currentStep, text: `Step ${currentStep} of ${totalSteps}${stepTitle ? `, ${stepTitle}` : ""}` }}
+    >
       <View style={styles.textRow}>
         <Text style={[styles.stepText, { color: Colors.PRIMARY }]}>
           STEP {currentStep} OF {totalSteps}
@@ -38,7 +44,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   stepText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Outfit-Bold',
     letterSpacing: 0.8,
   },

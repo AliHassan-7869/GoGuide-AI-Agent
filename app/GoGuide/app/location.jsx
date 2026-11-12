@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit-Bold',
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Outfit-Regular',
     marginTop: 2,
   },
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   metricLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Outfit-Regular',
     marginTop: 2,
   },

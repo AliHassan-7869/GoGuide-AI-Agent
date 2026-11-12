@@ -72,15 +72,18 @@ export default function FavoriteHeartButton({
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.8}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
       style={[
         variant === "overlay" ? styles.overlayBtn : styles.inlineBtn,
         variant === "overlay" && hasCustomBottom && { top: undefined },
         variant === "overlay" && hasCustomLeft && { right: undefined },
-        isFav && variant === "overlay" && styles.overlayBtnActive,
         style,
+        isFav && variant === "overlay" && styles.overlayBtnActive,
+        isFav && variant !== "overlay" && styles.inlineBtnActive,
       ]}
-      accessibilityLabel={isFav ? "Remove from Favorites" : "Add to Favorites"}
+      accessibilityRole="button"
+      accessibilityLabel={isFav ? "Remove from favourites" : "Save to favourites"}
+      accessibilityState={{ selected: isFav }}
     >
       <Ionicons
         name={isFav ? "heart" : "heart-outline"}
@@ -96,9 +99,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "rgba(15, 23, 42, 0.55)",
     alignItems: "center",
     justifyContent: "center",
@@ -108,13 +111,17 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   overlayBtnActive: {
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
-    borderColor: "rgba(239, 68, 68, 0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderColor: "#EF4444",
+    borderWidth: 2,
+  },
+  inlineBtnActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
   },
   inlineBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "rgba(150, 150, 150, 0.12)",
     alignItems: "center",
     justifyContent: "center",

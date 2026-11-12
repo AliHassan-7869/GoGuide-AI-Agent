@@ -1,9 +1,12 @@
 import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import Touchable from "./Touchable";
+import { Colors } from "../constants/constants";
+import { useTheme } from "../constants/theme";
 
 /** Shared Loading / Error (retry) / Empty states. */
-export default function ScreenState({ loading, error, empty, onRetry, emptyText = "Nothing here yet.", children, color = "#7C3AED" }) {
+export default function ScreenState({ loading, error, empty, onRetry, emptyText = "Nothing here yet.", children, color = Colors.PRIMARY }) {
+  const theme = useTheme();
   if (loading) {
     return (
       <View style={styles.center}>
@@ -14,12 +17,12 @@ export default function ScreenState({ loading, error, empty, onRetry, emptyText 
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.3}>Something went wrong</Text>
-        <Text style={styles.sub} maxFontSizeMultiplier={1.3}>
+        <Text style={[styles.title, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Something went wrong</Text>
+        <Text style={[styles.sub, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>
           {typeof error === "string" ? error : "Please check your connection and try again."}
         </Text>
         {onRetry ? (
-          <Touchable onPress={onRetry} style={[styles.btn, { backgroundColor: color }]}>
+          <Touchable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Retry" style={[styles.btn, { backgroundColor: color }]}>
             <Text style={styles.btnText}>Retry</Text>
           </Touchable>
         ) : null}
@@ -29,7 +32,7 @@ export default function ScreenState({ loading, error, empty, onRetry, emptyText 
   if (empty) {
     return (
       <View style={styles.center}>
-        <Text style={styles.sub} maxFontSizeMultiplier={1.3}>{emptyText}</Text>
+        <Text style={[styles.sub, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{emptyText}</Text>
       </View>
     );
   }

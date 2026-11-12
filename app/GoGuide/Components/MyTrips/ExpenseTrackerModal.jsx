@@ -264,7 +264,7 @@ export default function ExpenseTrackerModal({
               <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.subtext }}>
                 💱 LIVE CURRENCY CONVERTER
               </Text>
-              <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: Colors.PRIMARY }}>
+              <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: Colors.PRIMARY }}>
                 $1 = {getCurrencySymbol(destCurrency)}{CURRENCY_RATES[destCurrency]?.rate || 1} ({destCurrency}) • {getCurrencySymbol(originCurrency)}{CURRENCY_RATES[originCurrency]?.rate || 278} ({originCurrency})
               </Text>
             </View>
@@ -312,7 +312,7 @@ export default function ExpenseTrackerModal({
               <View>
                 <Text style={[styles.metricLabel, { color: theme.subtext }]}>Total Spent ({activeViewCurrency})</Text>
                 <Text style={[styles.metricValue, { color: theme.text }]}>{symbol}{totalSpent.toLocaleString()}</Text>
-                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
                   ≈ ${convertBetweenCurrencies(totalSpentBase, baseCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(originCurrency)}{convertBetweenCurrencies(totalSpentBase, baseCurrency, originCurrency).toLocaleString()}
                 </Text>
               </View>
@@ -321,7 +321,7 @@ export default function ExpenseTrackerModal({
                 <Text style={[styles.metricValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
                   {symbol}{remainingBudget.toLocaleString()}
                 </Text>
-                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
                   ≈ ${convertBetweenCurrencies(remainingBudgetBase, baseCurrency, "USD").toLocaleString()} USD • {getCurrencySymbol(destCurrency)}{convertBetweenCurrencies(remainingBudgetBase, baseCurrency, destCurrency).toLocaleString()}
                 </Text>
               </View>
@@ -440,7 +440,7 @@ export default function ExpenseTrackerModal({
 
               {/* 1-Tap Quick Currency Selector (Local vs Home) */}
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
-                <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginRight: 2 }}>
+                <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginRight: 2 }}>
                   Currency:
                 </Text>
                 <TouchableOpacity
@@ -459,7 +459,7 @@ export default function ExpenseTrackerModal({
                     borderColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.border,
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: inputCurrency === destCurrency ? "#FFF" : theme.text }}>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === destCurrency ? "#FFF" : theme.text }}>
                     📍 Local ({destCurrency})
                   </Text>
                 </TouchableOpacity>
@@ -481,7 +481,7 @@ export default function ExpenseTrackerModal({
                       borderColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.border,
                     }}
                   >
-                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: inputCurrency === originCurrency ? "#FFF" : theme.text }}>
+                    <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === originCurrency ? "#FFF" : theme.text }}>
                       🏠 Home ({originCurrency})
                     </Text>
                   </TouchableOpacity>
@@ -505,7 +505,7 @@ export default function ExpenseTrackerModal({
                           backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
                         }}
                       >
-                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
+                        <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
                           {code}
                         </Text>
                       </TouchableOpacity>
@@ -558,7 +558,7 @@ export default function ExpenseTrackerModal({
                     <Text style={{ fontSize: 13, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
                       ≈ {targetSym}{converted.toLocaleString()} {targetConvCode}
                     </Text>
-                    <Text style={{ fontSize: 11, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
                       (Live Rate: 1 {inputCurrency} = {unitRateStr} {targetConvCode})
                     </Text>
                   </View>
@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   progressHint: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
   },
   openFormBtn: {
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   expenseItemMeta: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },

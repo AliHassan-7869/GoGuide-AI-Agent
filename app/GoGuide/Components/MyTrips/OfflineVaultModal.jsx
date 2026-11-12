@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   emergencyBtnLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
     marginTop: 4,
   },
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   copyPillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   tipsCard: {
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   phraseEnglish: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
     marginBottom: 2,
     textTransform: "uppercase",

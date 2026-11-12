@@ -10,6 +10,7 @@ import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, ScrollView, 
 import { Colors } from "../Components/constants/constants";
 import { useTheme } from "../Components/constants/theme";
 import ScreenHeader from "../Components/ui/ScreenHeader";
+import { SkeletonCard } from "../Components/ui/Skeleton";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
@@ -27,7 +28,7 @@ export default function MyBookings() {
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Digital Pass Modal State
   const [selectedPass, setSelectedPass] = useState(null);
@@ -79,6 +80,7 @@ export default function MyBookings() {
       });
 
       setBookings(combined);
+      setLoading(false);
     })();
   }, []);
 
@@ -130,6 +132,9 @@ export default function MyBookings() {
                 styles.tabItem,
                 isActive && { borderBottomColor: activeAccent, borderBottomWidth: 2 },
               ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`${tab}, ${count} bookings`}
               onPress={() => setActiveTab(tab)}
               activeOpacity={0.75}
             >
@@ -150,7 +155,7 @@ export default function MyBookings() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Category Filter Pills */}
@@ -196,7 +201,12 @@ export default function MyBookings() {
         </ScrollView>
 
         {/* Bookings List */}
-        {filteredBookings.length === 0 ? (
+        {loading ? (
+          <View style={{ gap: 16 }}>
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
+        ) : filteredBookings.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIconCircle, { backgroundColor: badgeBg }]}>
               <Ionicons name="briefcase-outline" size={38} color={theme.subtext} />
@@ -209,6 +219,8 @@ export default function MyBookings() {
             </Text>
             <TouchableOpacity
               style={[styles.exploreBtn, { backgroundColor: activeAccent }]}
+              accessibilityRole="button"
+              accessibilityLabel="Discover Destinations"
               onPress={() => router.push("/(tabs)/discover")}
             >
               <Text style={styles.exploreBtnText}>Discover Destinations ✨</Text>
@@ -296,6 +308,8 @@ export default function MyBookings() {
                   <View style={styles.infoMetaRow}>
                     <TouchableOpacity
                       style={styles.refCodeBox}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Copy booking reference ${item.bookingRef}`}
                       onPress={() => handleCopyRef(item.bookingRef)}
                       activeOpacity={0.7}
                     >
@@ -352,6 +366,8 @@ export default function MyBookings() {
                   <View style={styles.actionButtonsRow}>
                     <TouchableOpacity
                       style={[styles.mapBtn, { borderColor: theme.border }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Open location in maps"
                       onPress={() => handleOpenMap(item)}
                       activeOpacity={0.7}
                     >
@@ -361,6 +377,8 @@ export default function MyBookings() {
 
                     <TouchableOpacity
                       style={[styles.passBtn, { backgroundColor: activeAccent }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Open digital pass"
                       onPress={() => handleOpenDigitalPass(item)}
                       activeOpacity={0.8}
                     >
@@ -431,6 +449,8 @@ export default function MyBookings() {
 
             <TouchableOpacity
               style={[styles.doneBtn, { backgroundColor: activeAccent }]}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
               onPress={() => setIsPassModalVisible(false)}
             >
               <Text style={styles.doneBtnText}>Done</Text>
@@ -544,7 +564,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   typeBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#FFFFFF",
     fontFamily: "Outfit-Medium",
   },
@@ -554,7 +574,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   statusPillText: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#FFFFFF",
     fontFamily: "Outfit-Bold",
   },
@@ -589,7 +609,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   refLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
   },
   refCode: {
@@ -616,7 +636,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   scheduleLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
     marginBottom: 2,
@@ -731,7 +751,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   passModalSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
@@ -774,7 +794,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   passDatesText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
   },
   doneBtn: {

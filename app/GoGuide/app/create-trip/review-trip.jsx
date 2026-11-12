@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
   heroPreTitle: {
     color: "#0A7EA4",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     marginTop: 8,
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   passLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     color: "#94A3B8",
     letterSpacing: 1,
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   },
   vipTagText: {
     color: "#0A7EA4",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   passRouteRow: {
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   passCityTag: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     color: "#94A3B8",
     letterSpacing: 0.8,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   matrixLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     color: "#94A3B8",
   },
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   matrixSubVal: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     color: "#94A3B8",
     marginTop: 1,
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
   },
   authorizedText: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     color: "#94A3B8",
     letterSpacing: 1,
@@ -825,11 +825,11 @@ const styles = StyleSheet.create({
   },
   modeBadgeText: {
     color: "#FFFFFF",
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   modeDesc: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
     lineHeight: 15,
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   budgetEstimateTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1,
   },
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   budgetTierPillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   currencyRow: {

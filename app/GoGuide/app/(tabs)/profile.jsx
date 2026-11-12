@@ -368,7 +368,7 @@ export default function Profile() {
     triggerHaptic();
     setPreferences((prev) => ({
       ...prev,
-      darkMode: !prev?.darkMode,
+      darkMode: !theme.isDark,
     }));
   };
 
@@ -533,8 +533,11 @@ export default function Profile() {
       key={item.id}
       style={[
         styles.menuRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.isDark ? "#282828" : "#F0F0F0" },
+        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.border },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={item.badge ? `${item.title}, ${item.badge}` : item.title}
+      accessibilityHint={item.subtitle}
       onPress={() => {
         triggerHaptic();
         if (typeof item.onPress === 'function') {
@@ -559,8 +562,8 @@ export default function Profile() {
         <Ionicons name={item.icon} size={20} color={brandIconColor} />
       </View>
       <View style={styles.menuTextContainer}>
-        <Text style={[styles.menuTitle, { color: theme.text }]}>{item.title}</Text>
-        <Text style={[styles.menuSubtitle, { color: theme.subtext }]}>{item.subtitle}</Text>
+        <Text style={[styles.menuTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{item.title}</Text>
+        <Text style={[styles.menuSubtitle, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{item.subtitle}</Text>
       </View>
       {item.badge && (
         <View style={styles.badgePill}>
@@ -570,7 +573,7 @@ export default function Profile() {
       <Ionicons
         name="chevron-forward"
         size={18}
-        color={theme.isDark ? "#666" : "#B0B0B0"}
+        color={theme.subtext}
         style={{ marginLeft: 6 }}
       />
     </TouchableOpacity>
@@ -579,26 +582,27 @@ export default function Profile() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
       {/* Top Header */}
-      <View style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.isDark ? "#242424" : "#F0F0F0" }]}>
+      <View style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.headerBorder }]}>
         <Text style={[styles.headerTitle, { color: theme.isDark ? theme.text : Colors.PRIMARY }]}>
           Profile
         </Text>
         <TouchableOpacity
           onPress={toggleTheme}
-          style={[styles.themeToggleBtn, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F3F4F6" }]}
-          accessibilityLabel="Toggle Dark Mode"
+          style={[styles.themeToggleBtn, { backgroundColor: theme.badgeBg, borderColor: theme.border }]}
+          accessibilityRole="button"
+          accessibilityLabel={theme.isDark ? "Switch to light mode" : "Switch to dark mode"}
         >
           <Ionicons
             name={theme.isDark ? "sunny" : "moon"}
             size={20}
-            color={theme.isDark ? "#FBBF24" : "#4B5563"}
+            color={theme.isDark ? "#FBBF24" : theme.subtext}
           />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* User Identity Card */}
@@ -607,6 +611,7 @@ export default function Profile() {
             style={styles.avatarWrapper}
             onPress={handleAvatarAction}
             activeOpacity={0.8}
+            accessibilityRole="button"
             accessibilityLabel="Change Profile Photo"
           >
             <Image
@@ -644,15 +649,17 @@ export default function Profile() {
               triggerHaptic();
               router.push("/(tabs)/mytrip");
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Trips"
             activeOpacity={0.7}
           >
             <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
               <Ionicons name="airplane" size={22} color={Colors.PRIMARY} />
             </View>
-            <Text style={[styles.statLabel, { color: theme.text }]}>Trips</Text>
+            <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Trips</Text>
           </TouchableOpacity>
 
-          <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
+          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
 
           <TouchableOpacity
             style={styles.statCol}
@@ -660,25 +667,29 @@ export default function Profile() {
               triggerHaptic();
               router.push("/favourites");
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Favourites"
             activeOpacity={0.7}
           >
             <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
               <Ionicons name="heart" size={22} color={Colors.PRIMARY} />
             </View>
-            <Text style={[styles.statLabel, { color: theme.text }]}>Favourites</Text>
+            <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Favourites</Text>
           </TouchableOpacity>
 
-          <View style={[styles.statDivider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E5E7EB" }]} />
+          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
 
           <TouchableOpacity
             style={styles.statCol}
             onPress={() => handleNavigate("/my-bookings")}
+            accessibilityRole="button"
+            accessibilityLabel="Bookings"
             activeOpacity={0.7}
           >
             <View style={[styles.statIconWrap, { backgroundColor: "rgba(2, 132, 199, 0.12)" }]}>
               <Ionicons name="ticket" size={22} color="#0284C7" />
             </View>
-            <Text style={[styles.statLabel, { color: theme.text }]}>Bookings</Text>
+            <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Bookings</Text>
           </TouchableOpacity>
         </View>
 
@@ -701,7 +712,7 @@ export default function Profile() {
           <View
             style={[
               styles.menuRow,
-              { borderBottomWidth: 1, borderBottomColor: theme.isDark ? "#282828" : "#F0F0F0" },
+              { borderBottomWidth: 1, borderBottomColor: theme.border },
             ]}
           >
             <View style={[styles.menuIconContainer, { backgroundColor: brandIconBg, borderColor: brandBorderColor }]}>
@@ -720,6 +731,8 @@ export default function Profile() {
             <Switch
               value={!!preferences?.notifications}
               onValueChange={toggleNotifications}
+              accessibilityLabel="Smart Travel Alerts"
+              accessibilityState={{ checked: !!preferences?.notifications }}
               trackColor={{ false: theme.isDark ? "#333" : "#D1D5DB", true: Colors.PRIMARY }}
               thumbColor="#FFFFFF"
             />
@@ -732,6 +745,8 @@ export default function Profile() {
           <TouchableOpacity
             style={styles.signOutRow}
             onPress={handleSignOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign Out"
             activeOpacity={0.7}
           >
             <View
@@ -752,7 +767,7 @@ export default function Profile() {
         {/* Footer info */}
         <View style={styles.footerWrap}>
           <Text style={[styles.footerText, { color: theme.subtext }]}>GoGuide AI Agent • Version 1.0.0</Text>
-          <Text style={[styles.footerSubtext, { color: theme.isDark ? "#555" : "#AAA" }]}>
+          <Text style={[styles.footerSubtext, { color: theme.subtext }]}>
             Cloud Synced • Offline Capable • Built for Travelers
           </Text>
         </View>
@@ -998,9 +1013,10 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   themeToggleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1130,6 +1146,7 @@ const styles = StyleSheet.create({
   menuRow: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 56,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
@@ -1162,12 +1179,13 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   signOutRow: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 56,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
@@ -1186,7 +1204,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Medium",
   },
   footerSubtext: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 3,
   },

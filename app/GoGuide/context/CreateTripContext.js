@@ -18,7 +18,7 @@ export const CreateTripProvider = ({ children }) => {
 
   const [preferences, setPreferences] = useState({
     notifications: true,
-    darkMode: false,
+    darkMode: null, // null = follow the phone setting; true/false = the user chose explicitly
     locationServices: true,
     dietary: "Halal",
     travelPace: "Balanced",

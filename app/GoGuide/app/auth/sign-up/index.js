@@ -181,7 +181,7 @@ export default function Signup() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start your journey with Guide Go</Text>
+        <Text style={styles.subtitle}>Start your journey with GoGuide</Text>
 
         {/* Prominent Error Banner */}
         {errorMessage ? (
@@ -287,6 +287,8 @@ export default function Signup() {
             onPress={() => setTermsAccepted(!termsAccepted)}
             activeOpacity={0.8}
             accessibilityLabel="Accept Terms and Conditions"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: termsAccepted }}
           >
             {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFF" />}
           </TouchableOpacity>
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
   },
   fieldErrorHint: {
     fontFamily: "Outfit-Regular",
-    fontSize: 11,
+    fontSize: 12,
     color: "#DC2626",
     marginTop: 4,
     marginLeft: 4,
@@ -528,6 +530,6 @@ const styles = StyleSheet.create({
   signInShortcutText: {
     color: "#FFFFFF",
     fontFamily: "Outfit-Bold",
-    fontSize: 11,
+    fontSize: 12,
   },
 });

@@ -2,16 +2,31 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+import FadeInView from "../../Components/ui/FadeInView";
+import TypingIndicator from "../../Components/ui/TypingIndicator";
+import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
+import useReduceMotion from "../../hooks/useReduceMotion";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 const CHAT_STORAGE_KEY = "goguide_ai_copilot_chat_v1";
+const AI_ACCENT = "#7C3AED"; // AI feature highlight (UI_GUIDELINES)
+const INPUT_MAX_HEIGHT = 112; // ~4 lines of 20px text plus padding
+
+const nowTime = () => new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+const PROMPT_CARDS = [
+  { icon: "restaurant-outline", title: "Halal food in Istanbul", query: "What are the best halal food spots in Istanbul?" },
+  { icon: "wallet-outline", title: "3-day budget plan", query: "Plan a 3-day budget trip for me with daily costs." },
+  { icon: "partly-sunny-outline", title: "Weather & packing tips", query: "What is the expected weather and what essential items should I pack?" },
+  { icon: "location-outline", title: "Hidden gems near me", query: "What are the top hidden gems near me, off the beaten tourist path?" },
+];
 
 const QUICK_CHIPS = [
   { label: "🍜 Best Local & Halal Food", query: "What are the top local and halal food spots I must try?" },
@@ -152,76 +167,13 @@ export default function AiAssistant() {
       id: "msg_init",
       sender: "ai",
       text: initialGreeting,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: nowTime(),
     },
   ]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Pulsing orb & 3-dot typing wave animation
-  const pulseAnim = useMemo(() => new Animated.Value(1), []);
-  const dot1Anim = useMemo(() => new Animated.Value(0), []);
-  const dot2Anim = useMemo(() => new Animated.Value(0), []);
-  const dot3Anim = useMemo(() => new Animated.Value(0), []);
-
-  useEffect(() => {
-    if (isLoading) {
-      const pulseLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.22,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseLoop.start();
-
-      const createDotBounce = (anim, delay) => {
-        return Animated.loop(
-          Animated.sequence([
-            Animated.delay(delay),
-            Animated.timing(anim, {
-              toValue: -5,
-              duration: 240,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim, {
-              toValue: 0,
-              duration: 240,
-              useNativeDriver: true,
-            }),
-            Animated.delay(300),
-          ])
-        );
-      };
-
-      const dot1Loop = createDotBounce(dot1Anim, 0);
-      const dot2Loop = createDotBounce(dot2Anim, 140);
-      const dot3Loop = createDotBounce(dot3Anim, 280);
-
-      dot1Loop.start();
-      dot2Loop.start();
-      dot3Loop.start();
-
-      return () => {
-        pulseLoop.stop();
-        dot1Loop.stop();
-        dot2Loop.stop();
-        dot3Loop.stop();
-      };
-    } else {
-      pulseAnim.setValue(1);
-      dot1Anim.setValue(0);
-      dot2Anim.setValue(0);
-      dot3Anim.setValue(0);
-    }
-  }, [isLoading]);
+  const reduceMotion = useReduceMotion();
+  const listFade = useMemo(() => new Animated.Value(1), []);
 
   // Load chat history from storage if available
   useEffect(() => {
@@ -250,8 +202,9 @@ export default function AiAssistant() {
   };
 
   const handleSend = async (customText = null) => {
-    const textToSend = (customText || inputText).trim();
+    const textToSend = (typeof customText === "string" ? customText : inputText).trim();
     if (!textToSend || isLoading) return;
+    tapHaptic();
 
     if (!auth?.currentUser) {
       try {
@@ -266,7 +219,7 @@ export default function AiAssistant() {
       id: "user_" + Date.now(),
       sender: "user",
       text: textToSend,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: nowTime(),
     };
 
     const updatedWithUser = [...messages, userMsg];
@@ -292,7 +245,7 @@ export default function AiAssistant() {
         id: "ai_" + Date.now(),
         sender: "ai",
         text: aiReplyText,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: nowTime(),
       };
 
       const finalMsgs = [...updatedWithUser, aiMsg];
@@ -303,7 +256,7 @@ export default function AiAssistant() {
         id: "err_" + Date.now(),
         sender: "ai",
         text: "⚠️ Sorry, I encountered a temporary connection glitch. Please try asking again!",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: nowTime(),
       };
       setMessages([...updatedWithUser, errorMsg]);
     } finally {
@@ -324,33 +277,51 @@ export default function AiAssistant() {
     }
   }, [prompt]);
 
-  const handleClearChat = async () => {
+  const hasUserMessages = messages.some((m) => m.sender === "user");
+  const canClear = hasUserMessages && !isLoading;
+
+  const performClear = () => {
     const reset = [
-      {
-        id: "msg_reset_" + Date.now(),
-        sender: "ai",
-        text: initialGreeting,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
+      { id: "msg_reset_" + Date.now(), sender: "ai", text: initialGreeting, time: nowTime() },
     ];
-    setMessages(reset);
-    try {
-      await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
-    } catch (e) {}
+    const apply = () => {
+      setMessages(reset);
+      setInputText("");
+      AsyncStorage.removeItem(CHAT_STORAGE_KEY).catch(() => {});
+      if (reduceMotion) {
+        listFade.setValue(1);
+      } else {
+        Animated.timing(listFade, { toValue: 1, duration: 220, useNativeDriver: Platform.OS !== "web" }).start();
+      }
+    };
+    if (reduceMotion) {
+      apply();
+    } else {
+      Animated.timing(listFade, { toValue: 0, duration: 160, useNativeDriver: Platform.OS !== "web" }).start(apply);
+    }
+  };
+
+  const handleClearChat = () => {
+    if (!canClear) return;
+    tapHaptic();
+    if (Platform.OS === "web") {
+      const ok = typeof window !== "undefined" && typeof window.confirm === "function" ? window.confirm("Clear this conversation?") : true;
+      if (ok) performClear();
+      return;
+    }
+    Alert.alert("Clear this conversation?", "This removes all messages from this chat.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Clear", style: "destructive", onPress: performClear },
+    ]);
   };
 
   const renderMessageItem = ({ item }) => {
     const isAi = item.sender === "ai";
 
     return (
-      <View
-        style={[
-          styles.messageRow,
-          isAi ? styles.messageRowAi : styles.messageRowUser,
-        ]}
-      >
+      <FadeInView style={[styles.messageRow, isAi ? styles.messageRowAi : styles.messageRowUser]}>
         {isAi && (
-          <View style={styles.aiAvatarBadge}>
+          <View style={styles.aiAvatarBadge} accessibilityElementsHidden importantForAccessibility="no">
             <Ionicons name="sparkles" size={16} color="#FFFFFF" />
           </View>
         )}
@@ -359,98 +330,97 @@ export default function AiAssistant() {
           style={[
             styles.bubble,
             isAi
-              ? [
-                  styles.aiBubble,
-                  {
-                    backgroundColor: theme.isDark ? "#1E1E28" : "#FFFFFF",
-                    borderColor: theme.isDark ? "#2D2D3D" : "#E2E8F0",
-                  },
-                ]
-              : [styles.userBubble, { backgroundColor: Colors.PRIMARY || "#0F172A" }],
+              ? [styles.aiBubble, { backgroundColor: theme.card, borderColor: theme.border }]
+              : [styles.userBubble, { backgroundColor: Colors.PRIMARY || theme.primary }],
           ]}
         >
           {isAi && (
             <View style={styles.aiHeaderLine}>
-              <Text style={styles.aiLabel}>GoGuide AI Copilot</Text>
+              <Text style={styles.aiLabel} maxFontSizeMultiplier={1.3}>GoGuide AI Copilot</Text>
               <View style={styles.liveModelBadge}>
-                <Text style={styles.liveModelText}>AI</Text>
+                <Text style={styles.liveModelText} maxFontSizeMultiplier={1.3}>AI</Text>
               </View>
             </View>
           )}
 
           {/* Markdown-parsed message body without raw asterisks */}
-          <FormattedMarkdownText
-            text={item.text}
-            isAi={isAi}
-            theme={theme}
-          />
+          <FormattedMarkdownText text={item.text} isAi={isAi} theme={theme} />
 
           <Text
+            maxFontSizeMultiplier={1.3}
             style={[
               styles.messageTime,
-              {
-                color: isAi
-                  ? theme.isDark
-                    ? "#64748B"
-                    : "#94A3B8"
-                  : "rgba(255,255,255,0.7)",
-                textAlign: isAi ? "left" : "right",
-              },
+              { color: isAi ? theme.subtext : "rgba(255,255,255,0.8)", textAlign: isAi ? "left" : "right" },
             ]}
           >
             {item.time}
           </Text>
         </View>
-      </View>
+      </FadeInView>
     );
   };
 
+  const canSend = inputText.trim().length > 0 && !isLoading;
+
+  const renderFooter = () => (
+    <View>
+      {isLoading ? (
+        <View style={[styles.messageRow, styles.messageRowAi, { marginTop: Spacing.sm }]}>
+          <View style={styles.aiAvatarBadge} accessibilityElementsHidden importantForAccessibility="no">
+            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+          </View>
+          <TypingIndicator theme={theme} />
+        </View>
+      ) : null}
+      {!hasUserMessages && !isLoading ? (
+        <View style={styles.welcomeWrap}>
+          <Text style={[styles.welcomeTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">
+            Try asking
+          </Text>
+          <View style={styles.cardGrid}>
+            {PROMPT_CARDS.map((card, idx) => (
+              <FadeInView key={card.title} index={idx} style={styles.promptCardCell}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={card.title}
+                  onPress={() => handleSend(card.query)}
+                  style={[styles.promptCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                >
+                  <View style={styles.promptIcon}>
+                    <Ionicons name={card.icon} size={20} color={AI_ACCENT} />
+                  </View>
+                  <Text style={[styles.promptTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                    {card.title}
+                  </Text>
+                </TouchableOpacity>
+              </FadeInView>
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
-    <View
-      style={[
-        styles.safeContainer,
-        { backgroundColor: theme.bg, paddingTop: safeTopPadding },
-      ]}
-    >
+    <View style={[styles.safeContainer, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
       {/* Header Bar */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: theme.header,
-            borderBottomColor: theme.border,
-          },
-        ]}
-      >
+      <View style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.border }]}>
         <View style={styles.headerTitleWrap}>
           <View style={styles.headerIconContainer}>
-            <Ionicons name="sparkles" size={20} color="#7C3AED" />
+            <Ionicons name="sparkles" size={20} color={AI_ACCENT} />
           </View>
-          <View>
+          <View style={{ flexShrink: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text
-                style={[
-                  styles.headerTitle,
-                  { color: theme.isDark ? "#FFFFFF" : "#0F172A" },
-                ]}
-              >
+              <Text style={[styles.headerTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">
                 AI Copilot
               </Text>
               <View style={styles.statusPill}>
                 <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Active</Text>
+                <Text style={styles.statusText} maxFontSizeMultiplier={1.3}>Active</Text>
               </View>
             </View>
-            <Text
-              style={[
-                styles.headerSubtitle,
-                { color: theme.isDark ? "#94A3B8" : "#64748B" },
-              ]}
-              numberOfLines={1}
-            >
-              {activeDestination
-                ? `📍 Context: ${activeDestination}`
-                : "🌐 Global Travel Assistant"}
+            <Text style={[styles.headerSubtitle, { color: theme.subtext }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+              {activeDestination ? `📍 Context: ${activeDestination}` : "🌐 Global Travel Assistant"}
             </Text>
           </View>
         </View>
@@ -458,152 +428,103 @@ export default function AiAssistant() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Clear conversation"
+          accessibilityState={{ disabled: !canClear }}
           onPress={handleClearChat}
-          style={[
-            styles.clearButton,
-            { backgroundColor: theme.isDark ? "#222230" : "#F1F5F9", borderColor: theme.border },
-          ]}
+          disabled={!canClear}
+          style={[styles.clearButton, { backgroundColor: theme.badgeBg, borderColor: theme.border, opacity: canClear ? 1 : 0.4 }]}
           activeOpacity={0.7}
         >
-          <Text
-            style={[
-              styles.clearButtonText,
-              { color: theme.isDark ? "#CBD5E1" : "#475569" },
-            ]}
-          >
-            Clear
-          </Text>
+          <Text style={[styles.clearButtonText, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Clear</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Quick Suggestion Chips */}
-      <View style={styles.chipsWrapper}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={QUICK_CHIPS}
-          keyExtractor={(item, idx) => "chip_" + idx}
-          contentContainerStyle={styles.chipsScroll}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.chipButton,
-                {
-                  backgroundColor: theme.isDark ? "#1C1C28" : "#FFFFFF",
-                  borderColor: theme.isDark ? "#2A2A3C" : "#E2E8F0",
-                },
-              ]}
-              onPress={() => handleSend(item.query)}
-              activeOpacity={0.75}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: theme.isDark ? "#E2E8F0" : "#334155" },
-                ]}
+      {/* Quick Suggestion Chips (shown once a conversation has started; before that the prompt cards do the job) */}
+      {hasUserMessages ? (
+        <View style={styles.chipsWrapper}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            data={QUICK_CHIPS}
+            keyExtractor={(item, idx) => "chip_" + idx}
+            contentContainerStyle={styles.chipsScroll}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                accessibilityState={{ disabled: isLoading }}
+                disabled={isLoading}
+                style={[styles.chipButton, { backgroundColor: theme.card, borderColor: theme.border, opacity: isLoading ? 0.5 : 1 }]}
+                onPress={() => handleSend(item.query)}
+                activeOpacity={0.75}
               >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+                <Text style={[styles.chipText, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      ) : null}
 
       {/* Chat Thread with Pinned Keyboard Avoiding View (WhatsApp-style Flush Docking) */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? (insets.top + 50) : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 50 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessageItem}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.chatListContent}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        />
-
-        {/* Typing / Loading Indicator with Apple Intelligence Style Wave */}
-        {isLoading && (
-          <View style={styles.thinkingContainer}>
-            <Animated.View style={[styles.aiAvatarBadgeSmall, { transform: [{ scale: pulseAnim }] }]}>
-              <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-            </Animated.View>
-            <View
-              style={[
-                styles.thinkingBubble,
-                {
-                  backgroundColor: theme.isDark ? "#1E1E28" : "#FFFFFF",
-                  borderColor: theme.isDark ? "#2D2D3D" : "#E2E8F0",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.thinkingText,
-                  { color: theme.isDark ? "#E2E8F0" : "#1E293B" },
-                ]}
-              >
-                GoGuide Copilot is thinking
-              </Text>
-              <View style={styles.dotWaveContainer}>
-                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot1Anim }] }]} />
-                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot2Anim }] }]} />
-                <Animated.View style={[styles.waveDot, { transform: [{ translateY: dot3Anim }] }]} />
-              </View>
-            </View>
-          </View>
-        )}
+        <Animated.View style={{ flex: 1, opacity: listFade }}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessageItem}
+            ListFooterComponent={renderFooter}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.chatListContent}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          />
+        </Animated.View>
 
         {/* Message Input Box: Flush against virtual keyboard when open, respecting safe area when closed */}
         <View
           style={[
             styles.inputContainer,
             {
-              backgroundColor: theme.isDark ? "#16161F" : "#FFFFFF",
-              borderTopColor: theme.isDark ? "#222230" : "#E2E8F0",
+              backgroundColor: theme.card,
+              borderTopColor: theme.border,
               paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
             },
           ]}
         >
           <TextInput
-            style={[
-              styles.textInput,
-              {
-                backgroundColor: theme.isDark ? "#20202D" : "#F1F5F9",
-                color: theme.isDark ? "#FFFFFF" : "#0F172A",
-              },
-            ]}
+            style={[styles.textInput, { backgroundColor: theme.bg, color: theme.inputText }]}
             placeholder="Ask about your trip..."
-            placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+            placeholderTextColor={theme.subtext}
             value={inputText}
             onChangeText={setInputText}
-            multiline={true}
-            maxHeight={110}
+            multiline
+            scrollEnabled
+            maxFontSizeMultiplier={1.3}
+            accessibilityLabel="Message input"
             textAlignVertical="center"
           />
 
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Send message"
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor:
-                  inputText.trim().length > 0 ? "#7C3AED" : theme.isDark ? "#2A2A3C" : "#E2E8F0",
-              },
-            ]}
-            onPress={() => handleSend()}
-            disabled={!inputText.trim() || isLoading}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: !canSend }}
+            style={[styles.sendButton, { backgroundColor: canSend ? AI_ACCENT : theme.border, opacity: canSend ? 1 : 0.6 }]}
+            onPress={() => {
+              selectHaptic();
+              handleSend();
+            }}
+            disabled={!canSend}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name="paper-plane"
-              size={18}
-              color={inputText.trim().length > 0 ? "#FFFFFF" : "#94A3B8"}
-            />
+            <Ionicons name="paper-plane" size={18} color={canSend ? "#FFFFFF" : theme.subtext} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -612,133 +533,72 @@ export default function AiAssistant() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-  },
+  safeContainer: { flex: 1 },
   header: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: Spacing.md,
     borderBottomWidth: 1,
   },
-  headerTitleWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  headerTitleWrap: { flexDirection: "row", alignItems: "center", gap: Spacing.md, flexShrink: 1 },
   headerIconContainer: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: Radius.full,
     backgroundColor: "rgba(124, 58, 237, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: "Outfit-Bold",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
-    maxWidth: 200,
-  },
+  headerTitle: { fontSize: Typography.sizeLg, fontFamily: Typography.fontBold },
+  headerSubtitle: { fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 },
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: "rgba(16, 185, 129, 0.12)",
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: Radius.pill,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#10B981",
-  },
-  statusText: {
-    fontSize: 10,
-    fontFamily: "Outfit-Medium",
-    color: "#10B981",
-  },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10B981" },
+  statusText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, color: "#10B981" },
   clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
+    minHeight: 44,
+    minWidth: 64,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  clearButtonText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
-  },
-  chipsWrapper: {
-    paddingVertical: 10,
-  },
-  chipsScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  clearButtonText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  chipsWrapper: { paddingVertical: 10 },
+  chipsScroll: { paddingHorizontal: 16, gap: Spacing.sm },
   chipButton: {
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
   },
-  chipText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-  },
-  chatListContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 14,
-  },
-  messageRow: {
-    flexDirection: "row",
-    marginVertical: 4,
-    alignItems: "flex-end",
-  },
-  messageRowAi: {
-    justifyContent: "flex-start",
-    gap: 8,
-  },
-  messageRowUser: {
-    justifyContent: "flex-end",
-  },
+  chipText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
+  chatListContent: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 14 },
+  messageRow: { flexDirection: "row", marginVertical: 4, alignItems: "flex-end" },
+  messageRowAi: { justifyContent: "flex-start", gap: Spacing.sm },
+  messageRowUser: { justifyContent: "flex-end" },
   aiAvatarBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#7C3AED",
+    backgroundColor: AI_ACCENT,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
   },
-  aiAvatarBadgeSmall: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#7C3AED",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bubble: {
-    maxWidth: "82%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-  },
+  bubble: { maxWidth: "82%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: Radius.card },
   aiBubble: {
     borderBottomLeftRadius: 4,
     borderWidth: 1,
@@ -747,78 +607,48 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  userBubble: {
-    borderBottomRightRadius: 4,
-  },
+  userBubble: { borderBottomRightRadius: 4 },
   aiHeaderLine: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 6,
-    gap: 8,
+    gap: Spacing.sm,
   },
-  aiLabel: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    color: "#7C3AED",
-  },
+  aiLabel: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold, color: AI_ACCENT },
   liveModelBadge: {
     backgroundColor: "rgba(124, 58, 237, 0.1)",
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
   },
-  liveModelText: {
-    fontSize: 9,
-    color: "#7C3AED",
-    fontFamily: "Outfit-Medium",
-  },
-  messageText: {
-    fontSize: 14,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 20,
-  },
-  messageTime: {
-    fontSize: 10,
-    marginTop: 6,
-    fontFamily: "Outfit-Regular",
-  },
-  thinkingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  thinkingBubble: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+  liveModelText: { fontSize: Typography.sizeSm, color: AI_ACCENT, fontFamily: Typography.fontMedium },
+  messageTime: { fontSize: Typography.sizeSm, marginTop: 6, fontFamily: Typography.fontRegular },
+  welcomeWrap: { marginTop: Spacing.lg },
+  welcomeTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold, marginBottom: Spacing.md },
+  cardGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.md },
+  promptCardCell: { flexGrow: 1, flexBasis: "45%" },
+  promptCard: {
+    minHeight: 84,
+    padding: Spacing.md,
+    borderRadius: Radius.card,
     borderWidth: 1,
+    gap: Spacing.sm,
+    justifyContent: "space-between",
   },
-  thinkingText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-  },
-  dotWaveContainer: {
-    flexDirection: "row",
+  promptIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
+    backgroundColor: "rgba(124, 58, 237, 0.12)",
     alignItems: "center",
-    marginLeft: 6,
-    gap: 4,
+    justifyContent: "center",
   },
-  waveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: "#7C3AED",
-  },
+  promptTitle: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
   inputContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    alignItems: "flex-end",
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 10,
     gap: 10,
     borderTopWidth: 1,
@@ -826,18 +656,19 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     minHeight: 46,
-    maxHeight: 110,
+    maxHeight: INPUT_MAX_HEIGHT,
     borderRadius: 23,
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 12 : 8,
-    paddingBottom: Platform.OS === "ios" ? 12 : 8,
-    fontSize: 14,
-    fontFamily: "Outfit-Regular",
+    paddingTop: Platform.OS === "ios" ? 12 : 10,
+    paddingBottom: Platform.OS === "ios" ? 12 : 10,
+    fontSize: Typography.sizeMd,
+    lineHeight: 20,
+    fontFamily: Typography.fontRegular,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
   },

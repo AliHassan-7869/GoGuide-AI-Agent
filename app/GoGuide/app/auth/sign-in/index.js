@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   fieldErrorHint: {
     fontFamily: "Outfit-Regular",
-    fontSize: 11,
+    fontSize: 12,
     color: "#DC2626",
     marginTop: 4,
     marginLeft: 4,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   legalDisclaimer: {
     textAlign: "center",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     color: "#64748B",
     marginTop: 14,

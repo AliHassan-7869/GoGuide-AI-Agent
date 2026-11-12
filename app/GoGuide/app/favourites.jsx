@@ -3,10 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Image,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,13 +11,17 @@ import {
 } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { Radius, Spacing, Typography, useTheme } from "../Components/constants/theme";
+import EmptyState from "../Components/ui/EmptyState";
+import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
+import { SkeletonCard } from "../Components/ui/Skeleton";
 import { TouchableOpacity } from "../Components/ui/Touchable";
 import {
   getFavoritePlaces,
   subscribeToFavorites,
   toggleFavoritePlace,
 } from "../Components/utils/FavoriteService";
+import { selectHaptic, tapHaptic } from "../Components/utils/haptics";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 export default function Favourites() {
@@ -31,8 +32,16 @@ export default function Favourites() {
 
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
+  const [reloadKey, setReloadKey] = useState(0);
   const activeAccent = Colors.PRIMARY || "#0A7EA4";
+
+  const retry = () => {
+    setLoading(true);
+    setError(false);
+    setReloadKey((k) => k + 1);
+  };
 
   // Load and listen for changes
   useEffect(() => {
@@ -40,11 +49,10 @@ export default function Favourites() {
     (async () => {
       try {
         const places = await getFavoritePlaces();
-        if (isMounted) {
-          setFavorites(places);
-          setLoading(false);
-        }
-      } catch (e) {
+        if (isMounted) setFavorites(places);
+      } catch (_e) {
+        if (isMounted) setError(true);
+      } finally {
         if (isMounted) setLoading(false);
       }
     })();
@@ -57,9 +65,10 @@ export default function Favourites() {
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [reloadKey]);
 
   const handleRemove = async (place) => {
+    selectHaptic();
     try {
       await toggleFavoritePlace(place);
       const updated = await getFavoritePlaces();
@@ -70,6 +79,7 @@ export default function Favourites() {
   };
 
   const handlePlanTrip = (place) => {
+    tapHaptic();
     if (setTripData) {
       setTripData((prev) => ({
         ...prev,
@@ -109,59 +119,40 @@ export default function Favourites() {
       {/* Golden Reference ScreenHeader */}
       <ScreenHeader
         title="Favourites"
-        subtitle="Your saved destinations & wishlist"
+        subtitle="Your saved destinations"
         badgeText={favorites.length}
         onBack={() => router.back()}
       />
 
       {loading ? (
-        <View style={styles.centerLoading}>
-          <ActivityIndicator size="large" color={activeAccent} />
-          <Text style={[styles.loadingText, { color: theme.subtext }]}>
-            Loading your favourites...
-          </Text>
+        <View style={styles.scrollContent} accessibilityLabel="Loading your favourites">
+          <SkeletonCard imageHeight={150} style={styles.card} />
+          <SkeletonCard imageHeight={150} style={styles.card} />
         </View>
+      ) : error ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load favourites"
+          text="Please check your connection and try again."
+          actionLabel="Try again"
+          onAction={retry}
+        />
       ) : favorites.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={[styles.emptyContainer, { paddingBottom: insets.bottom + 84 }]}
           showsVerticalScrollIndicator={false}
         >
-          <View
-            style={[
-              styles.emptyIconCircle,
-              {
-                backgroundColor: theme.isDark
-                  ? "rgba(10, 126, 164, 0.16)"
-                  : "rgba(10, 126, 164, 0.1)",
-              },
-            ]}
-          >
-            <Ionicons name="heart-outline" size={36} color={activeAccent} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>
-            No Favourites Yet
-          </Text>
-          <Text style={[styles.emptyDesc, { color: theme.subtext }]}>
-            Browse top rated destinations, beaches & mountain retreats to save
-            them to your personal travel wishlist.
-          </Text>
-          <TouchableOpacity
-            style={[styles.exploreBtn, { backgroundColor: activeAccent }]}
-            onPress={() => router.push("/explore")}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="compass-outline"
-              size={18}
-              color="#FFFFFF"
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.exploreBtnText}>Discover Destinations</Text>
-          </TouchableOpacity>
+          <EmptyState
+            icon="heart-outline"
+            title="No Favourites Yet"
+            text="Browse top rated destinations, beaches & mountain retreats to save them to your personal travel wishlist."
+            actionLabel="Discover Destinations"
+            onAction={() => router.push("/explore")}
+          />
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
           showsVerticalScrollIndicator={false}
         >
           {favorites.map((place, idx) => {
@@ -173,8 +164,9 @@ export default function Favourites() {
               "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop";
 
             return (
-              <View
+              <FadeInView
                 key={place.id || `fav_${idx}`}
+                index={idx}
                 style={[
                   styles.card,
                   {
@@ -183,92 +175,66 @@ export default function Favourites() {
                   },
                 ]}
               >
-                {/* Hero Banner with Overlay */}
                 <View style={styles.cardHero}>
-                  <Image source={{ uri: imageUri }} style={styles.cardImage} />
+                  <Image source={{ uri: imageUri }} style={styles.cardImage} accessibilityLabel={title} />
                   <View style={styles.cardImageOverlay} />
 
-                  {/* Top Badges: Category & Unlike Action */}
                   <View style={styles.heroTopBadges}>
                     <View style={styles.categoryPill}>
-                      <Ionicons
-                        name="location-outline"
-                        size={12}
-                        color="#FFFFFF"
-                      />
-                      <Text style={styles.categoryPillText} numberOfLines={1}>
+                      <Ionicons name="location-outline" size={12} color="#FFFFFF" />
+                      <Text style={styles.categoryPillText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                         {categoryLabel}
                       </Text>
                     </View>
 
                     <TouchableOpacity
                       accessibilityRole="button"
-                      accessibilityLabel="Remove from favourites"
+                      accessibilityLabel={`Remove ${title} from favourites`}
                       onPress={() => handleRemove(place)}
                       style={styles.heartButton}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="heart" size={20} color="#EF4444" />
+                      <Ionicons name="heart" size={20} color={Colors.DANGER || "#EF4444"} />
                     </TouchableOpacity>
                   </View>
 
-                  {/* Bottom Hero Info: Title & Rating */}
                   <View style={styles.heroBottomRow}>
-                    <Text
-                      style={styles.heroTitle}
-                      numberOfLines={1}
-                    >
+                    <Text style={styles.heroTitle} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                       {title}
                     </Text>
-                    <View style={styles.ratingBadge}>
+                    <View style={styles.ratingBadge} accessible accessibilityLabel={`Rating ${rating}`}>
                       <Ionicons name="star" size={13} color="#F59E0B" />
-                      <Text style={styles.ratingText}>{rating}</Text>
+                      <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{rating}</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Card Action Buttons (Matching Golden Reference) */}
                 <View style={styles.cardActionsRow}>
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`Plan AI trip to ${title}`}
                     style={[styles.primaryActionBtn, { backgroundColor: activeAccent }]}
                     onPress={() => handlePlanTrip(place)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons
-                      name="sparkles"
-                      size={15}
-                      color="#FFFFFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.primaryActionBtnText}>Plan AI Trip</Text>
+                    <Ionicons name="sparkles" size={15} color="#FFFFFF" style={styles.btnIcon} />
+                    <Text style={styles.primaryActionBtnText} maxFontSizeMultiplier={1.3}>Plan AI Trip</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[
-                      styles.secondaryActionBtn,
-                      {
-                        backgroundColor: theme.isDark ? "#20202F" : "#F1F5F9",
-                        borderColor: theme.border,
-                      },
-                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Explore destinations"
+                    style={[styles.secondaryActionBtn, { borderColor: activeAccent }]}
                     onPress={() => router.push("/explore")}
                     activeOpacity={0.8}
                   >
-                    <Ionicons
-                      name="compass-outline"
-                      size={15}
-                      color={theme.text}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[styles.secondaryActionBtnText, { color: theme.text }]}
-                    >
+                    <Ionicons name="compass-outline" size={15} color={activeAccent} style={styles.btnIcon} />
+                    <Text style={[styles.secondaryActionBtnText, { color: activeAccent }]} maxFontSizeMultiplier={1.3}>
                       Explore
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </FadeInView>
             );
           })}
         </ScrollView>
@@ -281,29 +247,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centerLoading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: Typography.sizeMd,
-    fontFamily: Typography.fontRegular,
-  },
   scrollContent: {
     paddingHorizontal: Spacing.gutter,
-    paddingTop: 16,
+    paddingTop: Spacing.lg,
     paddingBottom: 40,
   },
   card: {
     borderRadius: Radius.card,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
     overflow: "hidden",
   },
   cardHero: {
-    height: 150,
+    minHeight: 150,
     position: "relative",
     justifyContent: "space-between",
     padding: 12,
@@ -339,9 +295,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontMedium,
   },
   heartButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.full,
     backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
@@ -385,7 +341,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    minHeight: 44,
+    paddingVertical: Spacing.sm,
     borderRadius: Radius.md,
   },
   primaryActionBtnText: {
@@ -398,7 +355,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    minHeight: 44,
+    paddingVertical: Spacing.sm,
     borderRadius: Radius.md,
     borderWidth: 1,
   },
@@ -407,45 +365,10 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontMedium,
   },
   emptyContainer: {
-    flex: 1,
-    alignItems: "center",
+    flexGrow: 1,
     justifyContent: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-    gap: 12,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  emptyTitle: {
-    fontSize: Typography.sizeLg,
-    fontFamily: Typography.fontBold,
-    textAlign: "center",
-  },
-  emptyDesc: {
-    fontSize: Typography.sizeMd,
-    fontFamily: Typography.fontRegular,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  exploreBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: Radius.pill,
-    marginTop: 8,
-  },
-  exploreBtnText: {
-    color: "#FFFFFF",
-    fontSize: Typography.sizeMd,
-    fontFamily: Typography.fontBold,
+  btnIcon: {
+    marginRight: 6,
   },
 });
-

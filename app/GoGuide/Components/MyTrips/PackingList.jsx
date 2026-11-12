@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Outfit-Bold',
   },
   confirmBtn: {

@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     color: "#F87171",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

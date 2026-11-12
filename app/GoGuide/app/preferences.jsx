@@ -3,13 +3,97 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { useTheme } from "../Components/constants/theme";
+import { Radius, Spacing, Typography, lightTheme, useTheme } from "../Components/constants/theme";
+import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
+const Segments = ({ items, current, onSelect, label }) => {
+  const theme = useTheme();
+  return (
+  <View style={styles.segmentedRow} accessibilityRole="radiogroup" accessibilityLabel={label}>
+    {items.map((item) => {
+      const isSelected = current === item.value;
+      return (
+        <TouchableOpacity
+          key={item.value}
+          accessibilityRole="radio"
+          accessibilityLabel={`${label}: ${item.label}`}
+          accessibilityState={{ selected: isSelected, checked: isSelected }}
+          style={[
+            styles.segmentPill,
+            isSelected
+              ? { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY }
+              : { backgroundColor: theme.bg, borderColor: theme.border },
+          ]}
+          onPress={() => onSelect(item.value)}
+          activeOpacity={0.75}
+        >
+          <Text
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.3}
+            style={[styles.segmentText, { color: isSelected ? lightTheme.card : theme.text }]}
+          >
+            {item.label}
+          </Text>
+          {isSelected ? <Ionicons name="checkmark" size={14} color={lightTheme.card} style={styles.segmentCheck} /> : null}
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+);
+};
+
+const SettingHeader = ({ icon, title, desc }) => {
+  const theme = useTheme();
+  return (
+  <>
+    <View style={[styles.unifiedIconBadge, { backgroundColor: theme.badgeBg }]}>
+      <Ionicons name={icon} size={18} color={theme.subtext} />
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text style={[styles.settingTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{title}</Text>
+      <Text style={[styles.settingDesc, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{desc}</Text>
+    </View>
+  </>
+);
+};
+
+const ToggleRow = ({ icon, title, desc, value, onToggle }) => {
+  const theme = useTheme();
+  return (
+  <View style={styles.toggleRow}>
+    <View style={styles.toggleLeft}>
+      <SettingHeader icon={icon} title={title} desc={desc} />
+    </View>
+    <Switch
+      accessibilityRole="switch"
+      accessibilityLabel={title}
+      accessibilityState={{ checked: !!value }}
+      value={!!value}
+      onValueChange={onToggle}
+      trackColor={{ false: theme.border, true: Colors.PRIMARY }}
+      thumbColor={lightTheme.card}
+    />
+  </View>
+);
+};
+
+const Label = ({ children }) => {
+  const theme = useTheme();
+  return (
+  <Text accessibilityRole="header" style={[styles.sectionLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{children}</Text>
+);
+};
+const Divider = () => {
+  const theme = useTheme();
+  return <View style={[styles.divider, { backgroundColor: theme.border }]} />;
+};
+
+
 export default function Preferences() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -58,544 +142,251 @@ export default function Preferences() {
     );
   };
 
-  const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
-  const iconColor = theme.isDark ? "#CBD5E1" : "#475569";
+  const badgeBg = theme.badgeBg;
 
+  const cardStyle = [styles.card, { backgroundColor: theme.card, borderColor: theme.border }];
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      {/* Header matching golden reference */}
       <ScreenHeader
         title="Preferences"
-        subtitle="Customize AI recommendations & display"
+        subtitle="Customise AI recommendations & display"
         onBack={() => router.back()}
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
-        {/* SECTION 1: AI TRAVEL INTELLIGENCE */}
-        <Text style={[styles.sectionLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-          AI TRAVEL INTELLIGENCE
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
-            },
-          ]}
-        >
-          {/* Dietary Preference */}
-          <View style={styles.settingBlock}>
-            <View style={styles.settingHeaderRow}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="restaurant-outline" size={18} color={iconColor} />
+        <FadeInView index={0}>
+          <Label>AI TRAVEL INTELLIGENCE</Label>
+          <View style={cardStyle}>
+            <View style={styles.settingBlock}>
+              <View style={styles.settingHeaderRow}>
+                <SettingHeader icon="restaurant-outline" title="Dining & Dietary Filter" desc="AI prioritises restaurants matching this choice" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Dining & Dietary Filter
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  AI prioritizes restaurants matching this choice
-                </Text>
-              </View>
+              <Segments
+                label="Dietary filter"
+                current={preferences?.dietary || "Halal"}
+                onSelect={(v) => updatePreference("dietary", v)}
+                items={[
+                  { label: "Halal 🌙", value: "Halal" },
+                  { label: "Vegetarian 🥗", value: "Vegetarian" },
+                  { label: "Any Food 🍽️", value: "Any" },
+                ]}
+              />
             </View>
-
-            <View style={styles.segmentedRow}>
-              {[
-                { label: "Halal 🌙", value: "Halal" },
-                { label: "Vegetarian 🥗", value: "Vegetarian" },
-                { label: "Any Food 🍽️", value: "Any" },
-              ].map((item) => {
-                const isSelected = (preferences?.dietary || "Halal") === item.value;
-                return (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={[
-                      styles.segmentPill,
-                      isSelected
-                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
-                        : {
-                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
-                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
-                          },
-                    ]}
-                    onPress={() => updatePreference("dietary", item.value)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      style={[
-                        styles.segmentText,
-                        { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <Divider />
+            <View style={styles.settingBlock}>
+              <View style={styles.settingHeaderRow}>
+                <SettingHeader icon="speedometer-outline" title="Itinerary Pace" desc="Determines daily schedule density and free time" />
+              </View>
+              <Segments
+                label="Itinerary pace"
+                current={preferences?.travelPace || "Balanced"}
+                onSelect={(v) => updatePreference("travelPace", v)}
+                items={[
+                  { label: "Relaxed 🧘", value: "Relaxed" },
+                  { label: "Balanced ⚖️", value: "Balanced" },
+                  { label: "Packed ⚡", value: "Packed" },
+                ]}
+              />
+            </View>
+            <Divider />
+            <View style={styles.settingBlock}>
+              <View style={styles.settingHeaderRow}>
+                <SettingHeader icon="cash-outline" title="Display Currency" desc="Estimated budget & hotel prices" />
+              </View>
+              <Segments
+                label="Display currency"
+                current={preferences?.currency || "USD"}
+                onSelect={(v) => updatePreference("currency", v)}
+                items={[
+                  { label: "USD ($)", value: "USD" },
+                  { label: "EUR (€)", value: "EUR" },
+                  { label: "PKR (Rs)", value: "PKR" },
+                  { label: "AED", value: "AED" },
+                ]}
+              />
             </View>
           </View>
+        </FadeInView>
 
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* Travel Pace */}
-          <View style={styles.settingBlock}>
-            <View style={styles.settingHeaderRow}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="speedometer-outline" size={18} color={iconColor} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Itinerary Pace
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Determines daily schedule density and free time
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.segmentedRow}>
-              {[
-                { label: "Relaxed 🧘", value: "Relaxed" },
-                { label: "Balanced ⚖️", value: "Balanced" },
-                { label: "Packed ⚡", value: "Packed" },
-              ].map((item) => {
-                const isSelected = (preferences?.travelPace || "Balanced") === item.value;
-                return (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={[
-                      styles.segmentPill,
-                      isSelected
-                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
-                        : {
-                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
-                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
-                          },
-                    ]}
-                    onPress={() => updatePreference("travelPace", item.value)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      style={[
-                        styles.segmentText,
-                        { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* Preferred Currency */}
-          <View style={styles.settingBlock}>
-            <View style={styles.settingHeaderRow}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="cash-outline" size={18} color={iconColor} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Display Currency
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Estimated budget & hotel prices
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.segmentedRow}>
-              {[
-                { label: "USD ($)", value: "USD" },
-                { label: "EUR (€)", value: "EUR" },
-                { label: "PKR (Rs)", value: "PKR" },
-                { label: "AED", value: "AED" },
-              ].map((item) => {
-                const isSelected = (preferences?.currency || "USD") === item.value;
-                return (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={[
-                      styles.segmentPill,
-                      isSelected
-                        ? { backgroundColor: activeAccent, borderColor: activeAccent }
-                        : {
-                            backgroundColor: theme.isDark ? "#20202E" : "#F8FAFC",
-                            borderColor: theme.isDark ? "#2D2D42" : "#E2E8F0",
-                          },
-                    ]}
-                    onPress={() => updatePreference("currency", item.value)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      style={[
-                        styles.segmentText,
-                        { color: isSelected ? "#FFFFFF" : theme.isDark ? "#CBD5E1" : "#475569" },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-
-        {/* SECTION 2: DISPLAY & LOCALIZATION */}
-        <Text style={[styles.sectionLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-          DISPLAY & LOCALIZATION
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
-            },
-          ]}
-        >
-          {/* Dark Mode */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons
-                  name={preferences?.darkMode ? "moon" : "moon-outline"}
-                  size={18}
-                  color={iconColor}
-                />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Dark Mode
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Deep palette for night reading
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={preferences?.darkMode ?? false}
-              onValueChange={() => togglePreference("darkMode")}
-              trackColor={{ false: "#CBD5E1", true: activeAccent }}
-              thumbColor="#FFFFFF"
+        <FadeInView index={1}>
+          <Label>DISPLAY & LOCALISATION</Label>
+          <View style={cardStyle}>
+            <ToggleRow
+              icon={theme.isDark ? "moon" : "moon-outline"}
+              title="Dark Mode"
+              desc="Deep palette for night reading"
+              value={theme.isDark}
+              onToggle={() => setPreferences((prev) => ({ ...prev, darkMode: !theme.isDark }))}
             />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* Temperature Units */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="thermometer-outline" size={18} color={iconColor} />
+            <Divider />
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleLeft}>
+                <SettingHeader icon="thermometer-outline" title="Temperature Unit" desc="Used in destination weather cards" />
               </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Temperature Unit
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Used in destination weather cards
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.miniSegment, { backgroundColor: badgeBg }]}>
-              {["C", "F"].map((unit) => {
-                const active = (preferences?.temperatureUnit || "C") === unit;
-                return (
-                  <TouchableOpacity
-                    key={unit}
-                    style={[
-                      styles.miniSegmentPill,
-                      active && { backgroundColor: activeAccent },
-                    ]}
-                    onPress={() => updatePreference("temperatureUnit", unit)}
-                  >
-                    <Text
-                      style={[
-                        styles.miniSegmentText,
-                        { color: active ? "#FFFFFF" : iconColor },
-                      ]}
+              <View style={[styles.miniSegment, { backgroundColor: badgeBg }]} accessibilityRole="radiogroup" accessibilityLabel="Temperature unit">
+                {["C", "F"].map((unit) => {
+                  const active = (preferences?.temperatureUnit || "C") === unit;
+                  return (
+                    <TouchableOpacity
+                      key={unit}
+                      accessibilityRole="radio"
+                      accessibilityLabel={unit === "C" ? "Celsius" : "Fahrenheit"}
+                      accessibilityState={{ selected: active, checked: active }}
+                      style={[styles.miniSegmentPill, active && { backgroundColor: activeAccent }]}
+                      onPress={() => updatePreference("temperatureUnit", unit)}
                     >
-                      °{unit}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text style={[styles.miniSegmentText, { color: active ? lightTheme.card : theme.text }]} maxFontSizeMultiplier={1.3}>
+                        °{unit}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           </View>
-        </View>
+        </FadeInView>
 
-        {/* SECTION 3: NOTIFICATIONS & ALERTS */}
-        <Text style={[styles.sectionLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-          NOTIFICATIONS & PRIVACY
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
-            },
-          ]}
-        >
-          {/* Push Notifications */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="notifications-outline" size={18} color={iconColor} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Trip & Itinerary Updates
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Daily activity schedule reminders
-                </Text>
-              </View>
-            </View>
-            <Switch
+        <FadeInView index={2}>
+          <Label>NOTIFICATIONS & PRIVACY</Label>
+          <View style={cardStyle}>
+            <ToggleRow
+              icon="notifications-outline"
+              title="Trip & Itinerary Updates"
+              desc="Daily activity schedule reminders"
               value={preferences?.notifications ?? true}
-              onValueChange={() => togglePreference("notifications")}
-              trackColor={{ false: "#CBD5E1", true: activeAccent }}
-              thumbColor="#FFFFFF"
+              onToggle={() => togglePreference("notifications")}
             />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* Severe Weather & Safety */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="warning-outline" size={18} color={iconColor} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Travel Safety Alerts
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Severe weather & local advisory warnings
-                </Text>
-              </View>
-            </View>
-            <Switch
+            <Divider />
+            <ToggleRow
+              icon="warning-outline"
+              title="Travel Safety Alerts"
+              desc="Severe weather & local advisory warnings"
               value={preferences?.weatherAlerts ?? true}
-              onValueChange={() => togglePreference("weatherAlerts")}
-              trackColor={{ false: "#CBD5E1", true: activeAccent }}
-              thumbColor="#FFFFFF"
+              onToggle={() => togglePreference("weatherAlerts")}
             />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* Location Services */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-                <Ionicons name="navigate-outline" size={18} color={iconColor} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>
-                  Location Services
-                </Text>
-                <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                  Auto-detect nearby places & restaurants
-                </Text>
-              </View>
-            </View>
-            <Switch
+            <Divider />
+            <ToggleRow
+              icon="navigate-outline"
+              title="Location Services"
+              desc="Auto-detect nearby places & restaurants"
               value={preferences?.locationServices ?? true}
-              onValueChange={() => togglePreference("locationServices")}
-              trackColor={{ false: "#CBD5E1", true: activeAccent }}
-              thumbColor="#FFFFFF"
+              onToggle={() => togglePreference("locationServices")}
             />
           </View>
-        </View>
+        </FadeInView>
 
-        {/* SECTION 4: STORAGE & CACHE */}
-        <Text style={[styles.sectionLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
-          DATA & STORAGE
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.isDark ? "#262638" : "#E2E8F0",
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.clearCacheBtn}
-            onPress={handleClearCache}
-            disabled={clearingCache}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.unifiedIconBadge, { backgroundColor: badgeBg }]}>
-              <Ionicons name="trash-outline" size={18} color={iconColor} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.settingTitle, { color: theme.text }]}>
-                Clear Travel & AI Cache
-              </Text>
-              <Text style={[styles.settingDesc, { color: theme.subtext }]}>
-                Frees up local storage without deleting saved trips
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
-          </TouchableOpacity>
-        </View>
+        <FadeInView index={3}>
+          <Label>DATA & STORAGE</Label>
+          <View style={cardStyle}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Clear travel and AI cache"
+              accessibilityState={{ disabled: clearingCache, busy: clearingCache }}
+              style={styles.clearCacheBtn}
+              onPress={handleClearCache}
+              disabled={clearingCache}
+              activeOpacity={0.7}
+            >
+              <SettingHeader icon="trash-outline" title="Clear Travel & AI Cache" desc="Frees up local storage without deleting saved trips" />
+              <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
+            </TouchableOpacity>
+          </View>
+        </FadeInView>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 0,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: "Outfit-Bold",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
-  },
+  container: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 40,
+    paddingHorizontal: Spacing.gutter,
+    paddingTop: Spacing.lg,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
     letterSpacing: 0.8,
-    marginBottom: 8,
-    marginLeft: 4,
-    marginTop: 10,
+    marginBottom: Spacing.sm,
+    marginLeft: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   card: {
     width: "100%",
     maxWidth: 560,
     alignSelf: "center",
-    borderRadius: 16,
+    borderRadius: Radius.card,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
     overflow: "hidden",
   },
-  settingBlock: {
-    padding: 16,
-  },
+  settingBlock: { padding: Spacing.lg },
   settingHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  settingTitle: {
-    fontSize: 15,
-    fontFamily: "Outfit-Bold",
-  },
-  settingDesc: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
-  },
-  segmentedRow: {
-    flexDirection: "row",
-    gap: 6,
-  },
+  settingTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
+  settingDesc: { fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 },
+  segmentedRow: { flexDirection: "row", gap: 6 },
   segmentPill: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    borderRadius: 12,
+    minHeight: 44,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 2,
   },
-  segmentText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-    textAlign: "center",
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-  },
+  segmentText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, textAlign: "center", flexShrink: 1 },
+  segmentCheck: { marginLeft: 2 },
+  divider: { height: StyleSheet.hairlineWidth, marginHorizontal: Spacing.lg },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    padding: Spacing.lg,
+    minHeight: 64,
   },
   toggleLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: Spacing.md,
     flex: 1,
     paddingRight: 10,
   },
-  miniSegment: {
-    flexDirection: "row",
-    borderRadius: 10,
-    padding: 3,
-    gap: 2,
-  },
+  miniSegment: { flexDirection: "row", borderRadius: Radius.md, padding: 3, gap: 2 },
   miniSegmentPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  miniSegmentText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
-  },
+  miniSegmentText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
   clearCacheBtn: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    gap: 12,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    minHeight: 64,
   },
   unifiedIconBadge: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

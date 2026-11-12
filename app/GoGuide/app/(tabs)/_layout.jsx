@@ -64,7 +64,7 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit-Medium",
-          fontSize: 11,
+          fontSize: 12,
           marginTop: 1,
           flexShrink: 0, // keep the label from being squeezed/clipped by the global Text flexShrink
         },

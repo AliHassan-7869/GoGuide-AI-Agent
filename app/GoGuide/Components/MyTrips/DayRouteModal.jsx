@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   mapOverlayHintText: {
     color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   nativeMapCard: {
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   timeLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   navigateMiniText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     color: "#10B981",
   },
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   legText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   footer: {

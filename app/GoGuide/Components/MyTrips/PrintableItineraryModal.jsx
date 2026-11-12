@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
   },
   docSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
     marginTop: 1,
   },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   passTagText: {
     color: "#10B981",
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   destName: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   flightLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
   },

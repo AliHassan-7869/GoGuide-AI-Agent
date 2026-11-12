@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   heroPreTitle: {
     color: "#0A7EA4",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     marginTop: 8,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   inputLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.6,
     marginBottom: 2,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
   },
   gpsBadgeText: {
     color: "#10B981",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   connectorRow: {

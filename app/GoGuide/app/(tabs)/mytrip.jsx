@@ -4,6 +4,7 @@ import { openExternalUrl } from "../../Components/utils/openExternalUrl";
 import { directionsUrl, placeUrl, routeUrl } from "../../Components/utils/mapsLinks";
 import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, StatusBar, useWindowDimensions } from "react-native";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../../Configs/FirebaseConfig";
@@ -43,6 +44,7 @@ import {
 } from "../../Components/constants/Destinations";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import FadeInView from "../../Components/ui/FadeInView";
 import { useHotelImages } from "../../Components/utils/HotelImages";
 
 function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
@@ -124,6 +126,7 @@ export default function MyTrip() {
 
   // Smooth Shimmer pulse animation for skeleton loading
   const pulseAnim = useMemo(() => new Animated.Value(0.3), []);
+  const reduceMotion = useReduceMotion();
 
   // Slide & Fade animation for multi-trip carousel
   const carouselSlideAnim = useMemo(() => new Animated.Value(-20), []);
@@ -273,22 +276,21 @@ export default function MyTrip() {
     }
   }, [userTripsList.length]);
 
+  // Skeleton pulse: only while loading, stopped on cleanup (no stacked loops), static with reduce-motion.
   useEffect(() => {
-    Animated.loop(
+    if (!loading || reduceMotion) {
+      pulseAnim.setValue(0.6);
+      return undefined;
+    }
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.85,
-          duration: 750,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0.3,
-          duration: 750,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 0.85, duration: 750, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 750, useNativeDriver: Platform.OS !== "web" }),
       ])
-    ).start();
-  }, [loading]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [loading, reduceMotion, pulseAnim]);
 
   // Save to AsyncStorage whenever tripData updates with an AI plan
   useEffect(() => {
@@ -1190,6 +1192,9 @@ export default function MyTrip() {
                 ]}
                 onPress={() => scrollToSection(tab.id)}
                 activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
+                accessibilityState={{ selected: isActive }}
               >
                 <Ionicons
                   name={tab.icon}
@@ -1198,6 +1203,7 @@ export default function MyTrip() {
                   style={{ marginRight: 5 }}
                 />
                 <Text
+                  maxFontSizeMultiplier={1.3}
                   style={[
                     styles.stickyNavTabText,
                     { color: isActive ? Colors.PRIMARY : theme.subtext },
@@ -1263,6 +1269,9 @@ export default function MyTrip() {
                     <TouchableOpacity
                       key={t.id || idx}
                       activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${destTitle}, ${duration}${isSelected ? ", currently viewing" : ""}`}
+                      accessibilityState={{ selected: isSelected }}
                       onPress={() => handleSelectTrip(t)}
                       style={[
                         styles.tripCarouselCard,
@@ -1274,7 +1283,12 @@ export default function MyTrip() {
                       ]}
                     >
                       <SafeTripImage uri={destImg} style={styles.carouselCardImg} fallbackUri={fallbackForCard} />
-                      <View style={styles.carouselOverlay} />
+                      <LinearGradient
+                        colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.9)"]}
+                        locations={[0, 0.5, 1]}
+                        style={styles.carouselOverlay}
+                        pointerEvents="none"
+                      />
 
                       <FavoriteHeartButton
                         place={{
@@ -1283,8 +1297,8 @@ export default function MyTrip() {
                           img: destImg,
                           desc: `${duration} itinerary in ${destTitle}`,
                         }}
-                        size={13}
-                        style={{ position: "absolute", top: 8, right: 38, width: 26, height: 26, borderRadius: 13 }}
+                        size={16}
+                        style={{ position: "absolute", top: 2, right: 46 }}
                       />
 
                       {isSelected && (
@@ -1294,23 +1308,22 @@ export default function MyTrip() {
                         </View>
                       )}
 
-                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete trip ${destTitle}`}
                         style={styles.carouselDeleteBtn}
                         onPress={(e) => {
                           e.stopPropagation();
                           handleDeleteTrip(t);
                         }}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="trash-outline" size={13} color="#FFF" />
+                        <Ionicons name="trash-outline" size={16} color="#FFF" />
                       </TouchableOpacity>
 
                       <View style={styles.carouselCardBody}>
-                        <Text style={styles.carouselDestTitle} numberOfLines={1}>{destTitle}</Text>
+                        <Text style={styles.carouselDestTitle} numberOfLines={1} maxFontSizeMultiplier={1.3}>{destTitle}</Text>
                         <View style={styles.carouselMetaRow}>
                           <Ionicons name="time-outline" size={11} color="#E2E8F0" />
-                          <Text style={styles.carouselMetaText}>{duration}</Text>
+                          <Text style={styles.carouselMetaText} maxFontSizeMultiplier={1.3}>{duration}</Text>
                           <Text style={styles.carouselMetaDot}>•</Text>
                           <Ionicons name="wallet-outline" size={11} color="#E2E8F0" />
                           <Text style={styles.carouselMetaText}>{t.aiTripPlan?.budget || t.budget || "Budget"}</Text>
@@ -1324,6 +1337,8 @@ export default function MyTrip() {
                 <TouchableOpacity
                   onPress={createNewTrip}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create a new trip"
                   style={[styles.addTripCard, { backgroundColor: theme.card, borderColor: theme.border }]}
                 >
                   <View style={[styles.addTripIconWrap, { backgroundColor: Colors.PRIMARY + "15" }]}>
@@ -1336,6 +1351,7 @@ export default function MyTrip() {
           )}
 
           {/* Hero Banner with Gradient Scrim and Max 3 Meta Pills */}
+          <FadeInView index={1} style={styles.heroShadowWrap}>
           <View style={styles.heroContainer}>
             <SafeTripImage 
               uri={tripData?.toLocationImage || tripData?.locationInfo?.photoRef} 
@@ -1357,10 +1373,12 @@ export default function MyTrip() {
               ]}
               onPress={handleSaveCurrentTripToUserTrips}
               activeOpacity={0.85}
-              accessibilityLabel="Save to Trips"
+              accessibilityRole="button"
+              accessibilityLabel={isSavedToTripsLocal ? "Saved to trips" : "Save to Trips"}
+              accessibilityState={{ selected: !!isSavedToTripsLocal }}
             >
               <Ionicons name={isSavedToTripsLocal ? "checkmark-circle" : "bookmark"} size={13} color="#FFF" style={{ marginRight: 4 }} />
-              <Text style={{ color: "#FFF", fontSize: 11, fontFamily: "Outfit-Bold" }}>
+              <Text style={{ color: "#FFF", fontSize: 12, fontFamily: "Outfit-Bold" }} maxFontSizeMultiplier={1.3}>
                 {isSavedToTripsLocal ? "Saved" : "Save"}
               </Text>
             </TouchableOpacity>
@@ -1375,8 +1393,8 @@ export default function MyTrip() {
                 ),
                 desc: `${plan?.duration || "Multi-Day"} curated itinerary in ${plan?.destination || "Destination"}`,
               }}
-              size={18}
-              style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: 19, zIndex: 50 }}
+              size={20}
+              style={{ position: "absolute", top: 8, right: 8, zIndex: 50 }}
             />
             
             {/* Hero Bottom Overlay: Max 3 Meta Pills + Destination Title */}
@@ -1399,7 +1417,7 @@ export default function MyTrip() {
                 </View>
               </View>
 
-              <Text style={styles.heroDestTitle}>{plan.destination}</Text>
+              <Text style={styles.heroDestTitle} maxFontSizeMultiplier={1.3}>{plan.destination}</Text>
 
               {plan?.qualityAudit?.noulConfidence != null && (
                 <View style={styles.verifiedAuditBadge}>
@@ -1411,6 +1429,7 @@ export default function MyTrip() {
               )}
             </View>
           </View>
+          </FadeInView>
 
           {/* Separate Action Row below Hero: Save to Bookings | Download PDF | Share | Explore */}
           <View style={styles.heroActionRow}>
@@ -1623,7 +1642,7 @@ export default function MyTrip() {
                     <Ionicons name="compass" size={17} color={Colors.PRIMARY} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.collapsibleTitle, { color: theme.text }]}>🧭 Destination Essentials</Text>
+                    <Text style={[styles.collapsibleTitle, { color: theme.text }]}>Destination Essentials</Text>
                     <Text style={[styles.collapsibleSub, { color: theme.subtext }]}>Live Travel & Safety Intel</Text>
                   </View>
                 </View>
@@ -2095,8 +2114,8 @@ export default function MyTrip() {
                           img: sanitizeImageUrl(hotel.image || hotelPhotos[hotel.name], getDestinationImage(plan?.destination)),
                           desc: hotel.address || hotel.details || `Recommended stay in ${plan?.destination || "destination"}`,
                         }}
-                        size={15}
-                        style={{ position: "absolute", bottom: 10, left: 10, width: 30, height: 30, borderRadius: 15 }}
+                        size={18}
+                        style={{ position: "absolute", bottom: 6, left: 6 }}
                       />
                       <View style={styles.hotelRatingPill}>
                         <Ionicons name="star" size={12} color="#FFD700" />
@@ -2193,7 +2212,7 @@ export default function MyTrip() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                    ✈️ Outbound & Return Flights
+                    Outbound & Return Flights
                   </Text>
                   <Text style={{ fontSize: 12, color: theme.subtext, fontFamily: "Outfit-Medium", marginTop: 1 }}>
                     {flightInfo.airline} • {flightInfo.cabinClass}
@@ -2555,9 +2574,9 @@ const styles = StyleSheet.create({
   },
   headerActions: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
   iconButton: { 
-    width: 34, 
-    height: 34, 
-    borderRadius: 17, 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
     backgroundColor: "rgba(150, 150, 150, 0.1)", 
     justifyContent: "center", 
     alignItems: "center" 
@@ -2596,7 +2615,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   tripCountText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   carouselSwipeHint: {
@@ -2609,8 +2628,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   tripCarouselCard: {
-    width: 170,
-    height: 110,
+    width: 196,
+    height: 124,
     borderRadius: 16,
     overflow: "hidden",
     position: "relative",
@@ -2626,7 +2645,6 @@ const styles = StyleSheet.create({
   },
   carouselOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   activePill: {
     position: "absolute",
@@ -2648,17 +2666,17 @@ const styles = StyleSheet.create({
   },
   activePillText: {
     color: "#FFF",
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
   },
   carouselDeleteBtn: {
     position: "absolute",
-    top: 7,
-    right: 7,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 2,
+    right: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
@@ -2681,19 +2699,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   carouselMetaText: {
-    color: "#E2E8F0",
-    fontSize: 11,
+    color: "#F1F5F9",
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginLeft: 3,
   },
   carouselMetaDot: {
-    color: "#94A3B8",
-    fontSize: 10,
+    color: "#CBD5E1",
+    fontSize: 12,
     marginHorizontal: 4,
   },
   addTripCard: {
     width: 110,
-    height: 110,
+    height: 124,
     borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
@@ -2728,7 +2746,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    minHeight: 44,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "transparent",
@@ -2742,18 +2760,23 @@ const styles = StyleSheet.create({
   },
 
   // Hero Section
-  heroContainer: {
-    height: 250,
+  heroShadowWrap: {
     marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 22,
     borderRadius: 24,
-    overflow: "hidden",
-    marginBottom: 14,
-    position: "relative",
+    backgroundColor: "#0F172A",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 6,
+  },
+  heroContainer: {
+    height: 250,
+    borderRadius: 24,
+    overflow: "hidden",
+    position: "relative",
   },
   heroImage: { width: "100%", height: "100%" },
   heroScrim: {
@@ -2761,14 +2784,14 @@ const styles = StyleSheet.create({
   },
   heroFloatingBookmark: {
     position: "absolute",
-    top: 14,
+    top: 8,
     right: 60,
     zIndex: 40,
+    minHeight: 44,
     backgroundColor: "rgba(15, 23, 42, 0.75)",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
@@ -2800,7 +2823,7 @@ const styles = StyleSheet.create({
   },
   heroMetaPillText: {
     color: "#FFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   heroDestTitle: {
@@ -2823,7 +2846,7 @@ const styles = StyleSheet.create({
   },
   verifiedAuditText: {
     color: "#D1FAE5",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
 

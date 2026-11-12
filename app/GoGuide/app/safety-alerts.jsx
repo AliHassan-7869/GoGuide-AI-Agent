@@ -1,9 +1,13 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from 'expo-router';
-import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../Components/constants/constants';
+import { Radius, Spacing, Typography, useTheme } from '../Components/constants/theme';
+import EmptyState from '../Components/ui/EmptyState';
+import FadeInView from '../Components/ui/FadeInView';
+import { Skeleton, SkeletonCard } from '../Components/ui/Skeleton';
 import { CreateTripContext } from '../context/CreateTripContext';
 import { fetchDestinationSafety } from '../Configs/AiModel';
 import ScreenHeader from '../Components/ui/ScreenHeader';
@@ -46,47 +50,57 @@ const safetyMockData = [
 export default function SafetyAlerts() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { preferences, tripData } = useContext(CreateTripContext);
-  const isDark = preferences?.darkMode;
+  const theme = useTheme();
+  const { tripData } = useContext(CreateTripContext);
   const [weather, setWeather] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
   const [alerts, setAlerts] = useState(safetyMockData);
-  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
 
   const destinationName = tripData?.toLocation?.name || tripData?.destination || tripData?.aiTripPlan?.destination || "Popular Travel Spots";
 
-  const loadAiAlerts = async () => {
+  const loadAiAlerts = useCallback(async () => {
     try {
       setAlertsLoading(true);
       const res = await fetchDestinationSafety(destinationName);
       if (res && Array.isArray(res) && res.length > 0) {
         setAlerts(res);
+        setUsingFallback(false);
+      } else {
+        setUsingFallback(true);
       }
     } catch (e) {
       console.log("Error loading AI safety alerts:", e);
+      setUsingFallback(true);
     } finally {
       setAlertsLoading(false);
     }
-  };
+  }, [destinationName]);
 
-  const fetchWeather = async (isManual = false) => {
+  const fetchWeather = useCallback(async () => {
     const lat = tripData?.toLocation?.coordinates?.lat || "48.8566"; // Default to Paris if no trip
     const lng = tripData?.toLocation?.coordinates?.lng || "2.3522";
 
     try {
       setLoading(true);
+      setWeatherError(false);
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
       const data = await res.json();
       if (data && data.current_weather) {
         setWeather(data.current_weather);
+      } else {
+        setWeatherError(true);
       }
     } catch (error) {
       console.log("Error fetching weather for safety:", error);
+      setWeatherError(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -94,14 +108,13 @@ export default function SafetyAlerts() {
       loadAiAlerts();
     }, 0);
     return () => clearTimeout(timer);
-  }, [tripData]);
+  }, [fetchWeather, loadAiAlerts]);
 
-  // Realistic/Standard mock data for emergency contacts
   const emergencyContacts = [
-    { title: "Police / Emergency", number: "911", icon: "shield-outline", color: "#2D3748" },
-    { title: "Ambulance / Medical", number: "911", icon: "medical-outline", color: "#D32F2F" },
-    { title: "Fire Department", number: "911", icon: "flame-outline", color: "#F57C00" },
-    { title: "Traveler Assistance", number: "0318-8444029", icon: "call-outline", color: Colors.PRIMARY || "#0a7ea4" },
+    { title: "Police / Emergency", number: "911", icon: "shield-outline", color: theme.text },
+    { title: "Ambulance / Medical", number: "911", icon: "medical-outline", color: Colors.ERROR },
+    { title: "Fire Department", number: "911", icon: "flame-outline", color: Colors.SECONDARY },
+    { title: "Traveller Assistance", number: "0318-8444029", icon: "call-outline", color: Colors.PRIMARY },
   ];
 
   const handleCall = (number) => {
@@ -109,407 +122,341 @@ export default function SafetyAlerts() {
     Linking.openURL(`tel:${number}`);
   };
 
-  const theme = {
-    bg: isDark ? "#121212" : "#F7FAFC",
-    card: isDark ? "#1E1E1E" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#1A202C",
-    subText: isDark ? "#A0A0A0" : "#718096",
-    border: isDark ? "#2D2D2D" : "#E2E8F0",
-  };
-
-  const activeAccent = Colors.PRIMARY || "#0F172A";
-
-  const getSeverityLabel = (severity, color) => {
-    return (
-      <View style={[styles.badge, { backgroundColor: color }]}>
-        <Text style={styles.badgeText}>{severity}</Text>
-      </View>
-    );
-  };
+  const list = alerts && alerts.length > 0 ? alerts : safetyMockData;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header matching golden reference */}
       <ScreenHeader
         title="Safety Alerts"
         subtitle="Travel advisories, weather & emergency contacts"
         onBack={() => router.back()}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* Weather Status Card (New Integration) */}
-        <View style={[styles.weatherCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <FadeInView index={0} style={[styles.weatherCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.weatherHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Ionicons name="cloud-outline" size={24} color={Colors.PRIMARY || "#0a7ea4"} />
-              <Text style={[styles.weatherTitle, { color: theme.text }]}>Destination Weather</Text>
-            </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh" onPress={() => fetchWeather(true)} disabled={loading}>
-              <Ionicons name="refresh" size={20} color={loading ? theme.subText : (Colors.PRIMARY || "#0a7ea4")} />
+            <Ionicons name="cloud-outline" size={24} color={Colors.PRIMARY} />
+            <Text style={[styles.weatherTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Destination Weather</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Refresh weather"
+              accessibilityState={{ disabled: loading }}
+              onPress={fetchWeather}
+              disabled={loading}
+              style={styles.iconBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="refresh" size={20} color={loading ? theme.subtext : Colors.PRIMARY} />
             </TouchableOpacity>
           </View>
           {loading ? (
-            <ActivityIndicator color={Colors.PRIMARY} size="small" style={{ marginVertical: 10 }} />
+            <View style={styles.weatherInfoRow}>
+              <Skeleton width="28%" height={40} />
+              <Skeleton width="28%" height={40} />
+              <Skeleton width="28%" height={40} />
+            </View>
           ) : weather ? (
             <View style={styles.weatherInfoRow}>
               <View style={styles.weatherItem}>
-                <Text style={[styles.weatherValue, { color: theme.text }]}>{weather.temperature}°C</Text>
-                <Text style={[styles.weatherLabel, { color: theme.subText }]}>Temp</Text>
+                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{weather.temperature}°C</Text>
+                <Text style={[styles.weatherLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Temp</Text>
               </View>
               <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
               <View style={styles.weatherItem}>
-                <Text style={[styles.weatherValue, { color: theme.text }]}>{weather.windspeed} km/h</Text>
-                <Text style={[styles.weatherLabel, { color: theme.subText }]}>Wind</Text>
+                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{weather.windspeed} km/h</Text>
+                <Text style={[styles.weatherLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Wind</Text>
               </View>
               <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
               <View style={styles.weatherItem}>
-                <Text style={[styles.weatherValue, { color: theme.text }]}>Stable</Text>
-                <Text style={[styles.weatherLabel, { color: theme.subText }]}>Status</Text>
+                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Stable</Text>
+                <Text style={[styles.weatherLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Status</Text>
               </View>
             </View>
           ) : (
-            <Text style={{ color: theme.subText }}>Weather data unavailable</Text>
+            <View style={styles.weatherErrorRow}>
+              <Text style={[styles.weatherLabel, { color: theme.subtext, flex: 1 }]} maxFontSizeMultiplier={1.3}>
+                {weatherError ? "Weather data unavailable. Check your connection." : "Weather data unavailable"}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading weather"
+                onPress={fetchWeather}
+                style={[styles.retryBtn, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.retryText, { color: Colors.PRIMARY }]} maxFontSizeMultiplier={1.3}>Try again</Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </View>
+        </FadeInView>
 
-        {/* Top Information Card */}
-        <View style={styles.infoCard}>
+        <FadeInView index={1} style={[styles.infoCard, { backgroundColor: Colors.PRIMARY }]}>
           <View style={styles.iconCircle}>
             <Feather name="shield" size={28} color={Colors.WHITE} />
           </View>
-          <Text style={styles.infoTitle}>Stay Safe on Your Trip</Text>
-          <Text style={styles.infoDesc}>
+          <Text style={styles.infoTitle} maxFontSizeMultiplier={1.3}>Stay Safe on Your Trip</Text>
+          <Text style={styles.infoDesc} maxFontSizeMultiplier={1.3}>
             Check current advisories and warnings for your destination. In case of emergency, immediately contact local authorities.
           </Text>
 
           <TouchableOpacity
-            style={styles.emergencyBtn}
-            onPress={() => setEmergencyVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={emergencyVisible ? "Hide emergency contacts" : "View emergency contacts"}
+            accessibilityState={{ expanded: emergencyVisible }}
+            style={[styles.emergencyBtn, { backgroundColor: Colors.ERROR }]}
+            onPress={() => setEmergencyVisible((v) => !v)}
           >
-            <Ionicons name="call" size={18} color={Colors.WHITE} style={{ marginRight: 8 }} />
-            <Text style={styles.emergencyText}>View Emergency Contacts</Text>
+            <Ionicons name={emergencyVisible ? "chevron-up" : "call"} size={18} color={Colors.WHITE} style={{ marginRight: Spacing.sm }} />
+            <Text style={styles.emergencyText} maxFontSizeMultiplier={1.3}>
+              {emergencyVisible ? "Hide Emergency Contacts" : "View Emergency Contacts"}
+            </Text>
           </TouchableOpacity>
-        </View>
+        </FadeInView>
 
-        {/* Emergency Contacts Modal */}
-        <Modal statusBarTranslucent
-          animationType="fade"
-          transparent={true}
-          visible={emergencyVisible}
-          onRequestClose={() => setEmergencyVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Emergency Contacts</Text>
-                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={() => setEmergencyVisible(false)}>
-                  <Ionicons name="close" size={24} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.modalSub, { color: theme.subText }]}>Tapping a number will dial it on your phone.</Text>
-
-              {emergencyContacts.map((contact, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.contactCard, { borderBottomColor: theme.border }]}
-                  onPress={() => handleCall(contact.number)}
-                >
-                  <View style={[styles.contactIcon, { backgroundColor: `${contact.color}15` }]}>
-                    <Ionicons name={contact.icon} size={22} color={contact.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.contactTitle, { color: theme.text }]}>{contact.title}</Text>
-                    <Text style={styles.contactNumber}>{contact.number}</Text>
-                  </View>
-                  <Ionicons name="call" size={20} color={Colors.PRIMARY} />
-                </TouchableOpacity>
-              ))}
-
+        {emergencyVisible ? (
+          <FadeInView index={0} style={[styles.emergencyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text accessibilityRole="header" style={[styles.modalTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Emergency Contacts</Text>
+            <Text style={[styles.modalSub, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Tapping a number will dial it on your phone.</Text>
+            {emergencyContacts.map((contact, index) => (
               <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={() => setEmergencyVisible(false)}
+                key={index}
+                accessibilityRole="button"
+                accessibilityLabel={`Call ${contact.title} on ${contact.number}`}
+                style={[styles.contactCard, { borderBottomColor: theme.border }]}
+                onPress={() => handleCall(contact.number)}
               >
-                <Text style={styles.closeBtnText}>Done</Text>
+                <View style={[styles.contactIcon, { backgroundColor: theme.badgeBg }]}>
+                  <Ionicons name={contact.icon} size={22} color={contact.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.contactTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{contact.title}</Text>
+                  <Text style={[styles.contactNumber, { color: Colors.PRIMARY }]} maxFontSizeMultiplier={1.3}>{contact.number}</Text>
+                </View>
+                <Ionicons name="call" size={20} color={Colors.PRIMARY} />
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+            ))}
+          </FadeInView>
+        ) : null}
 
-        <Text style={[styles.sectionHeader, { color: theme.text }]}>Current Advisories</Text>
+        <Text accessibilityRole="header" style={[styles.sectionHeader, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Current Advisories</Text>
 
-        {/* Alert Cards */}
-        {(alerts && alerts.length > 0 ? alerts : safetyMockData).map((alert) => (
-          <View key={alert.id} style={[styles.alertCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <View style={[styles.iconWrapper, { backgroundColor: alert.bgColor }]}>
-              <Ionicons name={alert.icon} size={28} color={alert.color} />
-            </View>
-            <View style={styles.alertContent}>
-              <View style={styles.alertHeaderRow}>
-                <Text style={[styles.alertType, { color: alert.color }]}>{alert.type}</Text>
-                {getSeverityLabel(alert.severity, alert.color)}
-              </View>
-              <Text style={[styles.alertTitle, { color: theme.text }]}>{alert.title}</Text>
-              <Text style={[styles.alertDesc, { color: theme.subText }]}>{alert.description}</Text>
-            </View>
-          </View>
-        ))}
-
-        <View style={{ height: 40 }} />
+        {alertsLoading ? (
+          <>
+            <SkeletonCard imageHeight={56} style={styles.skeletonCard} />
+            <SkeletonCard imageHeight={56} style={styles.skeletonCard} />
+          </>
+        ) : (
+          <>
+            {usingFallback ? (
+              <EmptyState
+                icon="cloud-offline-outline"
+                title="Showing standard advisories"
+                text="We could not load destination-specific alerts. General travel safety tips are shown below."
+                actionLabel="Try again"
+                onAction={loadAiAlerts}
+                style={styles.inlineState}
+              />
+            ) : null}
+            {list.map((alert, index) => (
+              <FadeInView
+                key={alert.id ?? index}
+                index={index}
+                style={[styles.alertCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={[styles.iconWrapper, { backgroundColor: `${alert.color || Colors.PRIMARY}26` }]}>
+                  <Ionicons name={alert.icon || "alert-circle-outline"} size={28} color={alert.color || Colors.PRIMARY} />
+                </View>
+                <View style={styles.alertContent}>
+                  <View style={styles.alertHeaderRow}>
+                    <Text style={[styles.alertType, { color: alert.color || Colors.PRIMARY }]} maxFontSizeMultiplier={1.3}>{alert.type}</Text>
+                    <View style={[styles.badge, { backgroundColor: alert.color || Colors.PRIMARY }]}>
+                      <Text style={styles.badgeText} maxFontSizeMultiplier={1.3}>{alert.severity}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.alertTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{alert.title}</Text>
+                  <Text style={[styles.alertDesc, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{alert.description}</Text>
+                </View>
+              </FadeInView>
+            ))}
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    gap: 8,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: "Outfit-Bold",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
-  },
+  container: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 40,
+    paddingHorizontal: Spacing.gutter,
+    paddingTop: Spacing.lg,
   },
   infoCard: {
-    backgroundColor: Colors.PRIMARY || '#0a7ea4',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 30,
-    shadowColor: Colors.PRIMARY || '#0a7ea4',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
+    borderRadius: Radius.card,
+    padding: Spacing.xxl,
+    alignItems: "center",
+    marginBottom: Spacing.xl,
   },
   iconCircle: {
     width: 60,
     height: 60,
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
+    borderRadius: Radius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   infoTitle: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 22,
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeXl,
     color: Colors.WHITE,
-    marginBottom: 10,
-    textAlign: 'center',
+    marginBottom: Spacing.sm,
+    textAlign: "center",
   },
   infoDesc: {
-    fontFamily: 'Outfit-Regular',
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    textAlign: 'center',
+    fontFamily: Typography.fontRegular,
+    fontSize: Typography.sizeMd,
+    color: Colors.WHITE,
+    textAlign: "center",
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: Spacing.xl,
   },
   emergencyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D32F2F', // Red for emergency
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 48,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radius.pill,
   },
   emergencyText: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 14,
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeMd,
     color: Colors.WHITE,
   },
-  sectionHeader: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 20,
-    color: '#2D3748',
-    marginBottom: 15,
-  },
-  alertCard: {
-    flexDirection: 'row',
-    borderRadius: 18,
+  emergencyCard: {
+    borderRadius: Radius.card,
     borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  sectionHeader: {
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeXl,
+    marginBottom: Spacing.md,
+  },
+  skeletonCard: { marginBottom: Spacing.lg },
+  inlineState: { paddingVertical: Spacing.lg },
+  alertCard: {
+    flexDirection: "row",
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   iconWrapper: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+    borderRadius: Radius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Spacing.lg,
   },
-  alertContent: {
-    flex: 1,
-  },
+  alertContent: { flex: 1, minWidth: 0 },
   alertHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.sm,
     marginBottom: 6,
   },
   alertType: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 12,
-    textTransform: 'uppercase',
+    flexShrink: 1,
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeSm,
+    textTransform: "uppercase",
   },
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.md,
   },
   badgeText: {
     color: Colors.WHITE,
-    fontFamily: 'Outfit-Medium',
-    fontSize: 10,
-    textTransform: 'uppercase',
+    fontFamily: Typography.fontMedium,
+    fontSize: Typography.sizeSm,
+    textTransform: "uppercase",
   },
   alertTitle: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
-    color: '#1A202C',
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeBase,
     marginBottom: 6,
   },
   alertDesc: {
-    fontFamily: 'Outfit-Regular',
-    fontSize: 14,
+    fontFamily: Typography.fontRegular,
+    fontSize: Typography.sizeMd,
     lineHeight: 20,
   },
   weatherCard: {
-    padding: 16,
-    borderRadius: 20,
+    padding: Spacing.lg,
+    borderRadius: Radius.card,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: Spacing.xl,
   },
   weatherHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   weatherTitle: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
-    marginLeft: 10,
+    flex: 1,
+    fontFamily: Typography.fontBold,
+    fontSize: Typography.sizeBase,
+    marginLeft: Spacing.md,
   },
+  iconBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   weatherInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
-  weatherItem: {
-    alignItems: 'center',
-    flex: 1,
+  weatherErrorRow: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
+  retryBtn: {
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  weatherValue: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 18,
-  },
-  weatherLabel: {
-    fontFamily: 'Outfit-Regular',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  weatherDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: '#E2E8F0',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 25,
-  },
-  modalContent: {
-    padding: 24,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  modalTitle: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 22,
-  },
-  modalSub: {
-    fontFamily: 'Outfit-Regular',
-    fontSize: 14,
-    marginBottom: 20,
-  },
+  retryText: { fontFamily: Typography.fontMedium, fontSize: Typography.sizeMd },
+  weatherItem: { alignItems: "center", flex: 1 },
+  weatherValue: { fontFamily: Typography.fontBold, fontSize: Typography.sizeLg },
+  weatherLabel: { fontFamily: Typography.fontRegular, fontSize: Typography.sizeMd, marginTop: 2 },
+  weatherDivider: { width: 1, height: 30 },
+  modalTitle: { fontFamily: Typography.fontBold, fontSize: Typography.sizeLg },
+  modalSub: { fontFamily: Typography.fontRegular, fontSize: Typography.sizeMd, marginBottom: Spacing.md, marginTop: 2 },
   contactCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 64,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
   contactIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+    borderRadius: Radius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Spacing.lg,
   },
-  contactTitle: {
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
-  },
-  contactNumber: {
-    fontFamily: 'Outfit-Medium',
-    fontSize: 14,
-    color: Colors.PRIMARY,
-    marginTop: 2,
-  },
-  closeBtn: {
-    backgroundColor: Colors.PRIMARY,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  closeBtnText: {
-    color: '#FFF',
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
-  },
+  contactTitle: { fontFamily: Typography.fontBold, fontSize: Typography.sizeBase },
+  contactNumber: { fontFamily: Typography.fontMedium, fontSize: Typography.sizeMd, marginTop: 2 },
 });

@@ -45,7 +45,22 @@ Always reuse existing components rather than inventing duplicate markup:
 * `<StepProgressBar />` (`Components/CreateTrip/StepProgressBar.jsx`): Stepper in creation wizards.
 * `<StartNewTripCard />` (`Components/MyTrips/StartNewTripCard.jsx`): Hero empty state and saved trips carousel.
 * `<ScreenState />` (`Components/ui/ScreenState.jsx`): Standardized loading spinner, error banner, and empty state cards.
-* `<FavoriteHeartButton />` (`Components/FavoriteHeartButton.jsx`): Reactive wishlist heart button.
+* `<FavoriteHeartButton />` (`Components/FavoriteHeartButton.jsx`): Reactive wishlist heart button. 44px; favourited = filled red heart on white, unfavourited = outlined heart; label "Save to favourites" / "Remove from favourites".
+* `<EmptyState icon title text actionLabel onAction secondaryLabel onSecondary />` (`Components/ui/EmptyState.jsx`): The My Bookings empty-state pattern. Use it for empty lists, errors ("Try again") and offline states on every page.
+* `<Skeleton />` / `<SkeletonCard />` (`Components/ui/Skeleton.jsx`): Pulsing placeholders for hero, cards and day lists while loading. Static when reduce-motion is on. Never fake a loading delay for local data.
+* `<FadeInView index />` (`Components/ui/FadeInView.jsx`): Staggered entry (fade + 10px rise, 40ms stagger, 230ms ease-out). Respects reduce-motion.
+* `<TypingIndicator />` (`Components/ui/TypingIndicator.jsx`): Three-dot "GoGuide is typing" bubble for the Copilot.
+* `useReduceMotion()` (`hooks/useReduceMotion.js`): Skip or shorten every looping/entry animation when it returns true. Always stop `Animated.loop`s in the effect cleanup.
+* `tapHaptic()` / `selectHaptic()` (`Components/utils/haptics.js`): Haptics, native only (no-op on web).
+* `useBackDismiss(visible, onClose)` (`hooks/useBackDismiss.js`): Android back closes an in-page form/sheet instead of leaving the screen.
+
+## 2b. Motion, States & Accessibility (Part 3)
+- **Press feedback:** `Touchable` scales to 0.98 on press (skipped when the element sets its own transform).
+- **States:** every list/page has loading (Skeleton), empty (EmptyState), and error/offline (EmptyState + "Try again") states.
+- **Accessibility:** every icon-only button has `accessibilityLabel` + `accessibilityRole`; toggles/checkboxes/tabs/chips expose `accessibilityState` (checked/selected/disabled); never rely on colour alone (add a checkmark/label); text at risk of clipping uses `maxFontSizeMultiplier={1.3}`; rows use `minHeight`, not fixed `height`.
+- **No doubled labels:** don't put an emoji in front of text that already has an icon (e.g. sparkles icon + "✨").
+- **Copy:** British spelling ("Favourites", "Customise"), brand is always "GoGuide", all UI copy in English.
+- **Web inputs:** give `TextInput`s inside rows an explicit `width` (web defaults to ~200px and pushes siblings out).
 
 ---
 

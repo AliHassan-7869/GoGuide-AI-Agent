@@ -565,8 +565,9 @@ export default function SharedTripView() {
     <View style={styles.outerContainer}>
       {/* Top Navbar */}
       <View style={[styles.navbar, { paddingTop: Platform.OS === "web" ? 14 : insets.top + 8 }]}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0, marginRight: 8 }}>
           <TouchableOpacity
+            accessibilityRole="button"
             style={styles.backNavBtn}
             onPress={() => {
               if (params?.from === "saved") {
@@ -600,7 +601,7 @@ export default function SharedTripView() {
             <View style={styles.logoIcon}>
               <Ionicons name="navigate" size={16} color="#FFF" />
             </View>
-            <Text style={styles.logoText}>GoGuide AI</Text>
+            <Text style={styles.logoText} numberOfLines={1}>GoGuide AI</Text>
             <View
               style={[
                 styles.sharedBadge,
@@ -609,7 +610,7 @@ export default function SharedTripView() {
                   : { backgroundColor: "rgba(10, 126, 164, 0.25)" },
               ]}
             >
-              <Text style={[styles.sharedBadgeText, isDraft && !isSavedInTrips && { color: "#F59E0B" }]}>
+              <Text numberOfLines={1} style={[styles.sharedBadgeText, isDraft && !isSavedInTrips && { color: "#F59E0B" }]}>
                 {isDraft && !isSavedInTrips ? "AI GENERATED PREVIEW" : "YOUR TRIP"}
               </Text>
             </View>
@@ -934,17 +935,17 @@ export default function SharedTripView() {
                   }}
                 >
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#38BDF8" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#38BDF8" }}>
                       🛫 GOING • DAY 1 ({flightInfo.departureDate})
                     </Text>
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#94A3B8" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#94A3B8" }}>
                       {flightInfo.outboundFlightNo} • {flightInfo.duration}
                     </Text>
                   </View>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
                     {flightInfo.origin} ({flightInfo.originIata}) ✈️ {flightInfo.destination} ({flightInfo.destIata})
                   </Text>
-                  <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
                     {flightInfo.outboundDepTime} ──({flightInfo.stops})──► {flightInfo.outboundArrTime} • {flightInfo.originAirport}
                   </Text>
                 </View>
@@ -960,17 +961,17 @@ export default function SharedTripView() {
                   }}
                 >
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#34D399" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#34D399" }}>
                       🛬 RETURNING • DAY {numDays} ({flightInfo.returnDate})
                     </Text>
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#94A3B8" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#94A3B8" }}>
                       {flightInfo.returnFlightNo} • {flightInfo.duration}
                     </Text>
                   </View>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#F8FAFC", marginTop: 4 }}>
                     {flightInfo.destination} ({flightInfo.destIata}) ✈️ {flightInfo.origin} ({flightInfo.originIata})
                   </Text>
-                  <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
                     {flightInfo.returnDepTime} ──({flightInfo.stops})──► {flightInfo.returnArrTime} • 🧳 {flightInfo.baggage}
                   </Text>
                 </View>
@@ -1260,6 +1261,8 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
+    minWidth: 0,
   },
   logoIcon: {
     width: 28,
@@ -1274,6 +1277,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 17,
     fontFamily: "Outfit-Bold",
+    flexShrink: 0,
   },
   sharedBadge: {
     backgroundColor: "rgba(14, 165, 233, 0.18)",
@@ -1283,14 +1287,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     borderWidth: 1,
     borderColor: "rgba(14, 165, 233, 0.4)",
+    flexShrink: 1,
+    minWidth: 0,
   },
   sharedBadgeText: {
     color: "#38BDF8",
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
   },
   navCreateBtn: {
+    flexShrink: 0,
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.PRIMARY,
@@ -1454,7 +1462,7 @@ const styles = StyleSheet.create({
   },
   hotelRatingText: {
     color: "#FFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   hotelBody: {
@@ -1483,7 +1491,7 @@ const styles = StyleSheet.create({
   },
   hotelBookBtnText: {
     color: "#FFF",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   hotelMapBtn: {
@@ -1496,7 +1504,7 @@ const styles = StyleSheet.create({
   },
   hotelMapBtnText: {
     color: "#38BDF8",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
     marginLeft: 4,
   },
@@ -1529,10 +1537,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
+    flexDirection: "column", // title gets the full width; actions sit underneath (no squeezed one-word column)
+    alignItems: "flex-start",
     gap: 8,
     marginBottom: 10,
   },
@@ -1581,7 +1587,7 @@ const styles = StyleSheet.create({
   },
   timePillText: {
     color: "#38BDF8",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   ticketPill: {
@@ -1595,7 +1601,7 @@ const styles = StyleSheet.create({
   },
   ticketPillText: {
     color: "#10B981",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   actTitle: {
@@ -1628,7 +1634,7 @@ const styles = StyleSheet.create({
   },
   travelTimeText: {
     color: "#64748B",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   actMapBtn: {
@@ -1638,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   actMapBtnText: {
     color: "#38BDF8",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   viralBanner: {
@@ -1694,7 +1700,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadgeText: {
     color: "#2DD4BF",
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   essentialsGrid: {
@@ -1720,7 +1726,7 @@ const styles = StyleSheet.create({
   },
   essentialLabel: {
     color: "#94A3B8",
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,
   },
@@ -1732,7 +1738,7 @@ const styles = StyleSheet.create({
   },
   essentialSubVal: {
     color: "#94A3B8",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
     lineHeight: 15,
@@ -1773,7 +1779,7 @@ const styles = StyleSheet.create({
   },
   dayActionBtnText: {
     color: "#FFF",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   actBookBtn: {
@@ -1786,7 +1792,7 @@ const styles = StyleSheet.create({
   },
   actBookBtnText: {
     color: "#FFF",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   dayAddBottomBtn: {

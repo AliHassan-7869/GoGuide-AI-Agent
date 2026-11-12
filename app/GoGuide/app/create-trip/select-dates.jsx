@@ -572,7 +572,7 @@ export default function SelectDates() {
                 Custom Duration (Enter Manually)
               </Text>
               <Text style={[styles.manualSubtitle, { color: theme.subtext }]}>
-                Apni marzi se jitne marzi din select ya type karein (1–30 Days)
+                Pick or type any length from 1 to 30 days.
               </Text>
             </View>
           </View>
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   },
   heroPreTitle: {
     color: "#0A7EA4",
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
     marginTop: 8,
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   subSectionTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateRangeLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.8,
     marginTop: 1,
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   dateRangePillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   durationRowScroll: {
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   durationPillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
     marginTop: 2,
     letterSpacing: 0.5,
@@ -944,13 +944,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     minWidth: 120,
+    flexShrink: 1,
     gap: 6,
   },
   manualTextInput: {
     fontSize: 22,
     fontFamily: "Outfit-Bold",
     textAlign: "center",
-    minWidth: 40,
+    width: 48, // explicit: web TextInputs default to ~200px and push the "DAYS" label out of the box
     padding: 0,
   },
   manualDaysSuffix: {
@@ -1019,7 +1020,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   blockTagText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
   blockTitle: {
@@ -1028,7 +1029,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   blockRange: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
   selectedCheck: {

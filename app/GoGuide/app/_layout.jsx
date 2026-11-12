@@ -1,12 +1,11 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { useContext } from "react";
 import { View, Platform, StyleSheet, useWindowDimensions, LogBox } from "react-native";
 LogBox.ignoreAllLogs(true);
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useTheme } from "../Components/constants/theme";
-import { CreateTripContext, CreateTripProvider } from "../context/CreateTripContext";
+import { CreateTripProvider } from "../context/CreateTripContext";
 import ErrorBoundary from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -14,10 +13,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 installAndroidTextDefaults();
 
 function AppContent() {
-  const context = useContext(CreateTripContext);
-  const isDark = context?.preferences?.darkMode;
   const { width } = useWindowDimensions();
   const theme = useTheme();
+  const isDark = theme.isDark;
 
   const isDesktopWeb = Platform.OS === "web" && width > 520;
 

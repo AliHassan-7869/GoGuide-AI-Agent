@@ -35,7 +35,7 @@ export default function Explore() {
   const theme = useTheme();
   const { category } = useLocalSearchParams();
   const { preferences, setTripData } = useContext(CreateTripContext);
-  const isDark = preferences?.darkMode;
+  const isDark = theme.isDark;
   const activeAccent = Colors.PRIMARY || "#0F172A";
 
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");

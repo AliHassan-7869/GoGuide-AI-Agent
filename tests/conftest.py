@@ -14,6 +14,14 @@ os.environ["RATE_LIMIT_PER_HOUR"] = "30"
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Tests must never report to the real Sentry project (app.py has a hard-coded DSN fallback).
+try:
+    import sentry_sdk
+
+    sentry_sdk.init = lambda *args, **kwargs: None
+except ImportError:
+    pass
+
 import app as app_module  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
