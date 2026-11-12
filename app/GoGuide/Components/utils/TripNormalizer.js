@@ -190,11 +190,13 @@ export function normalizeTrip(raw) {
               return { time: "Scheduled", placeName: a, details: a, tickets: "" };
             }
             return {
+              ...a,
               time: a?.time || a?.timeSlot || "Scheduled",
               placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
               details: a?.details || a?.description || a?.notes || "",
               tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
               coordinates: a?.coordinates || a?.geo || null,
+              isVisited: Boolean(a?.isVisited),
             };
           })
         : [];
@@ -223,11 +225,13 @@ export function normalizeTrip(raw) {
               return { time: "Scheduled", placeName: a, details: a, tickets: "" };
             }
             return {
+              ...a,
               time: a?.time || a?.timeSlot || "Scheduled",
               placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
               details: a?.details || a?.description || a?.notes || "",
               tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
               coordinates: a?.coordinates || a?.geo || null,
+              isVisited: Boolean(a?.isVisited),
             };
           })
         : [];

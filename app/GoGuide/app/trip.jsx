@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Animated, Image, Linking, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -11,10 +11,13 @@ import { addHotelBooking, addFlightBooking, addActivityBooking } from "../Compon
 import AddActivityModal from "../Components/MyTrips/AddActivityModal";
 import ExpenseTrackerModal from "../Components/MyTrips/ExpenseTrackerModal";
 import { Colors } from "../Components/constants/constants";
+import { Radius, Spacing, Typography, useTheme } from "../Components/constants/theme";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
-import { fetchDestinationEssentials } from "../Configs/AiModel";
+import { buildFallbackDestinationEssentials, fetchDestinationEssentials } from "../Configs/AiModel";
 import FavoriteHeartButton from "../Components/FavoriteHeartButton";
+import EmptyState from "../Components/ui/EmptyState";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 import { buildFlightItinerary } from "../Components/utils/FlightEngine";
 import { normalizeTrip } from "../Components/utils/TripNormalizer";
 import { useHotelImages } from "../Components/utils/HotelImages";
@@ -124,16 +127,31 @@ export default function SharedTripView() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
+  const theme = useTheme();
+  const reduceMotion = useReduceMotion();
 
   const [loading, setLoading] = useState(true);
   const [tripPlan, setTripPlan] = useState(null);
   const [selectedDay, setSelectedDay] = useState("all");
   const [copiedLink, setCopiedLink] = useState(false);
   const [essentials, setEssentials] = useState(null);
+  const [expandedEssentials, setExpandedEssentials] = useState({});
+
+  const dayScrollRef = useRef(null);
+  const dayBarWidthRef = useRef(0);
+  const dayPositions = useRef({});
+  const dayContentFade = useRef(new Animated.Value(1)).current;
+  const prevTripDestRef = useRef(null);
 
   useEffect(() => {
     const dest = tripPlan?.destination;
     if (dest) {
+      setEssentials(buildFallbackDestinationEssentials(dest));
+      if (prevTripDestRef.current && prevTripDestRef.current !== dest) {
+        setSelectedDay("all");
+        setExpandedEssentials({});
+      }
+      prevTripDestRef.current = dest;
       fetchDestinationEssentials(dest)
         .then((data) => {
           if (data) setEssentials(data);
@@ -141,6 +159,30 @@ export default function SharedTripView() {
         .catch(() => { });
     }
   }, [tripPlan?.destination]);
+
+  const handleSelectDay = (dayVal) => {
+    triggerHaptic();
+    const isSame = String(selectedDay) === String(dayVal);
+    setSelectedDay(dayVal);
+
+    const chipLayout = dayPositions.current[String(dayVal)];
+    if (dayScrollRef.current && chipLayout && typeof chipLayout.x === "number") {
+      const barWidth = dayBarWidthRef.current || width || 360;
+      const targetX = Math.max(0, chipLayout.x + (chipLayout.width || 72) / 2 - barWidth / 2);
+      dayScrollRef.current.scrollTo({ x: targetX, animated: !reduceMotion });
+    }
+
+    if (!isSame && !reduceMotion) {
+      dayContentFade.setValue(0.35);
+      Animated.timing(dayContentFade, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      dayContentFade.setValue(1);
+    }
+  };
 
   // Determine active Trip ID from query params or window location
   let targetId = params.id;
@@ -509,15 +551,23 @@ export default function SharedTripView() {
 
   const handleAddActivity = (dayNumber, newActivity) => {
     triggerHaptic();
-    if (!tripPlan || !tripPlan.itinerary) return;
-    const updatedItinerary = tripPlan.itinerary.map((d) => {
-      if (String(d.day) === String(dayNumber)) {
+    if (!tripPlan) return;
+    const baseItinerary = Array.isArray(tripPlan.itinerary) ? tripPlan.itinerary : [];
+    const parsedDuration = parseInt(tripPlan?.duration, 10) || 0;
+    const totalDaysCount = Math.max(baseItinerary.length, parsedDuration, Number(dayNumber) || 1);
+    const updatedItinerary = Array.from({ length: totalDaysCount }, (_, idx) => {
+      const dNum = idx + 1;
+      const existing = baseItinerary.find((d) => Number(d?.day) === dNum) || baseItinerary[idx];
+      const baseDay = existing
+        ? { ...existing, day: dNum, activities: Array.isArray(existing.activities) ? existing.activities : [] }
+        : { day: dNum, theme: `Day ${dNum} Exploration`, activities: [] };
+      if (String(dNum) === String(dayNumber)) {
         return {
-          ...d,
-          activities: [...(d.activities || []), newActivity],
+          ...baseDay,
+          activities: [...baseDay.activities, newActivity],
         };
       }
-      return d;
+      return baseDay;
     });
 
     const updatedPlan = {
@@ -542,6 +592,30 @@ export default function SharedTripView() {
 
   const hotelPhotos = useHotelImages(tripPlan?.hotels, tripPlan?.destination);
 
+  const rawItinerary = Array.isArray(tripPlan?.itinerary) ? tripPlan.itinerary : [];
+  const itinerary = useMemo(() => {
+    const parsedDuration = parseInt(tripPlan?.duration, 10) || 0;
+    const totalDays = Math.max(rawItinerary.length, parsedDuration);
+    if (totalDays === 0) return [];
+    return Array.from({ length: totalDays }, (_, idx) => {
+      const dayNumber = idx + 1;
+      const existing =
+        rawItinerary.find((d) => Number(d?.day) === dayNumber) || rawItinerary[idx];
+      if (existing) {
+        return {
+          ...existing,
+          day: dayNumber,
+          activities: Array.isArray(existing.activities) ? existing.activities : [],
+        };
+      }
+      return {
+        day: dayNumber,
+        theme: `Day ${dayNumber} Exploration`,
+        activities: [],
+      };
+    });
+  }, [rawItinerary, tripPlan?.duration]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -553,7 +627,6 @@ export default function SharedTripView() {
 
   const destination = tripPlan?.destination || "Destination";
   const heroImage = getDestinationImage(destination);
-  const itinerary = Array.isArray(tripPlan?.itinerary) ? tripPlan.itinerary : [];
   const hotels = Array.isArray(tripPlan?.hotels) ? tripPlan.hotels : [];
 
   const filteredDays =
@@ -699,112 +772,175 @@ export default function SharedTripView() {
           </TouchableOpacity>
         </View>
 
-{/* Destination Essentials (Visa, Emergency, Money & Events) */}
-        {essentials && (
-          <View style={styles.section}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>🧭 Destination Essentials</Text>
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#0D9488" />
-                <Text style={styles.verifiedBadgeText}>Live Travel Intel</Text>
+        {/* Destination Essentials — Fixed 2x2 Grid */}
+        {essentials && (() => {
+          const visaText =
+            typeof essentials.visa === "string"
+              ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "").trim()
+              : essentials.visa?.notes || "Check passport validity and entry requirements before departure.";
+          const visaTitle =
+            typeof essentials.visa === "string"
+              ? "Visa Guidelines"
+              : essentials.visa?.visa_required || "Visa Guidelines";
+
+          const currencyText =
+            typeof essentials.currency === "string"
+              ? essentials.currency.replace(/\*\*/g, "").replace(/^[💳💵]\s*/, "").trim()
+              : essentials.currency?.tipping || "Cards accepted at major venues; carry local cash for small purchases.";
+          const currencyTitle =
+            typeof essentials.currency === "string"
+              ? "Payments"
+              : essentials.currency?.currency_code
+                ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
+                : "Payments";
+
+          const emergencyText =
+            typeof essentials.emergency === "string"
+              ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "").trim()
+              : `General emergency hotline: ${essentials.emergency?.general || "112"}`;
+          const emergencyTitle =
+            typeof essentials.emergency === "string"
+              ? "Hotlines"
+              : `Police: ${essentials.emergency?.police || "112"} · Amb: ${essentials.emergency?.ambulance || "112"}`;
+
+          const seasonText =
+            typeof essentials.events === "string"
+              ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "").trim()
+              : essentials.seasonal_events?.[0]?.highlights || "Favourable regional climate and cultural highlights.";
+          const seasonTitle =
+            typeof essentials.events === "string"
+              ? "Highlights"
+              : essentials.seasonal_events?.[0]?.event || "Highlights";
+
+          const rows = [
+            [
+              {
+                key: "visa",
+                icon: "card-outline",
+                label: "VISA & ENTRY",
+                color: theme.isDark ? "#38BDF8" : "#0284C7",
+                title: visaTitle,
+                text: visaText,
+              },
+              {
+                key: "currency",
+                icon: "cash-outline",
+                label: "MONEY & TIPPING",
+                color: theme.isDark ? "#34D399" : "#047857",
+                title: currencyTitle,
+                text: currencyText,
+              },
+            ],
+            [
+              {
+                key: "emergency",
+                icon: "call-outline",
+                label: "EMERGENCY",
+                color: theme.isDark ? "#F87171" : "#DC2626",
+                title: emergencyTitle,
+                text: emergencyText,
+              },
+              {
+                key: "events",
+                icon: "calendar-outline",
+                label: "SEASON",
+                color: theme.isDark ? "#FBBF24" : "#B45309",
+                title: seasonTitle,
+                text: seasonText,
+              },
+            ],
+          ];
+
+          return (
+            <View style={styles.section}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>🧭 Destination Essentials</Text>
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#2DD4BF" />
+                  <Text style={styles.verifiedBadgeText}>Verified Intel</Text>
+                </View>
+              </View>
+
+              <View style={styles.essentialsGrid}>
+                {rows.map((rowItems, rowIdx) => (
+                  <View key={`ess-row-${rowIdx}`} style={styles.essentialsRow}>
+                    {rowItems.map((card) => {
+                      const isExpanded = !!expandedEssentials[card.key];
+                      return (
+                        <View
+                          key={card.key}
+                          style={[
+                            styles.essentialCard,
+                            {
+                              backgroundColor: theme.card,
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          <View>
+                            <View style={styles.essentialLabelRow}>
+                              <Ionicons
+                                name={card.icon}
+                                size={14}
+                                color={card.color}
+                                style={{ marginRight: Spacing.xs }}
+                              />
+                              <Text
+                                style={[styles.essentialLabel, { color: card.color }]}
+                                numberOfLines={1}
+                                maxFontSizeMultiplier={1.3}
+                              >
+                                {card.label}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[styles.essentialMainVal, { color: theme.text }]}
+                              numberOfLines={1}
+                              maxFontSizeMultiplier={1.3}
+                            >
+                              {card.title}
+                            </Text>
+                            <Text
+                              style={[styles.essentialSubVal, { color: theme.subtext }]}
+                              numberOfLines={isExpanded ? undefined : 3}
+                              ellipsizeMode="tail"
+                              maxFontSizeMultiplier={1.3}
+                            >
+                              {card.text}
+                            </Text>
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.readMoreBtn}
+                            onPress={() =>
+                              setExpandedEssentials((prev) => ({
+                                ...prev,
+                                [card.key]: !prev[card.key],
+                              }))
+                            }
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${isExpanded ? "Show less" : "Read more"} for ${card.title}`}
+                            accessibilityState={{ expanded: isExpanded }}
+                          >
+                            <Text style={[styles.readMoreText, { color: theme.primary }]} maxFontSizeMultiplier={1.3}>
+                              {isExpanded ? "Show less" : "Read more"}
+                            </Text>
+                            <Ionicons
+                              name={isExpanded ? "chevron-up" : "chevron-down"}
+                              size={13}
+                              color={theme.primary}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
             </View>
-
-            <View style={styles.essentialsGrid}>
-              {/* Visa & Entry */}
-              {essentials.visa && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(14, 165, 233, 0.15)" }]}>
-                    <Ionicons name="card-outline" size={16} color="#0EA5E9" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>VISA & ENTRY</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.visa === "string"
-                        ? "Entry & Visa Guidelines"
-                        : essentials.visa.visa_required || "Passport required"}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.visa === "string"
-                        ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "")
-                        : essentials.visa.stay_limit
-                          ? `Stay limit: ${essentials.visa.stay_limit}`
-                          : essentials.visa.notes || "Check your passport validity."}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Currency & Tipping */}
-              {essentials.currency && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                    <Ionicons name="cash-outline" size={16} color="#10B981" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>MONEY & TIPPING</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.currency === "string"
-                        ? "Currency & Payments"
-                        : essentials.currency.currency_code
-                          ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
-                          : "Cash & Cards"}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.currency === "string"
-                        ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "")
-                        : essentials.currency.tipping || "Standard 10% tipping appreciated."}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Emergency Hotline */}
-              {essentials.emergency && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
-                    <Ionicons name="call-outline" size={16} color="#EF4444" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>EMERGENCY NUMBERS</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.emergency === "string"
-                        ? "Local Emergency & Health"
-                        : `Police: ${essentials.emergency.police || "911/112"} · Amb: ${essentials.emergency.ambulance || "911/112"}`}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.emergency === "string"
-                        ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "")
-                        : `General hotline: ${essentials.emergency.general || "112"}`}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Seasonal & Events */}
-              {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
-                <View style={styles.essentialCard}>
-                  <View style={[styles.essentialIconCircle, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
-                    <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.essentialLabel}>SEASON & HIGHLIGHTS</Text>
-                    <Text style={styles.essentialMainVal}>
-                      {typeof essentials.events === "string"
-                        ? "Seasonal Highlights"
-                        : `${essentials.seasonal_events[0].event} (${essentials.seasonal_events[0].month})`}
-                    </Text>
-                    <Text style={styles.essentialSubVal} numberOfLines={3}>
-                      {typeof essentials.events === "string"
-                        ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "")
-                        : essentials.seasonal_events[0].highlights || "Great regional weather and seasonal festivities."}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* 1. FIRST: Recommended Stays Section with Booking.com Link */}
         {hotels.length > 0 && (
@@ -1021,154 +1157,218 @@ export default function SharedTripView() {
         })()}
 
         {/* 3. THIRD: Day-by-Day Timeline Schedule */}
-        <View style={[styles.section, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>🗓️ Day-by-Day Schedule</Text>
+        <View style={[styles.section, { marginTop: Spacing.xl }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>🗓️ Day-by-Day Schedule</Text>
 
-          {/* Day Filter Pills */}
-          {itinerary.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabsScroll}>
+          {/* Day Filter Tabs (Filter in place, never scrolls page) */}
+          {itinerary.length >= 1 && (
+            <ScrollView
+              ref={dayScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              accessibilityRole="tablist"
+              onLayout={(e) => {
+                dayBarWidthRef.current = e.nativeEvent.layout.width;
+              }}
+              style={[styles.dayTabsScroll, { marginHorizontal: -Spacing.gutter }]}
+              contentContainerStyle={styles.dayTabsContent}
+            >
               <TouchableOpacity
+                onLayout={(e) => {
+                  dayPositions.current.all = {
+                    x: e.nativeEvent.layout.x,
+                    width: e.nativeEvent.layout.width,
+                  };
+                }}
                 style={[styles.dayTabPill, selectedDay === "all" && styles.dayTabActive]}
-                onPress={() => setSelectedDay("all")}
+                onPress={() => handleSelectDay("all")}
+                accessibilityRole="tab"
+                accessibilityLabel="All Days"
+                accessibilityState={{ selected: selectedDay === "all" }}
               >
-                <Text style={[styles.dayTabText, selectedDay === "all" && styles.dayTabTextActive]}>
+                <Text
+                  style={[styles.dayTabText, selectedDay === "all" && styles.dayTabTextActive]}
+                  maxFontSizeMultiplier={1.3}
+                >
                   All Days
                 </Text>
               </TouchableOpacity>
-              {itinerary.map((d) => (
-                <TouchableOpacity
-                  key={d.day}
-                  style={[styles.dayTabPill, String(selectedDay) === String(d.day) && styles.dayTabActive]}
-                  onPress={() => setSelectedDay(String(d.day))}
-                >
-                  <Text
-                    style={[
-                      styles.dayTabText,
-                      String(selectedDay) === String(d.day) && styles.dayTabTextActive,
-                    ]}
+              {itinerary.map((d) => {
+                const isActive = String(selectedDay) === String(d.day);
+                return (
+                  <TouchableOpacity
+                    key={d.day}
+                    onLayout={(e) => {
+                      dayPositions.current[String(d.day)] = {
+                        x: e.nativeEvent.layout.x,
+                        width: e.nativeEvent.layout.width,
+                      };
+                    }}
+                    style={[styles.dayTabPill, isActive && styles.dayTabActive]}
+                    onPress={() => handleSelectDay(String(d.day))}
+                    accessibilityRole="tab"
+                    accessibilityLabel={`Day ${d.day}`}
+                    accessibilityState={{ selected: isActive }}
                   >
-                    Day {d.day}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.dayTabText,
+                        isActive && styles.dayTabTextActive,
+                      ]}
+                      maxFontSizeMultiplier={1.3}
+                    >
+                      Day {d.day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           )}
 
           {/* Activity Timeline List */}
-          {filteredDays.map((dayItem) => (
-            <View key={dayItem.day} style={styles.dayGroup}>
-              <View style={styles.dayHeader}>
-                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <View style={styles.dayNumberBadge}>
-                    <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+          <Animated.View
+            style={{ opacity: dayContentFade }}
+            accessibilityLabel={
+              selectedDay === "all"
+                ? "All days itinerary"
+                : `Day ${selectedDay} itinerary`
+            }
+          >
+            {filteredDays.map((dayItem) => (
+              <View key={dayItem.day} style={styles.dayGroup}>
+                <View style={styles.dayHeader}>
+                  <View style={{ flex: 1, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <View style={styles.dayNumberBadge}>
+                      <Text style={styles.dayNumberText}>Day {dayItem.day}</Text>
+                    </View>
+                    {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
                   </View>
-                  {dayItem.theme && <Text style={styles.dayThemeText}>{dayItem.theme}</Text>}
+
+                  {/* Clean Day Action Buttons */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <TouchableOpacity
+                      style={styles.dayActionBtnAdd}
+                      onPress={() => {
+                        triggerHaptic();
+                        setTargetDayForActivity(dayItem.day);
+                        setShowAddActivityModal(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="add" size={13} color="#FFF" />
+                      <Text style={styles.dayActionBtnText}>Add Activity</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.dayActionBtnExpense}
+                      onPress={() => {
+                        triggerHaptic();
+                        setTargetDayForExpense(`Day ${dayItem.day}`);
+                        setShowExpenseModal(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="card-outline" size={12} color="#F59E0B" />
+                      <Text style={[styles.dayActionBtnText, { color: "#F59E0B" }]}>Log Expense</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
-                {/* Clean Day Action Buttons */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
-                  <TouchableOpacity
-                    style={styles.dayActionBtnAdd}
-                    onPress={() => {
-                      triggerHaptic();
-                      setTargetDayForActivity(dayItem.day);
-                      setShowAddActivityModal(true);
-                    }}
-                    activeOpacity={0.8}
+                {(!dayItem.activities || dayItem.activities.length === 0) ? (
+                  <View
+                    style={[
+                      styles.emptyDayCard,
+                      { backgroundColor: theme.card, borderColor: theme.border },
+                    ]}
                   >
-                    <Ionicons name="add" size={13} color="#FFF" />
-                    <Text style={styles.dayActionBtnText}>Add Activity</Text>
-                  </TouchableOpacity>
+                    <EmptyState
+                      icon="calendar-clear-outline"
+                      title="No activities yet"
+                      text={`No stops scheduled for Day ${dayItem.day} yet. Add an activity to start building this day's plan.`}
+                      actionLabel="Add Activity"
+                      onAction={() => {
+                        triggerHaptic();
+                        setTargetDayForActivity(dayItem.day);
+                        setShowAddActivityModal(true);
+                      }}
+                      style={{ paddingVertical: Spacing.xl }}
+                    />
+                  </View>
+                ) : (
+                  (dayItem.activities || []).map((act, actIdx) => (
+                    <View key={actIdx} style={styles.activityCard}>
+                      <View style={styles.actTopRow}>
+                        <View style={styles.timePill}>
+                          <Ionicons name="time-outline" size={12} color={Colors.PRIMARY} />
+                          <Text style={styles.timePillText}>{act.time || "Scheduled"}</Text>
+                        </View>
+                        {act.tickets && (
+                          <View style={styles.ticketPill}>
+                            <Ionicons name="ticket-outline" size={12} color="#10B981" />
+                            <Text style={styles.ticketPillText}>{act.tickets}</Text>
+                          </View>
+                        )}
+                        <View style={{ marginLeft: "auto" }}>
+                          <FavoriteHeartButton
+                            place={{
+                              name: act.placeName,
+                              tag: `Activity • Day ${dayItem.day} • ${destination}`,
+                              img: heroImage,
+                              desc: act.details || act.placeDetails || `Attraction in ${destination}`,
+                            }}
+                            size={14}
+                            style={{ width: 28, height: 28, borderRadius: 14 }}
+                          />
+                        </View>
+                      </View>
 
-                  <TouchableOpacity
-                    style={styles.dayActionBtnExpense}
-                    onPress={() => {
-                      triggerHaptic();
-                      setTargetDayForExpense(`Day ${dayItem.day}`);
-                      setShowExpenseModal(true);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="card-outline" size={12} color="#F59E0B" />
-                    <Text style={[styles.dayActionBtnText, { color: "#F59E0B" }]}>Log Expense</Text>
-                  </TouchableOpacity>
-                </View>
+                      <Text style={styles.actTitle}>{act.placeName}</Text>
+                      <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
+
+                      <View style={styles.actBottomRow}>
+                        {act.travelTime && (
+                          <View style={styles.travelTimeRow}>
+                            <Ionicons name="footsteps-outline" size={13} color="#64748B" />
+                            <Text style={styles.travelTimeText}>{act.travelTime}</Text>
+                          </View>
+                        )}
+
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+                          <TouchableOpacity
+                            style={styles.actMapBtn}
+                            onPress={() => openDirections(act)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="navigate-outline" size={12} color={Colors.PRIMARY} />
+                            <Text style={styles.actMapBtnText}>Directions</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.actBookBtn,
+                              bookedActivities[act.placeName] && { backgroundColor: "#10B981" },
+                            ]}
+                            onPress={() => handleBookActivity(act, dayItem.day)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons
+                              name={bookedActivities[act.placeName] ? "checkmark-circle" : "ticket-outline"}
+                              size={12}
+                              color="#FFF"
+                              style={{ marginRight: 3 }}
+                            />
+                            <Text style={styles.actBookBtnText}>
+                              {bookedActivities[act.placeName] ? "Booked ✅" : "Add to Bookings"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                )}
               </View>
-
-              {(dayItem.activities || []).map((act, actIdx) => (
-                <View key={actIdx} style={styles.activityCard}>
-                  <View style={styles.actTopRow}>
-                    <View style={styles.timePill}>
-                      <Ionicons name="time-outline" size={12} color={Colors.PRIMARY} />
-                      <Text style={styles.timePillText}>{act.time || "Scheduled"}</Text>
-                    </View>
-                    {act.tickets && (
-                      <View style={styles.ticketPill}>
-                        <Ionicons name="ticket-outline" size={12} color="#10B981" />
-                        <Text style={styles.ticketPillText}>{act.tickets}</Text>
-                      </View>
-                    )}
-                    <View style={{ marginLeft: "auto" }}>
-                      <FavoriteHeartButton
-                        place={{
-                          name: act.placeName,
-                          tag: `Activity • Day ${dayItem.day} • ${destination}`,
-                          img: heroImage,
-                          desc: act.details || act.placeDetails || `Attraction in ${destination}`,
-                        }}
-                        size={14}
-                        style={{ width: 28, height: 28, borderRadius: 14 }}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={styles.actTitle}>{act.placeName}</Text>
-                  <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
-
-                  <View style={styles.actBottomRow}>
-                    {act.travelTime && (
-                      <View style={styles.travelTimeRow}>
-                        <Ionicons name="footsteps-outline" size={13} color="#64748B" />
-                        <Text style={styles.travelTimeText}>{act.travelTime}</Text>
-                      </View>
-                    )}
-
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-                      <TouchableOpacity
-                        style={styles.actMapBtn}
-                        onPress={() => openDirections(act)}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons name="navigate-outline" size={12} color={Colors.PRIMARY} />
-                        <Text style={styles.actMapBtnText}>Directions</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.actBookBtn,
-                          bookedActivities[act.placeName] && { backgroundColor: "#10B981" },
-                        ]}
-                        onPress={() => handleBookActivity(act, dayItem.day)}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons
-                          name={bookedActivities[act.placeName] ? "checkmark-circle" : "ticket-outline"}
-                          size={12}
-                          color="#FFF"
-                          style={{ marginRight: 3 }}
-                        />
-                        <Text style={styles.actBookBtnText}>
-                          {bookedActivities[act.placeName] ? "Booked ✅" : "Add to Bookings"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))}
-
-
-            </View>
-          ))}
+            ))}
+          </Animated.View>
         </View>
 
 
@@ -1506,14 +1706,20 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   dayTabsScroll: {
-    marginVertical: 12,
+    marginVertical: Spacing.md,
+  },
+  dayTabsContent: {
+    paddingHorizontal: Spacing.gutter,
+    gap: Spacing.sm,
   },
   dayTabPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.pill,
     backgroundColor: "#1E293B",
-    marginRight: 8,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.08)",
   },
@@ -1523,12 +1729,17 @@ const styles = StyleSheet.create({
   },
   dayTabText: {
     color: "#94A3B8",
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontMedium,
   },
   dayTabTextActive: {
     color: "#FFF",
-    fontFamily: "Outfit-Bold",
+    fontFamily: Typography.fontBold,
+  },
+  emptyDayCard: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
   },
   dayGroup: {
     marginBottom: 20,
@@ -1701,44 +1912,54 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   essentialsGrid: {
-    marginTop: 12,
-    gap: 10,
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  essentialsRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: Spacing.md,
   },
   essentialCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 14,
-    padding: 12,
-    gap: 12,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
   },
-  essentialIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  essentialLabelRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    marginBottom: Spacing.xs,
   },
   essentialLabel: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
-    letterSpacing: 0.5,
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
+    flexShrink: 1,
+    letterSpacing: 0.3,
   },
   essentialMainVal: {
-    color: "#F8FAFC",
-    fontSize: 13,
-    fontFamily: "Outfit-Bold",
-    marginTop: 2,
+    fontSize: Typography.sizeBase,
+    fontFamily: Typography.fontBold,
+    marginBottom: Spacing.xs,
   },
   essentialSubVal: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontFamily: "Outfit-Regular",
-    marginTop: 2,
-    lineHeight: 15,
+    fontSize: Typography.sizeMd,
+    fontFamily: Typography.fontRegular,
+    lineHeight: 20,
+  },
+  readMoreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    minHeight: 32,
+    alignSelf: "flex-start",
+  },
+  readMoreText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
   viralBtnText: {
     color: "#FFF",

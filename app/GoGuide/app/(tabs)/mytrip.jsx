@@ -12,7 +12,7 @@ import { auth, db } from "../../Configs/FirebaseConfig";
 import { collection, query, where, getDocs, orderBy, limit, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import WeatherCard from "../../Components/MyTrips/WeatherCard";
@@ -29,7 +29,7 @@ import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { normalizeTrip } from "../../Components/utils/TripNormalizer";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
 import { saveTripToBookings, addActivityBooking } from "../../Components/utils/BookingService";
-import { fetchDestinationEssentials } from "../../Configs/AiModel";
+import { buildFallbackDestinationEssentials, fetchDestinationEssentials } from "../../Configs/AiModel";
 import {
   convertPriceString,
   hotelPriceLabel,
@@ -45,6 +45,7 @@ import {
 } from "../../Components/constants/Destinations";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
 import { useHotelImages } from "../../Components/utils/HotelImages";
 
@@ -74,11 +75,41 @@ const SECTION_TABS = [
 export default function MyTrip() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
   const plan = normalizeTrip(tripData?.aiTripPlan || tripData);
-  const daysList = Array.isArray(plan?.itinerary) ? plan.itinerary : [];
+  const rawDaysList = useMemo(
+    () => (Array.isArray(plan?.itinerary) ? plan.itinerary : []),
+    [plan?.itinerary]
+  );
+  const requestedDaysCount = Math.max(
+    rawDaysList.length,
+    parseInt(plan?.duration, 10) || 0,
+    parseInt(tripData?.totalNoOfDays, 10) || 0,
+    parseInt(tripData?.totalDays, 10) || 0
+  );
+  const daysList = useMemo(() => {
+    if (requestedDaysCount <= rawDaysList.length) return rawDaysList;
+    const byDay = new Map();
+    rawDaysList.forEach((d, idx) => {
+      const num = Number(d?.day) || idx + 1;
+      byDay.set(num, { ...d, day: num });
+    });
+    const list = [];
+    for (let d = 1; d <= requestedDaysCount; d++) {
+      if (byDay.has(d)) {
+        list.push(byDay.get(d));
+      } else {
+        list.push({
+          day: d,
+          theme: `Day ${d} Exploration`,
+          activities: [],
+        });
+      }
+    }
+    return list;
+  }, [rawDaysList, requestedDaysCount]);
   const hotelPhotos = useHotelImages(plan?.hotels, plan?.destination);
 
   const safeTopPadding = Platform.select({
@@ -87,12 +118,15 @@ export default function MyTrip() {
     default: 16,
   });
   const [loading, setLoading] = useState(false);
-  // Opens on Day 1 (one day at a time keeps the page short); "All Days" is still one tap away.
-  const [selectedDay, setSelectedDay] = useState(1); // "all" or day number
+  // Default to "all" ("All Days"): shows every day's plan stacked in order; tapping a day filters in place.
+  const [selectedDay, setSelectedDay] = useState("all"); // "all" or day number string
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   useBackDismiss(showMoreMenu, () => setShowMoreMenu(false));
   const [isOfflineCached, setIsOfflineCached] = useState(false);
-  const [essentials, setEssentials] = useState(null);
+  const activeDestName = plan?.destination || tripData?.destination || tripData?.toLocation?.name || "";
+  const [essentials, setEssentials] = useState(() =>
+    activeDestName ? buildFallbackDestinationEssentials(activeDestName) : null
+  );
   const [bookedActivities, setBookedActivities] = useState({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedDayForRoute, setSelectedDayForRoute] = useState(null);
@@ -124,9 +158,21 @@ export default function MyTrip() {
   // Section Navigation & Scroll Tracking
   const [activeSection, setActiveSection] = useState("overview"); // overview, schedule, stays, flights, budget
   const sectionPositions = useRef({});
+  const sectionRefs = useRef({});
   const dayPositions = useRef({});
+  const dayBarWidthRef = useRef(0);
   const mainScrollRef = useRef(null);
   const dayScrollRef = useRef(null);
+  const isTabScrollLocked = useRef(false);
+  const tabScrollLockTimer = useRef(null);
+
+  const [headerHeight, setHeaderHeight] = useState(60);
+  const [navHeight, setNavHeight] = useState(48);
+  const SECTION_GAP = 14; // Consistent 12-16px gap below sticky bars
+
+  const dynamicStickyOffset = useMemo(() => {
+    return (headerHeight || 56) + (navHeight || 48) + (safeTopPadding || 0) + SECTION_GAP;
+  }, [headerHeight, navHeight, safeTopPadding]);
 
   // Collapsible Card States
   const [weatherCollapsed, setWeatherCollapsed] = useState(true); // summary first; tap to expand
@@ -143,6 +189,21 @@ export default function MyTrip() {
   // Smooth Shimmer pulse animation for skeleton loading
   const pulseAnim = useMemo(() => new Animated.Value(0.3), []);
   const reduceMotion = useReduceMotion();
+  const dayContentFade = useMemo(() => new Animated.Value(1), []);
+
+  // Reset selectedDay to "all" when a different trip is opened (persists across in-trip edits)
+  const currentTripKey = `${activeTripId || ""}::${plan?.destination || ""}::${daysList.length}`;
+  const prevTripKeyRef = useRef(currentTripKey);
+  useEffect(() => {
+    if (plan?.destination && prevTripKeyRef.current !== currentTripKey) {
+      prevTripKeyRef.current = currentTripKey;
+      setSelectedDay("all");
+      setExpandedEssentials({});
+      if (dayScrollRef.current) {
+        dayScrollRef.current.scrollTo({ x: 0, animated: false });
+      }
+    }
+  }, [currentTripKey, plan?.destination]);
 
   // Slide & Fade animation for multi-trip carousel
   const carouselSlideAnim = useMemo(() => new Animated.Value(-20), []);
@@ -151,13 +212,18 @@ export default function MyTrip() {
   useEffect(() => {
     const dest = plan?.destination || tripData?.destination || tripData?.toLocation?.name;
     if (dest) {
+      setEssentials((prev) =>
+        prev?.destination && String(prev.destination).toLowerCase() === String(dest).toLowerCase()
+          ? prev
+          : buildFallbackDestinationEssentials(dest)
+      );
       fetchDestinationEssentials(dest)
         .then((data) => {
           if (data) setEssentials(data);
         })
         .catch(() => {});
     }
-  }, [plan?.destination, tripData?.destination]);
+  }, [plan?.destination, tripData?.destination, tripData?.toLocation?.name]);
 
   useEffect(() => {
     AsyncStorage.getItem("@goguide_user_bookings").then((raw) => {
@@ -400,6 +466,14 @@ export default function MyTrip() {
   const handleSelectTrip = (selectedTrip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowHubView(false);
+    setSelectedDay("all");
+    setExpandedEssentials({});
+    if (dayScrollRef.current) {
+      dayScrollRef.current.scrollTo({ x: 0, animated: false });
+    }
+    if (selectedTrip?.id) {
+      setActiveTripId(selectedTrip.id);
+    }
     setTripData(selectedTrip);
     AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(selectedTrip)).catch(() => {});
   };
@@ -755,7 +829,7 @@ export default function MyTrip() {
   // Toggle activity visited/completed state
   const toggleActivityVisited = (dayNumber, activityIndex) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const updatedItinerary = plan.itinerary.map((d) => {
+    const updatedItinerary = daysList.map((d) => {
       if (String(d.day) === String(dayNumber)) {
         const updatedActivities = [...(d.activities || [])];
         if (updatedActivities[activityIndex]) {
@@ -785,12 +859,12 @@ export default function MyTrip() {
   const deleteActivityFromDay = (dayNumber, activityIndex) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const targetDay = plan?.itinerary?.find((d) => String(d.day) === String(dayNumber));
+    const targetDay = daysList.find((d) => String(d.day) === String(dayNumber));
     const removedActivity = targetDay?.activities?.[activityIndex];
     if (!removedActivity) return;
 
     // Immediately remove from state
-    const updatedItinerary = plan.itinerary.map((d) => {
+    const updatedItinerary = daysList.map((d) => {
       if (String(d.day) === String(dayNumber)) {
         const updatedActivities = [...(d.activities || [])];
         updatedActivities.splice(activityIndex, 1);
@@ -829,7 +903,7 @@ export default function MyTrip() {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
 
     const { dayNumber, index, activity } = undoSnackbar;
-    const updatedItinerary = plan.itinerary.map((d) => {
+    const updatedItinerary = daysList.map((d) => {
       if (String(d.day) === String(dayNumber)) {
         const updatedActivities = [...(d.activities || [])];
         updatedActivities.splice(index, 0, activity);
@@ -891,53 +965,129 @@ export default function MyTrip() {
     }
   };
 
+  // Compute exact live scroll offset for any section
+  const getSectionScrollY = (sectionId) => {
+    if (sectionId === "overview") return 0;
+
+    // 1. On Web: measure exact live coordinate relative to scroll container
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const node = sectionRefs.current[sectionId];
+      const scrollEl = mainScrollRef.current?.getScrollableNode?.() || mainScrollRef.current;
+      if (node && scrollEl && typeof node.getBoundingClientRect === "function") {
+        const nodeRect = node.getBoundingClientRect();
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const liveY = nodeRect.top - scrollRect.top + (scrollEl.scrollTop || 0);
+        return Math.max(0, Math.round(liveY - SECTION_GAP));
+      }
+    }
+
+    // 2. On Native or cached fallback:
+    const cachedY = sectionPositions.current[sectionId];
+    if (typeof cachedY === "number" && !isNaN(cachedY)) {
+      return Math.max(0, Math.round(cachedY - SECTION_GAP));
+    }
+    return 0;
+  };
+
+  // Re-measure section positions on DOM/layout updates (expanding cards, day tabs, image loads)
+  const recheckPositions = useCallback(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const scrollEl = mainScrollRef.current?.getScrollableNode?.() || mainScrollRef.current;
+      if (scrollEl && typeof scrollEl.getBoundingClientRect === "function") {
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const scrollTop = scrollEl.scrollTop || 0;
+        ["overview", "schedule", "stays", "flights", "budget"].forEach((id) => {
+          const node = sectionRefs.current[id];
+          if (node && typeof node.getBoundingClientRect === "function") {
+            const rect = node.getBoundingClientRect();
+            sectionPositions.current[id] = rect.top - scrollRect.top + scrollTop;
+          }
+        });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(recheckPositions, 100);
+    return () => clearTimeout(timer);
+  }, [weatherCollapsed, advisoryCollapsed, essentialsCollapsed, expandedEssentials, selectedDay, hotelPhotos, recheckPositions]);
+
   // Smooth Section Scrolling
   const scrollToSection = (sectionId) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveSection(sectionId);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const y = sectionPositions.current[sectionId];
-    if (y != null && mainScrollRef.current) {
-      mainScrollRef.current.scrollTo({ y: Math.max(0, y - 60), animated: true });
+
+    // Lock activeSection highlight to prevent flickering during the scroll animation
+    isTabScrollLocked.current = true;
+    if (tabScrollLockTimer.current) clearTimeout(tabScrollLockTimer.current);
+    tabScrollLockTimer.current = setTimeout(() => {
+      isTabScrollLocked.current = false;
+    }, 650);
+
+    const targetY = getSectionScrollY(sectionId);
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ y: targetY, animated: !reduceMotion });
     }
   };
 
-  // Smooth Day Scrolling & Auto-Centering
-  const handleSelectDay = (dayNum, chipX = 0) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedDay(String(dayNum));
+  const handleScrollEnd = () => {
+    if (isTabScrollLocked.current) {
+      if (tabScrollLockTimer.current) clearTimeout(tabScrollLockTimer.current);
+      isTabScrollLocked.current = false;
+    }
+  };
 
-    if (dayScrollRef.current && chipX > 0) {
-      dayScrollRef.current.scrollTo({ x: Math.max(0, chipX - 120), animated: true });
+  // Day chip tab selection: filters in-place below the chip row with zero page scroll movement
+  const handleSelectDay = (dayValue) => {
+    const nextVal = String(dayValue);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const changed = nextVal !== String(selectedDay);
+    setSelectedDay(nextVal);
+
+    // Auto-center the selected chip inside the horizontal chip row only (never scroll mainScrollRef)
+    const chipLayout = dayPositions.current[nextVal];
+    const barWidth = dayBarWidthRef.current || width;
+    if (dayScrollRef.current && chipLayout && typeof chipLayout.x === "number") {
+      const targetX = Math.max(0, chipLayout.x + (chipLayout.width || 80) / 2 - barWidth / 2);
+      dayScrollRef.current.scrollTo({ x: targetX, animated: !reduceMotion });
+    } else if (dayScrollRef.current && nextVal === "all") {
+      dayScrollRef.current.scrollTo({ x: 0, animated: !reduceMotion });
     }
 
-    if (dayNum !== "all") {
-      const y = dayPositions.current[dayNum];
-      if (y != null && mainScrollRef.current) {
-        mainScrollRef.current.scrollTo({ y: Math.max(0, y - 70), animated: true });
-      }
-    } else {
-      const y = sectionPositions.current["schedule"];
-      if (y != null && mainScrollRef.current) {
-        mainScrollRef.current.scrollTo({ y: Math.max(0, y - 60), animated: true });
+    // Subtle 180ms fade on content swap (respecting reduce-motion)
+    if (changed) {
+      if (reduceMotion) {
+        dayContentFade.setValue(1);
+      } else {
+        dayContentFade.setValue(0);
+        Animated.timing(dayContentFade, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: Platform.OS !== "web",
+        }).start();
       }
     }
   };
 
-  // Main scroll tracker for active section highlight
+  // Main scroll tracker for active section highlight (matches exact same offset line)
   const handleMainScroll = (event) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    const budgetY = sectionPositions.current["budget"] || Infinity;
-    const flightsY = sectionPositions.current["flights"] || Infinity;
-    const staysY = sectionPositions.current["stays"] || Infinity;
-    const scheduleY = sectionPositions.current["schedule"] || Infinity;
+    if (isTabScrollLocked.current) return;
 
-    if (scrollY >= budgetY - 140) {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const threshold = SECTION_GAP + 20;
+
+    const budgetY = sectionPositions.current["budget"] ?? Infinity;
+    const flightsY = sectionPositions.current["flights"] ?? Infinity;
+    const staysY = sectionPositions.current["stays"] ?? Infinity;
+    const scheduleY = sectionPositions.current["schedule"] ?? Infinity;
+
+    if (scrollY >= budgetY - threshold) {
       if (activeSection !== "budget") setActiveSection("budget");
-    } else if (scrollY >= flightsY - 140) {
+    } else if (scrollY >= flightsY - threshold) {
       if (activeSection !== "flights") setActiveSection("flights");
-    } else if (scrollY >= staysY - 140) {
+    } else if (scrollY >= staysY - threshold) {
       if (activeSection !== "stays") setActiveSection("stays");
-    } else if (scrollY >= scheduleY - 140) {
+    } else if (scrollY >= scheduleY - threshold) {
       if (activeSection !== "schedule") setActiveSection("schedule");
     } else {
       if (activeSection !== "overview") setActiveSection("overview");
@@ -964,17 +1114,22 @@ export default function MyTrip() {
     const symbol = preferences?.currency === "EUR" ? "€" : preferences?.currency === "GBP" ? "£" : "$";
 
     return {
-      total: `${symbol}${totalEst.toLocaleString()}`,
+      total: totalEst,
+      dailyRate,
+      totalFormatted: `${symbol}${totalEst.toLocaleString()}`,
       stays: `${symbol}${staysAmount.toLocaleString()}`,
+      staysFormatted: `${symbol}${staysAmount.toLocaleString()}`,
       transport: `${symbol}${transportAmount.toLocaleString()}`,
+      transportFormatted: `${symbol}${transportAmount.toLocaleString()}`,
       dining: `${symbol}${diningAmount.toLocaleString()}`,
+      diningFormatted: `${symbol}${diningAmount.toLocaleString()}`,
     };
   }, [plan?.budget, plan?.duration, daysList.length, preferences?.currency]);
 
   // Add custom activity to day
   const handleAddActivity = (dayNumber, newActivity) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const updatedItinerary = plan.itinerary.map((d) => {
+    const updatedItinerary = daysList.map((d) => {
       if (String(d.day) === String(dayNumber)) {
         return {
           ...d,
@@ -1111,7 +1266,10 @@ export default function MyTrip() {
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Top Header */}
-      <View style={styles.header}>
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={styles.header}
+      >
         {/* minWidth: on narrow phones the action buttons wrap to their own row instead of crushing the title */}
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 6, minWidth: 220 }}>
           <TouchableOpacity
@@ -1177,7 +1335,10 @@ export default function MyTrip() {
       </View>
 
       {/* 1. Sticky Section Nav Bar */}
-      <View style={[styles.stickyNavBar, { backgroundColor: theme.bg, borderBottomColor: theme.border }]}>
+      <View
+        onLayout={(e) => setNavHeight(e.nativeEvent.layout.height)}
+        style={[styles.stickyNavBar, { backgroundColor: theme.bg, borderBottomColor: theme.border }]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1231,13 +1392,19 @@ export default function MyTrip() {
       <ScrollView
         ref={mainScrollRef}
         onScroll={handleMainScroll}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={handleScrollEnd}
         scrollEventThrottle={16}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 120, 360) }}
       >
         {/* ================= SECTION 1: OVERVIEW ================= */}
-        <View onLayout={(e) => { sectionPositions.current.overview = e.nativeEvent.layout.y; }}>
+        <View
+          ref={(el) => { sectionRefs.current.overview = el; }}
+          onLayout={(e) => { sectionPositions.current.overview = e.nativeEvent.layout.y; }}
+          style={{ scrollMarginTop: dynamicStickyOffset }}
+        >
           
           {/* Animated Multi-Trip Slider (when user has trips) */}
           {userTripsList.length > 0 && (
@@ -1550,17 +1717,20 @@ export default function MyTrip() {
             </View>
           )}
 
-          {/* Collapsible Destination Essentials (with 3-line preview + Read More) */}
+          {/* Collapsible Destination Essentials — Fixed 2x2 Grid */}
           {essentials && (
             <View style={[styles.collapsibleCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <TouchableOpacity
                 style={styles.collapsibleHeader}
                 onPress={() => setEssentialsCollapsed(!essentialsCollapsed)}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Destination Essentials"
+                accessibilityState={{ expanded: !essentialsCollapsed }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                   <View style={[styles.collapsibleIconCircle, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
-                    <Ionicons name="compass" size={17} color={Colors.PRIMARY} />
+                    <Ionicons name="compass" size={18} color={theme.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.collapsibleTitle, { color: theme.text }]}>Destination Essentials</Text>
@@ -1569,145 +1739,201 @@ export default function MyTrip() {
                 </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(13, 148, 136, 0.12)", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginRight: 8 }}>
-                    <Ionicons name="shield-checkmark" size={11} color="#0D9488" style={{ marginRight: 3 }} />
-                    <Text style={{ fontSize: 10, fontFamily: "Outfit-Bold", color: "#0D9488" }}>Verified</Text>
+                  <View
+                    style={[
+                      styles.verifiedIntelBadge,
+                      {
+                        backgroundColor: theme.isDark
+                          ? "rgba(13, 148, 136, 0.18)"
+                          : "rgba(15, 118, 110, 0.10)",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={12}
+                      color={theme.isDark ? "#2DD4BF" : "#0F766E"}
+                      style={{ marginRight: Spacing.xs }}
+                    />
+                    <Text
+                      style={[
+                        styles.verifiedIntelText,
+                        { color: theme.isDark ? "#2DD4BF" : "#0F766E" },
+                      ]}
+                      maxFontSizeMultiplier={1.3}
+                    >
+                      Verified Intel
+                    </Text>
                   </View>
-                  <Ionicons name={essentialsCollapsed ? "chevron-down" : "chevron-up"} size={18} color={theme.subtext} />
+                  <Ionicons
+                    name={essentialsCollapsed ? "chevron-down" : "chevron-up"}
+                    size={18}
+                    color={theme.subtext}
+                  />
                 </View>
               </TouchableOpacity>
 
-              {!essentialsCollapsed && (
-                <View style={[styles.collapsibleBody, { gap: 10 }]}>
-                  {/* Visa */}
-                  {essentials.visa && (
-                    <View style={[styles.essentialSubCard, { backgroundColor: theme.isDark ? "#1E2738" : "#F8FAFC", borderColor: theme.border }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                        <Ionicons name="card-outline" size={14} color="#0EA5E9" style={{ marginRight: 6 }} />
-                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#0EA5E9" }}>VISA & ENTRY</Text>
-                      </View>
-                      <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }}>
-                        {typeof essentials.visa === "string" ? "Visa Guidelines" : essentials.visa.visa_required || "Passport required"}
-                      </Text>
-                      {(() => {
-                        const fullText = typeof essentials.visa === "string" ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "") : essentials.visa.notes || "Check validity.";
-                        const isExpanded = !!expandedEssentials.visa;
-                        return (
-                          <View>
-                            <Text
-                              style={[styles.essentialNote, { color: theme.subtext }]}
-                              numberOfLines={isExpanded ? undefined : 3}
-                            >
-                              {fullText}
-                            </Text>
-                            {fullText.length > 90 && (
-                              <TouchableOpacity onPress={() => setExpandedEssentials(p => ({ ...p, visa: !p.visa }))}>
-                                <Text style={styles.readMoreText}>{isExpanded ? "Show less" : "Read more"}</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        );
-                      })()}
-                    </View>
-                  )}
+              {!essentialsCollapsed && (() => {
+                const visaText =
+                  typeof essentials.visa === "string"
+                    ? essentials.visa.replace(/\*\*/g, "").replace(/^🛂\s*/, "").trim()
+                    : essentials.visa?.notes || "Check passport validity and entry requirements before departure.";
+                const visaTitle =
+                  typeof essentials.visa === "string"
+                    ? "Visa Guidelines"
+                    : essentials.visa?.visa_required || "Visa Guidelines";
 
-                  {/* Currency */}
-                  {essentials.currency && (
-                    <View style={[styles.essentialSubCard, { backgroundColor: theme.isDark ? "#1E2738" : "#F8FAFC", borderColor: theme.border }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                        <Ionicons name="cash-outline" size={14} color="#10B981" style={{ marginRight: 6 }} />
-                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#10B981" }}>MONEY & TIPPING</Text>
-                      </View>
-                      <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }}>
-                        {typeof essentials.currency === "string" ? "Payments" : essentials.currency.currency_code ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}` : "Cash & Cards"}
-                      </Text>
-                      {(() => {
-                        const fullText = typeof essentials.currency === "string" ? essentials.currency.replace(/\*\*/g, "").replace(/^💳\s*/, "") : essentials.currency.tipping || "10% tip standard.";
-                        const isExpanded = !!expandedEssentials.currency;
-                        return (
-                          <View>
-                            <Text
-                              style={[styles.essentialNote, { color: theme.subtext }]}
-                              numberOfLines={isExpanded ? undefined : 3}
-                            >
-                              {fullText}
-                            </Text>
-                            {fullText.length > 90 && (
-                              <TouchableOpacity onPress={() => setExpandedEssentials(p => ({ ...p, currency: !p.currency }))}>
-                                <Text style={styles.readMoreText}>{isExpanded ? "Show less" : "Read more"}</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        );
-                      })()}
-                    </View>
-                  )}
+                const currencyText =
+                  typeof essentials.currency === "string"
+                    ? essentials.currency.replace(/\*\*/g, "").replace(/^[💳💵]\s*/, "").trim()
+                    : essentials.currency?.tipping || "Cards accepted at major venues; carry local cash for small purchases.";
+                const currencyTitle =
+                  typeof essentials.currency === "string"
+                    ? "Payments"
+                    : essentials.currency?.currency_code
+                      ? `${essentials.currency.currency_code} · ${essentials.currency.card_vs_cash || "Cards accepted"}`
+                      : "Payments";
 
-                  {/* Emergency */}
-                  {essentials.emergency && (
-                    <View style={[styles.essentialSubCard, { backgroundColor: theme.isDark ? "#1E2738" : "#F8FAFC", borderColor: theme.border }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                        <Ionicons name="call-outline" size={14} color="#EF4444" style={{ marginRight: 6 }} />
-                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#EF4444" }}>EMERGENCY</Text>
-                      </View>
-                      <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }}>
-                        {typeof essentials.emergency === "string" ? "Hotlines" : `Police: ${essentials.emergency.police || "911"} · Amb: ${essentials.emergency.ambulance || "911"}`}
-                      </Text>
-                      {(() => {
-                        const fullText = typeof essentials.emergency === "string" ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "") : `General: ${essentials.emergency.general || "112"}`;
-                        const isExpanded = !!expandedEssentials.emergency;
-                        return (
-                          <View>
-                            <Text
-                              style={[styles.essentialNote, { color: theme.subtext }]}
-                              numberOfLines={isExpanded ? undefined : 3}
-                            >
-                              {fullText}
-                            </Text>
-                            {fullText.length > 90 && (
-                              <TouchableOpacity onPress={() => setExpandedEssentials(p => ({ ...p, emergency: !p.emergency }))}>
-                                <Text style={styles.readMoreText}>{isExpanded ? "Show less" : "Read more"}</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        );
-                      })()}
-                    </View>
-                  )}
+                const emergencyText =
+                  typeof essentials.emergency === "string"
+                    ? essentials.emergency.replace(/\*\*/g, "").replace(/^🚨\s*/, "").trim()
+                    : `General emergency hotline: ${essentials.emergency?.general || "112"}`;
+                const emergencyTitle =
+                  typeof essentials.emergency === "string"
+                    ? "Hotlines"
+                    : `Police: ${essentials.emergency?.police || "112"} · Amb: ${essentials.emergency?.ambulance || "112"}`;
 
-                  {/* Season */}
-                  {(essentials.events || (essentials.seasonal_events && essentials.seasonal_events.length > 0)) && (
-                    <View style={[styles.essentialSubCard, { backgroundColor: theme.isDark ? "#1E2738" : "#F8FAFC", borderColor: theme.border }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                        <Ionicons name="calendar-outline" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
-                        <Text style={{ fontSize: 11, fontFamily: "Outfit-Bold", color: "#F59E0B" }}>SEASON</Text>
-                      </View>
-                      <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: theme.text }}>
-                        {typeof essentials.events === "string" ? "Highlights" : `${essentials.seasonal_events[0].event}`}
-                      </Text>
-                      {(() => {
-                        const fullText = typeof essentials.events === "string" ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "") : essentials.seasonal_events[0].highlights || "Great regional weather.";
-                        const isExpanded = !!expandedEssentials.events;
-                        return (
-                          <View>
-                            <Text
-                              style={[styles.essentialNote, { color: theme.subtext }]}
-                              numberOfLines={isExpanded ? undefined : 3}
+                const seasonText =
+                  typeof essentials.events === "string"
+                    ? essentials.events.replace(/\*\*/g, "").replace(/^🎉\s*/, "").trim()
+                    : essentials.seasonal_events?.[0]?.highlights || "Favourable regional climate and cultural highlights.";
+                const seasonTitle =
+                  typeof essentials.events === "string"
+                    ? "Highlights"
+                    : essentials.seasonal_events?.[0]?.event || "Highlights";
+
+                // Fixed 2x2 Grid order:
+                // Row 1: [Visa & Entry]   [Money / Payments]
+                // Row 2: [Emergency]      [Season]
+                const rows = [
+                  [
+                    {
+                      key: "visa",
+                      icon: "card-outline",
+                      label: "VISA & ENTRY",
+                      color: theme.isDark ? "#38BDF8" : "#0284C7",
+                      title: visaTitle,
+                      text: visaText,
+                    },
+                    {
+                      key: "currency",
+                      icon: "cash-outline",
+                      label: "MONEY & TIPPING",
+                      color: theme.isDark ? "#34D399" : "#047857",
+                      title: currencyTitle,
+                      text: currencyText,
+                    },
+                  ],
+                  [
+                    {
+                      key: "emergency",
+                      icon: "call-outline",
+                      label: "EMERGENCY",
+                      color: theme.isDark ? "#F87171" : "#DC2626",
+                      title: emergencyTitle,
+                      text: emergencyText,
+                    },
+                    {
+                      key: "events",
+                      icon: "calendar-outline",
+                      label: "SEASON",
+                      color: theme.isDark ? "#FBBF24" : "#B45309",
+                      title: seasonTitle,
+                      text: seasonText,
+                    },
+                  ],
+                ];
+
+                return (
+                  <View style={styles.essentialsGrid}>
+                    {rows.map((rowItems, rowIdx) => (
+                      <View key={`ess-row-${rowIdx}`} style={styles.essentialsRow}>
+                        {rowItems.map((card) => {
+                          const isExpanded = !!expandedEssentials[card.key];
+                          return (
+                            <View
+                              key={card.key}
+                              style={[
+                                styles.essentialSubCard,
+                                {
+                                  backgroundColor: theme.isDark ? "#1E2738" : theme.bg,
+                                  borderColor: theme.border,
+                                },
+                              ]}
                             >
-                              {fullText}
-                            </Text>
-                            {fullText.length > 90 && (
-                              <TouchableOpacity onPress={() => setExpandedEssentials(p => ({ ...p, events: !p.events }))}>
-                                <Text style={styles.readMoreText}>{isExpanded ? "Show less" : "Read more"}</Text>
+                              <View>
+                                <View style={styles.essentialLabelRow}>
+                                  <Ionicons
+                                    name={card.icon}
+                                    size={14}
+                                    color={card.color}
+                                    style={{ marginRight: Spacing.xs }}
+                                  />
+                                  <Text
+                                    style={[styles.essentialLabelText, { color: card.color }]}
+                                    numberOfLines={1}
+                                    maxFontSizeMultiplier={1.3}
+                                  >
+                                    {card.label}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[styles.essentialCardTitle, { color: theme.text }]}
+                                  numberOfLines={1}
+                                  maxFontSizeMultiplier={1.3}
+                                >
+                                  {card.title}
+                                </Text>
+                                <Text
+                                  style={[styles.essentialNote, { color: theme.subtext }]}
+                                  numberOfLines={isExpanded ? undefined : 3}
+                                  ellipsizeMode="tail"
+                                  maxFontSizeMultiplier={1.3}
+                                >
+                                  {card.text}
+                                </Text>
+                              </View>
+
+                              <TouchableOpacity
+                                style={styles.readMoreBtn}
+                                onPress={() =>
+                                  setExpandedEssentials((prev) => ({
+                                    ...prev,
+                                    [card.key]: !prev[card.key],
+                                  }))
+                                }
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${isExpanded ? "Show less" : "Read more"} for ${card.title}`}
+                                accessibilityState={{ expanded: isExpanded }}
+                              >
+                                <Text style={[styles.readMoreText, { color: theme.primary }]} maxFontSizeMultiplier={1.3}>
+                                  {isExpanded ? "Show less" : "Read more"}
+                                </Text>
+                                <Ionicons
+                                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                                  size={13}
+                                  color={theme.primary}
+                                />
                               </TouchableOpacity>
-                            )}
-                          </View>
-                        );
-                      })()}
-                    </View>
-                  )}
-                </View>
-              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
             </View>
           )}
 
@@ -1715,41 +1941,57 @@ export default function MyTrip() {
 
         {/* ================= SECTION 2: SCHEDULE (RIGHT AFTER OVERVIEW) ================= */}
         <View 
+          ref={(el) => { sectionRefs.current.schedule = el; }}
           onLayout={(e) => { sectionPositions.current.schedule = e.nativeEvent.layout.y; }} 
-          style={[styles.section, { marginTop: 22 }]}
+          style={[styles.section, { marginTop: Spacing.xl, scrollMarginTop: dynamicStickyOffset }]}
         >
           <View style={styles.sectionTitleRow}>
             <View>
               <Text style={[styles.mainSectionTitle, { color: theme.text }]}>🗓️ Daily Schedule</Text>
               <Text style={[styles.sectionSubtitle, { color: theme.subtext }]}>
-                {daysList.length} Days Planned · Tap any day to focus
+                {daysList.length} {daysList.length === 1 ? "Day" : "Days"} Planned · Tap any day tab to filter
               </Text>
             </View>
           </View>
 
-          {/* Sticky Horizontal Day Filter Pills (Auto-centering on tap) */}
-          {daysList.length > 1 && (
+          {/* Horizontal Day Filter Tabs (Auto-centers chip horizontally, never scrolls the page) */}
+          {daysList.length >= 1 && (
             <ScrollView
               ref={dayScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={[styles.dayTabsScroll, { marginHorizontal: -16 }]}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingRight: 24 }}
+              accessibilityRole="tablist"
+              onLayout={(e) => {
+                dayBarWidthRef.current = e.nativeEvent.layout.width;
+              }}
+              style={[styles.dayTabsScroll, { marginHorizontal: -Spacing.gutter }]}
+              contentContainerStyle={styles.dayTabsContent}
             >
               <TouchableOpacity 
+                onLayout={(e) => {
+                  dayPositions.current.all = {
+                    x: e.nativeEvent.layout.x,
+                    width: e.nativeEvent.layout.width,
+                  };
+                }}
                 style={[
                   styles.dayTabPill, 
-                  selectedDay === "all" ? styles.dayTabActive : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
+                  selectedDay === "all"
+                    ? styles.dayTabActive
+                    : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
                 ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedDay("all");
-                  if (dayScrollRef.current) {
-                    dayScrollRef.current.scrollTo({ x: 0, animated: true });
-                  }
-                }}
+                onPress={() => handleSelectDay("all")}
+                accessibilityRole="tab"
+                accessibilityLabel="All Days"
+                accessibilityState={{ selected: selectedDay === "all" }}
               >
-                <Text style={[styles.dayTabText, selectedDay === "all" ? styles.dayTabTextActive : { color: theme.text }]}>
+                <Text
+                  style={[
+                    styles.dayTabText,
+                    selectedDay === "all" ? styles.dayTabTextActive : { color: theme.text },
+                  ]}
+                  maxFontSizeMultiplier={1.3}
+                >
                   All Days
                 </Text>
               </TouchableOpacity>
@@ -1758,17 +2000,31 @@ export default function MyTrip() {
                 const isActive = String(selectedDay) === String(d.day);
                 return (
                   <TouchableOpacity 
-                    key={index}
+                    key={`day-chip-${d.day || index}`}
                     onLayout={(e) => {
-                      dayPositions.current[d.day] = e.nativeEvent.layout.x;
+                      dayPositions.current[String(d.day)] = {
+                        x: e.nativeEvent.layout.x,
+                        width: e.nativeEvent.layout.width,
+                      };
                     }}
                     style={[
                       styles.dayTabPill, 
-                      isActive ? styles.dayTabActive : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
+                      isActive
+                        ? styles.dayTabActive
+                        : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
                     ]}
-                    onPress={() => handleSelectDay(d.day, dayPositions.current[d.day])}
+                    onPress={() => handleSelectDay(d.day)}
+                    accessibilityRole="tab"
+                    accessibilityLabel={`Day ${d.day}`}
+                    accessibilityState={{ selected: isActive }}
                   >
-                    <Text style={[styles.dayTabText, isActive ? styles.dayTabTextActive : { color: theme.text }]}>
+                    <Text
+                      style={[
+                        styles.dayTabText,
+                        isActive ? styles.dayTabTextActive : { color: theme.text },
+                      ]}
+                      maxFontSizeMultiplier={1.3}
+                    >
                       Day {d.day}
                     </Text>
                   </TouchableOpacity>
@@ -1777,222 +2033,257 @@ export default function MyTrip() {
             </ScrollView>
           )}
 
-          {/* Activities Timeline by Day */}
-          {filteredDays.map((day, i) => {
-            const visitedCount = (day.activities || []).filter(a => a.isVisited).length;
-            const totalCount = (day.activities || []).length;
-            const progressRatio = totalCount > 0 ? visitedCount / totalCount : 0;
-            const estDayCost = Math.round(budgetCalculations.total / (daysList.length || 1));
+          {/* Activities Timeline by Day (Filtered in place, subtle fade, no page scroll) */}
+          <Animated.View
+            style={[styles.dayScheduleRegion, { opacity: dayContentFade }]}
+            accessibilityLabel={
+              selectedDay === "all"
+                ? "All days itinerary"
+                : `Day ${selectedDay} itinerary`
+            }
+          >
+            {filteredDays.map((day) => {
+              const visitedCount = (day.activities || []).filter(a => a.isVisited).length;
+              const totalCount = (day.activities || []).length;
+              const progressRatio = totalCount > 0 ? visitedCount / totalCount : 0;
+              const estDayCost = Math.round(budgetCalculations.total / (daysList.length || 1));
 
-            return (
-              <View key={i} style={styles.dayContainer}>
-                {/* Day Header Card */}
-                <View style={[styles.dayCardHeader, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                  {/* Row 1: Day Badge, Theme Title & Per-Day Cost Badge */}
-                  <View style={styles.dayHeaderTopRow}>
-                    <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
-                      <View style={styles.dayBadge}>
-                        <Text style={styles.dayBadgeText}>Day {day.day}</Text>
-                      </View>
-                      <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={2}>{day.theme}</Text>
-                    </View>
-                    {estDayCost > 0 ? (
-                      <View style={styles.dayCostBadge}>
-                        <Text style={styles.dayCostBadgeText}>
-                          ~{convertPriceString(`$${estDayCost}`, preferences?.currency)}/day
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* Row 2: Progress Track ("X of Y completed") */}
-                  <View style={styles.dayProgressRow}>
-                    <View style={[styles.dayProgressBarTrack, { backgroundColor: theme.isDark ? "#243044" : "#E2E8F0" }]}>
-                      <View style={[styles.dayProgressBarFill, { width: `${progressRatio * 100}%` }]} />
-                    </View>
-                    <Text style={[styles.dayProgressText, { color: theme.subtext }]}>
-                      {visitedCount} of {totalCount} done
-                    </Text>
-                  </View>
-
-                  {/* Row 3: 3-Button Action Row in ONE Row without wrapping (Route Map [filled teal], Add Activity [outlined], Log Expense [outlined]) */}
-                  <View style={styles.dayActionsRow}>
-                    {/* Route Map (Primary Filled Teal) */}
-                    <TouchableOpacity 
-                      style={styles.dayRoutePrimaryBtn}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setSelectedDayForRoute(day);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {width > 360 && <Ionicons name="map" size={13} color="#FFF" style={{ marginRight: 4 }} />}
-                      <Text style={styles.dayRoutePrimaryBtnText}>Route Map</Text>
-                    </TouchableOpacity>
-
-                    {/* Add Activity (Outlined) */}
-                    <TouchableOpacity 
-                      style={[styles.dayOutlinedBtn, { borderColor: theme.border }]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setSelectedDayForAdd(day.day);
-                        setShowAddActivityModal(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {width > 360 && <Ionicons name="add" size={14} color={theme.text} style={{ marginRight: 3 }} />}
-                      <Text style={[styles.dayOutlinedBtnText, { color: theme.text }]}>Add Activity</Text>
-                    </TouchableOpacity>
-
-                    {/* Log Expense (Outlined) */}
-                    <TouchableOpacity 
-                      style={[styles.dayOutlinedBtn, { borderColor: theme.border }]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setTargetDayForExpense(`Day ${day.day}`);
-                        setShowExpenseModal(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {width > 360 && <Ionicons name="card-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />}
-                      <Text style={[styles.dayOutlinedBtnText, { color: theme.text }]}>Log Expense</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Activities Timeline */}
-                {day.activities?.map((act, j) => {
-                  const isLast = j === (day.activities.length - 1);
-                  const timeLower = (act.time || "").toLowerCase();
-                  
-                  // Color badges for Morning (Amber), Afternoon (Teal/Sky), Evening (Purple)
-                  let periodColor = "#F59E0B"; // Amber
-                  if (timeLower.includes("afternoon") || timeLower.includes("12:") || timeLower.includes("13:") || timeLower.includes("14:") || timeLower.includes("15:")) {
-                    periodColor = "#0EA5E9"; // Teal/Sky
-                  } else if (timeLower.includes("evening") || timeLower.includes("night") || timeLower.includes("17:") || timeLower.includes("18:") || timeLower.includes("19:") || timeLower.includes("20:")) {
-                    periodColor = "#8B5CF6"; // Purple
-                  }
-
-                  return (
-                    <View key={j}>
-                      <View style={styles.timelineRow}>
-                        {/* Vertical Timeline Track with Numbered Period Node */}
-                        <View style={styles.timelineTrack}>
-                          <View style={[styles.timelineNumberNode, { borderColor: act.isVisited ? "#10B981" : periodColor, backgroundColor: act.isVisited ? "#10B981" : periodColor }]}>
-                            <Text style={styles.timelineNodeNumber}>{j + 1}</Text>
-                          </View>
-                          {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.border || "rgba(150,150,150,0.2)" }]} />}
+              return (
+                <View key={`day-panel-${day.day}`} style={styles.dayContainer}>
+                  {/* Day Header Card */}
+                  <View style={[styles.dayCardHeader, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                    {/* Row 1: Day Badge, Theme Title & Per-Day Cost Badge */}
+                    <View style={styles.dayHeaderTopRow}>
+                      <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+                        <View style={styles.dayBadge}>
+                          <Text style={styles.dayBadgeText}>Day {day.day}</Text>
                         </View>
+                        <Text style={[styles.dayThemeText, { color: theme.text }]} numberOfLines={2}>{day.theme}</Text>
+                      </View>
+                      {estDayCost > 0 ? (
+                        <View style={styles.dayCostBadge}>
+                          <Text style={styles.dayCostBadgeText}>
+                            ~{convertPriceString(`$${estDayCost}`, preferences?.currency)}/day
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
 
-                        {/* Activity Card */}
-                        <View style={[
-                          styles.activityCard, 
-                          { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }, 
-                          act.isVisited && { opacity: 0.82, borderColor: "#10B98140" }
-                        ]}>
-                          {/* Top Row: 44px Done Checkbox + Time Badge + 44px Delete Action */}
-                          <View style={styles.activityTopRow}>
-                            <TouchableOpacity
-                              style={styles.doneCheckboxHitArea}
-                              onPress={() => toggleActivityVisited(day.day, j)}
-                              activeOpacity={0.7}
-                              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                              accessibilityLabel={act.isVisited ? "Mark not visited" : "Mark visited"}
-                            >
-                              <Ionicons
-                                name={act.isVisited ? "checkmark-circle" : "ellipse-outline"}
-                                size={22}
-                                color={act.isVisited ? "#10B981" : periodColor}
-                              />
-                              <View style={[styles.timePill, { backgroundColor: act.isVisited ? "#10B98118" : `${periodColor}18` }]}>
-                                <Text style={[styles.timePillText, { color: act.isVisited ? "#10B981" : periodColor }]}>
-                                  {act.time || `Stop ${j + 1}`}
-                                </Text>
+                    {/* Row 2: Progress Track ("X of Y completed") */}
+                    <View style={styles.dayProgressRow}>
+                      <View style={[styles.dayProgressBarTrack, { backgroundColor: theme.isDark ? "#243044" : "#E2E8F0" }]}>
+                        <View style={[styles.dayProgressBarFill, { width: `${progressRatio * 100}%` }]} />
+                      </View>
+                      <Text style={[styles.dayProgressText, { color: theme.subtext }]}>
+                        {visitedCount} of {totalCount} done
+                      </Text>
+                    </View>
+
+                    {/* Row 3: 3-Button Action Row in ONE Row without wrapping (Route Map [filled teal], Add Activity [outlined], Log Expense [outlined]) */}
+                    <View style={styles.dayActionsRow}>
+                      {/* Route Map (Primary Filled Teal) */}
+                      <TouchableOpacity 
+                        style={styles.dayRoutePrimaryBtn}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedDayForRoute(day);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {width > 360 && <Ionicons name="map" size={13} color="#FFF" style={{ marginRight: 4 }} />}
+                        <Text style={styles.dayRoutePrimaryBtnText}>Route Map</Text>
+                      </TouchableOpacity>
+
+                      {/* Add Activity (Outlined) */}
+                      <TouchableOpacity 
+                        style={[styles.dayOutlinedBtn, { borderColor: theme.border }]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedDayForAdd(day.day);
+                          setShowAddActivityModal(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {width > 360 && <Ionicons name="add" size={14} color={theme.text} style={{ marginRight: 3 }} />}
+                        <Text style={[styles.dayOutlinedBtnText, { color: theme.text }]}>Add Activity</Text>
+                      </TouchableOpacity>
+
+                      {/* Log Expense (Outlined) */}
+                      <TouchableOpacity 
+                        style={[styles.dayOutlinedBtn, { borderColor: theme.border }]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setTargetDayForExpense(`Day ${day.day}`);
+                          setShowExpenseModal(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {width > 360 && <Ionicons name="card-outline" size={13} color="#F59E0B" style={{ marginRight: 4 }} />}
+                        <Text style={[styles.dayOutlinedBtnText, { color: theme.text }]}>Log Expense</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Activities Timeline or Empty State */}
+                  {(!day.activities || day.activities.length === 0) ? (
+                    <View
+                      style={[
+                        styles.emptyDayCard,
+                        { backgroundColor: theme.card, borderColor: theme.border },
+                      ]}
+                    >
+                      <EmptyState
+                        icon="calendar-clear-outline"
+                        title="No activities yet"
+                        text={`No stops scheduled for Day ${day.day} yet. Add an activity to start building this day's plan.`}
+                        actionLabel="Add Activity"
+                        onAction={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedDayForAdd(day.day);
+                          setShowAddActivityModal(true);
+                        }}
+                        style={{ paddingVertical: Spacing.xl }}
+                      />
+                    </View>
+                  ) : (
+                    day.activities.map((act, j) => {
+                      const isLast = j === (day.activities.length - 1);
+                      const timeLower = (act.time || "").toLowerCase();
+                      
+                      // Color badges for Morning (Amber), Afternoon (Teal/Sky), Evening (Purple)
+                      let periodColor = "#F59E0B"; // Amber
+                      if (timeLower.includes("afternoon") || timeLower.includes("12:") || timeLower.includes("13:") || timeLower.includes("14:") || timeLower.includes("15:")) {
+                        periodColor = "#0EA5E9"; // Teal/Sky
+                      } else if (timeLower.includes("evening") || timeLower.includes("night") || timeLower.includes("17:") || timeLower.includes("18:") || timeLower.includes("19:") || timeLower.includes("20:")) {
+                        periodColor = "#8B5CF6"; // Purple
+                      }
+
+                      return (
+                        <View key={j}>
+                          <View style={styles.timelineRow}>
+                            {/* Vertical Timeline Track with Numbered Period Node */}
+                            <View style={styles.timelineTrack}>
+                              <View style={[styles.timelineNumberNode, { borderColor: act.isVisited ? "#10B981" : periodColor, backgroundColor: act.isVisited ? "#10B981" : periodColor }]}>
+                                <Text style={styles.timelineNodeNumber}>{j + 1}</Text>
                               </View>
-                            </TouchableOpacity>
+                              {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.border || "rgba(150,150,150,0.2)" }]} />}
+                            </View>
 
-                            <TouchableOpacity 
-                              style={styles.activityDeleteBtn}
-                              onPress={() => deleteActivityFromDay(day.day, j)}
-                              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                              accessibilityLabel="Delete Activity"
-                              activeOpacity={0.7}
-                            >
-                              <Ionicons name="trash-outline" size={16} color={theme.subtext} />
-                            </TouchableOpacity>
-                          </View>
+                            {/* Activity Card */}
+                            <View style={[
+                              styles.activityCard, 
+                              { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }, 
+                              act.isVisited && { opacity: 0.82, borderColor: "#10B98140" }
+                            ]}>
+                              {/* Top Row: 44px Done Checkbox + Time Badge + 44px Delete Action */}
+                              <View style={styles.activityTopRow}>
+                                <TouchableOpacity
+                                  style={styles.doneCheckboxHitArea}
+                                  onPress={() => toggleActivityVisited(day.day, j)}
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                  accessibilityRole="checkbox"
+                                  accessibilityState={{ checked: !!act.isVisited }}
+                                  accessibilityLabel={act.isVisited ? "Mark not visited" : "Mark visited"}
+                                >
+                                  <Ionicons
+                                    name={act.isVisited ? "checkmark-circle" : "ellipse-outline"}
+                                    size={22}
+                                    color={act.isVisited ? "#10B981" : periodColor}
+                                  />
+                                  <View style={[styles.timePill, { backgroundColor: act.isVisited ? "#10B98118" : `${periodColor}18` }]}>
+                                    <Text style={[styles.timePillText, { color: act.isVisited ? "#10B981" : periodColor }]}>
+                                      {act.time || `Stop ${j + 1}`}
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
 
-                          {/* Activity Title (16px bold) */}
-                          <Text style={[
-                            styles.activityTitle, 
-                            { color: theme.text }, 
-                            act.isVisited && { textDecorationLine: "line-through", color: theme.subtext }
-                          ]}>
-                            {act.placeName}
-                          </Text>
+                                <TouchableOpacity 
+                                  style={styles.activityDeleteBtn}
+                                  onPress={() => deleteActivityFromDay(day.day, j)}
+                                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Delete Activity"
+                                  activeOpacity={0.7}
+                                >
+                                  <Ionicons name="trash-outline" size={16} color={theme.subtext} />
+                                </TouchableOpacity>
+                              </View>
 
-                          {/* 2-line Description */}
-                          <Text style={[styles.activityDesc, { color: theme.subtext }]} numberOfLines={2}>
-                            {act.details}
-                          </Text>
+                              {/* Activity Title (16px bold) */}
+                              <Text style={[
+                                styles.activityTitle, 
+                                { color: theme.text }, 
+                                act.isVisited && { textDecorationLine: "line-through", color: theme.subtext }
+                              ]}>
+                                {act.placeName}
+                              </Text>
 
-                          {/* Compact Meta Row (Tickets / Price pill) */}
-                          {act.tickets && (
-                            <View style={styles.activityMetaRow}>
-                              <View style={[styles.compactMetaPill, { backgroundColor: "rgba(10, 126, 164, 0.1)" }]}>
-                                <Ionicons name="ticket-outline" size={12} color={Colors.PRIMARY} />
-                                <Text style={styles.compactMetaPillText}>
-                                  Tickets: {convertPriceString(act.tickets, preferences?.currency)}
-                                </Text>
+                              {/* 2-line Description */}
+                              <Text style={[styles.activityDesc, { color: theme.subtext }]} numberOfLines={2}>
+                                {act.details}
+                              </Text>
+
+                              {/* Compact Meta Row (Tickets / Price pill) */}
+                              {act.tickets && (
+                                <View style={styles.activityMetaRow}>
+                                  <View style={[styles.compactMetaPill, { backgroundColor: "rgba(10, 126, 164, 0.1)" }]}>
+                                    <Ionicons name="ticket-outline" size={12} color={Colors.PRIMARY} />
+                                    <Text style={styles.compactMetaPillText}>
+                                      Tickets: {convertPriceString(act.tickets, preferences?.currency)}
+                                    </Text>
+                                  </View>
+                                </View>
+                              )}
+
+                              {/* Bottom Action Row: Directions & Map (44px min touch targets) */}
+                              <View style={styles.activityBottomActions}>
+                                <TouchableOpacity 
+                                  style={[styles.activityActionBtn, styles.directionsActionBtn]}
+                                  onPress={() => getDirectDirections(act)}
+                                  activeOpacity={0.8}
+                                >
+                                  <Ionicons name="navigate-outline" size={14} color="#10B981" />
+                                  <Text style={[styles.activityActionBtnText, { color: "#10B981" }]}>Directions</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                  style={[styles.activityActionBtn, { backgroundColor: "rgba(10, 126, 164, 0.08)", marginLeft: 8 }]}
+                                  onPress={() => openInMaps(act)}
+                                  activeOpacity={0.8}
+                                >
+                                  <Ionicons name="location-outline" size={14} color={Colors.PRIMARY} />
+                                  <Text style={[styles.activityActionBtnText, { color: Colors.PRIMARY }]}>Map</Text>
+                                </TouchableOpacity>
                               </View>
                             </View>
-                          )}
-
-                          {/* Bottom Action Row: Directions & Map (44px min touch targets) */}
-                          <View style={styles.activityBottomActions}>
-                            <TouchableOpacity 
-                              style={[styles.activityActionBtn, styles.directionsActionBtn]}
-                              onPress={() => getDirectDirections(act)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="navigate-outline" size={14} color="#10B981" />
-                              <Text style={[styles.activityActionBtnText, { color: "#10B981" }]}>Directions</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                              style={[styles.activityActionBtn, { backgroundColor: "rgba(10, 126, 164, 0.08)", marginLeft: 8 }]}
-                              onPress={() => openInMaps(act)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="location-outline" size={14} color={Colors.PRIMARY} />
-                              <Text style={[styles.activityActionBtnText, { color: Colors.PRIMARY }]}>Map</Text>
-                            </TouchableOpacity>
                           </View>
-                        </View>
-                      </View>
 
-                      {/* Reserved Travel-Time Slot between activities (ready for Part 4) */}
-                      {!isLast && (
-                        <View style={styles.travelTimeSlot}>
-                          <Ionicons name="time-outline" size={11} color={theme.subtext} />
-                          <Text style={[styles.travelTimeSlotText, { color: theme.subtext }]}>
-                            ~15-20 min transit
-                          </Text>
+                          {/* Reserved Travel-Time Slot between activities (ready for Part 4) */}
+                          {!isLast && (
+                            <View style={styles.travelTimeSlot}>
+                              <Ionicons name="time-outline" size={11} color={theme.subtext} />
+                              <Text style={[styles.travelTimeSlotText, { color: theme.subtext }]}>
+                                ~15-20 min transit
+                              </Text>
+                            </View>
+                          )}
                         </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            );
-          })}
+                      );
+                    })
+                  )}
+                </View>
+              );
+            })}
+          </Animated.View>
         </View>
 
         {/* ================= SECTION 3: STAYS ================= */}
         {plan.hotels?.length > 0 && (
           <View 
+            ref={(el) => { sectionRefs.current.stays = el; }}
             onLayout={(e) => { sectionPositions.current.stays = e.nativeEvent.layout.y; }} 
-            style={[styles.section, { marginTop: 10 }]}
+            style={[styles.section, { marginTop: 10, scrollMarginTop: dynamicStickyOffset }]}
           >
             <View style={styles.sectionTitleRow}>
               <View>
@@ -2126,8 +2417,9 @@ export default function MyTrip() {
 
           return (
             <View 
+              ref={(el) => { sectionRefs.current.flights = el; }}
               onLayout={(e) => { sectionPositions.current.flights = e.nativeEvent.layout.y; }} 
-              style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, marginTop: 18 }]}
+              style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, marginTop: 18, scrollMarginTop: dynamicStickyOffset }]}
             >
               <View style={styles.sectionHeader}>
                 <View style={[styles.iconCircle, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
@@ -2243,8 +2535,9 @@ export default function MyTrip() {
         {/* ================= SECTION 5: BUDGET ================= */}
         {plan && (
           <View 
+            ref={(el) => { sectionRefs.current.budget = el; }}
             onLayout={(e) => { sectionPositions.current.budget = e.nativeEvent.layout.y; }} 
-            style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, marginTop: 14 }]}
+            style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, marginTop: 14, scrollMarginTop: dynamicStickyOffset }]}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -2326,6 +2619,9 @@ export default function MyTrip() {
           <Ionicons name="refresh-outline" size={18} color="#EF4444" />
           <Text style={styles.resetPlanText}>Start a New Travel Plan</Text>
         </TouchableOpacity>
+
+        {/* Dynamic bottom spacer so the last section (Budget) can scroll high enough to reach the top below sticky bars */}
+        <View style={{ height: Math.max(140, Math.round((height || 800) * 0.45)) }} pointerEvents="none" />
 
       </ScrollView>
 
@@ -2535,19 +2831,33 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     marginLeft: 2,
   },
-  // Day chips (styles were lost in the Part 2 redesign, so the chips rendered as bare text)
-  dayTabsScroll: { marginBottom: 12, flexGrow: 0 },
+  // Day filter tabs
+  dayTabsScroll: { marginBottom: Spacing.md, flexGrow: 0 },
+  dayTabsContent: {
+    paddingHorizontal: Spacing.gutter,
+    paddingRight: Spacing.xxl,
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
   dayTabPill: {
-    minHeight: 40,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 8,
   },
   dayTabActive: { backgroundColor: Colors.PRIMARY, borderWidth: 1, borderColor: Colors.PRIMARY },
-  dayTabText: { fontSize: 14, fontFamily: "Outfit-Medium" },
-  dayTabTextActive: { color: "#FFFFFF", fontFamily: "Outfit-Bold" },
+  dayTabText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
+  dayTabTextActive: { color: "#FFFFFF", fontFamily: Typography.fontBold },
+  dayScheduleRegion: {
+    minHeight: 360,
+  },
+  emptyDayCard: {
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
   moreOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15, 23, 42, 0.55)" },
   moreSheet: {
     borderTopLeftRadius: 24,
@@ -2921,35 +3231,80 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   collapsibleTitle: {
-    fontSize: 14,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeBase,
+    fontFamily: Typography.fontBold,
   },
   collapsibleSub: {
-    fontSize: 11,
-    fontFamily: "Outfit-Regular",
-    marginTop: 1,
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontRegular,
+    marginTop: 2,
   },
   collapsibleBody: {
-    marginTop: 12,
+    marginTop: Spacing.md,
+  },
+  verifiedIntelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.sm,
+    marginRight: Spacing.sm,
+  },
+  verifiedIntelText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
 
-  // Essentials Sub-Cards with Read More
+  // Destination Essentials — Fixed 2x2 Grid (equal width columns, 12px gap, same row height)
+  essentialsGrid: {
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  essentialsRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: Spacing.md,
+  },
   essentialSubCard: {
-    borderRadius: 12,
-    padding: 12,
+    flex: 1,
+    minWidth: 0,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     borderWidth: 1,
+    justifyContent: "space-between",
+  },
+  essentialLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.xs,
+  },
+  essentialLabelText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
+    flexShrink: 1,
+    letterSpacing: 0.3,
+  },
+  essentialCardTitle: {
+    fontSize: Typography.sizeBase,
+    fontFamily: Typography.fontBold,
+    marginBottom: Spacing.xs,
   },
   essentialNote: {
-    fontSize: 11,
-    fontFamily: "Outfit-Regular",
-    lineHeight: 16,
-    marginTop: 3,
+    fontSize: Typography.sizeMd,
+    fontFamily: Typography.fontRegular,
+    lineHeight: 20,
+  },
+  readMoreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    minHeight: 32,
+    alignSelf: "flex-start",
   },
   readMoreText: {
-    color: Colors.PRIMARY,
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
-    marginTop: 4,
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
 
   // Sections
@@ -3006,13 +3361,13 @@ const styles = StyleSheet.create({
   },
   dayCostBadgeText: {
     color: Colors.PRIMARY,
-    fontSize: 11,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
   dayProgressRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
   },
   dayProgressBarTrack: {
     flex: 1,
@@ -3026,54 +3381,54 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   dayProgressText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Medium",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontMedium,
   },
   dayActionsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
     width: "100%",
   },
   dayRoutePrimaryBtn: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.PRIMARY,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     borderRadius: 10,
   },
   dayRoutePrimaryBtnText: {
     color: "#FFF",
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
   dayOutlinedBtn: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     paddingHorizontal: 6,
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
     borderRadius: 10,
   },
   dayOutlinedBtnText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
 
   // Timeline with Numbered Period Nodes
-  timelineRow: { flexDirection: "row", marginBottom: 8 },
+  timelineRow: { flexDirection: "row", marginBottom: Spacing.sm },
   timelineTrack: { width: 32, alignItems: "center" },
   timelineNumberNode: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
@@ -3081,20 +3436,20 @@ const styles = StyleSheet.create({
   },
   timelineNodeNumber: {
     color: "#FFF",
-    fontSize: 10,
-    fontFamily: "Outfit-Bold",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
   timelineLine: { width: 2, flex: 1, marginVertical: 3 },
   travelTimeSlot: {
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 36,
-    marginVertical: 4,
-    gap: 4,
+    marginVertical: Spacing.xs,
+    gap: Spacing.xs,
   },
   travelTimeSlotText: {
-    fontSize: 11,
-    fontFamily: "Outfit-Regular",
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontRegular,
     fontStyle: "italic",
   },
 
@@ -3124,31 +3479,31 @@ const styles = StyleSheet.create({
   timePill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     marginLeft: 6,
   },
-  timePillText: { fontSize: 11, fontFamily: "Outfit-Bold" },
+  timePillText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontBold },
   activityDeleteBtn: {
     minWidth: 44,
     minHeight: 44,
     justifyContent: "center",
     alignItems: "flex-end",
-    paddingRight: 4,
+    paddingRight: Spacing.xs,
   },
-  activityTitle: { fontSize: 16, fontFamily: "Outfit-Bold", marginBottom: 4 },
-  activityDesc: { fontSize: 13, fontFamily: "Outfit-Regular", lineHeight: 19 },
-  activityMetaRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  activityTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold, marginBottom: Spacing.xs },
+  activityDesc: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, lineHeight: 20 },
+  activityMetaRow: { flexDirection: "row", alignItems: "center", marginTop: Spacing.sm },
   compactMetaPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
-    borderRadius: 8,
-    gap: 4,
+    borderRadius: Radius.sm,
+    gap: Spacing.xs,
   },
-  compactMetaPillText: { color: Colors.PRIMARY, fontSize: 11, fontFamily: "Outfit-Medium" },
+  compactMetaPillText: { color: Colors.PRIMARY, fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
   activityBottomActions: {
     flexDirection: "row",
     alignItems: "center",
