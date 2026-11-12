@@ -133,13 +133,15 @@ export default function AiAssistant() {
   const handledPromptRef = useRef(null);
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [chipsHeight, setChipsHeight] = useState(0);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => {
         setIsKeyboardVisible(true);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
       }
     );
     const hideSub = Keyboard.addListener(
@@ -148,9 +150,26 @@ export default function AiAssistant() {
         setIsKeyboardVisible(false);
       }
     );
+
+    // Web / PWA visualViewport listener: detects soft-keyboard on mobile browsers
+    let removeVv = null;
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.visualViewport) {
+      const handleVvResize = () => {
+        if (window.visualViewport.height < window.innerHeight * 0.85) {
+          setIsKeyboardVisible(true);
+          flatListRef.current?.scrollToEnd({ animated: true });
+        } else {
+          setIsKeyboardVisible(false);
+        }
+      };
+      window.visualViewport.addEventListener("resize", handleVvResize);
+      removeVv = () => window.visualViewport.removeEventListener("resize", handleVvResize);
+    }
+
     return () => {
       showSub.remove();
       hideSub.remove();
+      if (removeVv) removeVv();
     };
   }, []);
 
@@ -384,6 +403,11 @@ export default function AiAssistant() {
 
   const canSend = inputText.trim().length > 0 && !isLoading;
 
+  const keyboardVerticalOffset = Platform.select({
+    ios: (safeTopPadding || 0) + (headerHeight || 56) + (hasUserMessages ? (chipsHeight || 44) : 0),
+    default: 0,
+  });
+
   const renderFooter = () => (
     <View>
       {isLoading ? (
@@ -426,7 +450,10 @@ export default function AiAssistant() {
   return (
     <View style={[styles.safeContainer, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
       {/* Header Bar */}
-      <View style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.border }]}>
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.border }]}
+      >
         <View style={styles.headerTitleWrap}>
           <View style={styles.headerIconContainer}>
             <Ionicons name="sparkles" size={20} color={AI_ACCENT} />
@@ -462,7 +489,10 @@ export default function AiAssistant() {
 
       {/* Quick Suggestion Chips (shown once a conversation has started; before that the prompt cards do the job) */}
       {hasUserMessages ? (
-        <View style={styles.chipsWrapper}>
+        <View
+          onLayout={(e) => setChipsHeight(e.nativeEvent.layout.height)}
+          style={styles.chipsWrapper}
+        >
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -493,7 +523,7 @@ export default function AiAssistant() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 50 : 0}
+        keyboardVerticalOffset={keyboardVerticalOffset}
       >
         <Animated.View style={{ flex: 1, opacity: listFade }}>
           <FlatList
@@ -510,14 +540,14 @@ export default function AiAssistant() {
           />
         </Animated.View>
 
-        {/* Message Input Box: Flush against virtual keyboard when open, respecting safe area when closed */}
+        {/* Message Input Box: Flush against virtual keyboard when open, compact padding when closed */}
         <View
           style={[
             styles.inputContainer,
             {
               backgroundColor: theme.card,
               borderTopColor: theme.border,
-              paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
+              paddingBottom: 8,
             },
           ]}
         >
@@ -545,6 +575,7 @@ export default function AiAssistant() {
             }}
             disabled={!canSend}
             activeOpacity={0.8}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           >
             <Ionicons name="paper-plane" size={18} color={canSend ? "#FFFFFF" : theme.subtext} />
           </TouchableOpacity>
@@ -682,28 +713,29 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
     borderTopWidth: 1,
   },
   textInput: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 40,
     maxHeight: INPUT_MAX_HEIGHT,
-    borderRadius: 23,
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 12 : 10,
-    paddingBottom: Platform.OS === "ios" ? 12 : 10,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === "ios" ? 10 : 8,
+    paddingBottom: Platform.OS === "ios" ? 10 : 8,
     fontSize: Typography.sizeMd,
     lineHeight: 20,
     fontFamily: Typography.fontRegular,
   },
   sendButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "flex-end",
   },
 });
