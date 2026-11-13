@@ -1,10 +1,11 @@
 import React from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View, Linking } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 // Country emergency numbers lookup
 const EMERGENCY_LOOKUP = {
   japan: { police: "110", ambulance: "119", touristHelp: "050-3816-2787" },
@@ -91,7 +92,7 @@ export default function OfflineVaultModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const emergency = getEmergencyNumbers(destination);
@@ -128,7 +129,7 @@ export default function OfflineVaultModal({
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View style={styles.vaultIconWrap}>
-              <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+              <Ionicons name="shield-checkmark" size={20} color={Palette.success} />
             </View>
             <View style={{ marginLeft: 10 }}>
               <Text style={[styles.title, { color: theme.text }]}>Offline Travel Vault</Text>
@@ -146,9 +147,9 @@ export default function OfflineVaultModal({
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Offline Ready Banner */}
           <View style={[styles.offlineCard, { backgroundColor: "#10B98115", borderColor: "#10B98150" }]}>
-            <Ionicons name="cloud-offline" size={22} color="#10B981" style={{ marginRight: 10 }} />
+            <Ionicons name="cloud-offline" size={22} color={Palette.success} style={{ marginRight: 10 }} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.offlineCardTitle, { color: "#10B981" }]}>
+              <Text style={[styles.offlineCardTitle, { color: Palette.success }]}>
                 100% Offline Accessible
               </Text>
               <Text style={[styles.offlineCardDesc, { color: theme.subtext }]}>
@@ -168,9 +169,9 @@ export default function OfflineVaultModal({
               style={[styles.emergencyBtn, { backgroundColor: "#EF444415", borderColor: "#EF444440" }]}
               activeOpacity={0.8}
             >
-              <Ionicons name="shield" size={22} color="#EF4444" />
+              <Ionicons name="shield" size={22} color={Palette.danger} />
               <Text style={[styles.emergencyBtnLabel, { color: theme.text }]}>Police</Text>
-              <Text style={[styles.emergencyBtnNumber, { color: "#EF4444" }]}>{emergency.police}</Text>
+              <Text style={[styles.emergencyBtnNumber, { color: Palette.danger }]}>{emergency.police}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -178,9 +179,9 @@ export default function OfflineVaultModal({
               style={[styles.emergencyBtn, { backgroundColor: "#3B82F615", borderColor: "#3B82F640" }]}
               activeOpacity={0.8}
             >
-              <Ionicons name="medical" size={22} color="#3B82F6" />
+              <Ionicons name="medical" size={22} color={Palette.blue} />
               <Text style={[styles.emergencyBtnLabel, { color: theme.text }]}>Ambulance</Text>
-              <Text style={[styles.emergencyBtnNumber, { color: "#3B82F6" }]}>{emergency.ambulance}</Text>
+              <Text style={[styles.emergencyBtnNumber, { color: Palette.blue }]}>{emergency.ambulance}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -188,9 +189,9 @@ export default function OfflineVaultModal({
               style={[styles.emergencyBtn, { backgroundColor: "#8B5CF615", borderColor: "#8B5CF640" }]}
               activeOpacity={0.8}
             >
-              <Ionicons name="call" size={22} color="#8B5CF6" />
+              <Ionicons name="call" size={22} color={Palette.purple} />
               <Text style={[styles.emergencyBtnLabel, { color: theme.text }]}>Tourist Help</Text>
-              <Text style={[styles.emergencyBtnNumber, { color: "#8B5CF6" }]}>{emergency.touristHelp}</Text>
+              <Text style={[styles.emergencyBtnNumber, { color: Palette.purple }]}>{emergency.touristHelp}</Text>
             </TouchableOpacity>
           </View>
 
@@ -247,19 +248,19 @@ export default function OfflineVaultModal({
 
           <View style={[styles.tipsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.tipRow}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginRight: 8, marginTop: 2 }} />
+              <Ionicons name="checkmark-circle" size={16} color={Palette.success} style={{ marginRight: 8, marginTop: 2 }} />
               <Text style={[styles.tipText, { color: theme.text }]}>
                 Keep screenshots of your passport photo page and return flight ticket in your photo gallery.
               </Text>
             </View>
             <View style={styles.tipRow}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginRight: 8, marginTop: 2 }} />
+              <Ionicons name="checkmark-circle" size={16} color={Palette.success} style={{ marginRight: 8, marginTop: 2 }} />
               <Text style={[styles.tipText, { color: theme.text }]}>
                 Pre-download your destination map in Google Maps before stepping out of Wi-Fi.
               </Text>
             </View>
             <View style={styles.tipRow}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginRight: 8, marginTop: 2 }} />
+              <Ionicons name="checkmark-circle" size={16} color={Palette.success} style={{ marginRight: 8, marginTop: 2 }} />
               <Text style={[styles.tipText, { color: theme.text }]}>
                 Carry at least local currency cash for small transit, taxis, and kiosks that do not accept cards.
               </Text>

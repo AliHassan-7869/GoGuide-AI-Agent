@@ -283,7 +283,7 @@ export function detectUserHomeCurrency(fromLocStr = "") {
     if (tzLower.includes("singapore")) return "SGD";
     if (tzLower.includes("shanghai")) return "CNY";
     if (tzLower.startsWith("europe/")) return "EUR";
-  } catch (e) {}
+  } catch {}
 
   return "PKR";
 }

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../constants/constants';
-import { useTheme } from '../constants/theme';
+import { useTheme, Palette } from '../constants/theme';
 
 import { TouchableOpacity } from "../ui/Touchable";
 export default function PackingList({ items }) {
@@ -125,7 +125,7 @@ export default function PackingList({ items }) {
           <Text style={[styles.title, { color: theme.text }]}>Packing Checklist</Text>
         </View>
         <View style={[styles.badge, { backgroundColor: checkedCount === displayItems.length ? "#10B98122" : Colors.PRIMARY + '20' }]}>
-          <Text style={[styles.badgeText, { color: checkedCount === displayItems.length ? "#10B981" : Colors.PRIMARY }]}>
+          <Text style={[styles.badgeText, { color: checkedCount === displayItems.length ? Palette.success : Colors.PRIMARY }]}>
             {checkedCount}/{displayItems.length} PACKED
           </Text>
         </View>
@@ -152,7 +152,7 @@ export default function PackingList({ items }) {
           onPress={handleConfirm}
           activeOpacity={0.8}
         >
-          <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+          <Ionicons name="checkmark-circle" size={20} color={Palette.white} />
           <Text style={styles.confirmBtnText}>All Packed! Let&apos;s Go</Text>
         </TouchableOpacity>
       )}
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   itemWrapper: {
     borderRadius: 15,
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   confirmBtnText: {
-    color: '#FFF',
+    color: Palette.white,
     fontSize: 16,
     fontFamily: 'Outfit-Bold',
     marginLeft: 10,

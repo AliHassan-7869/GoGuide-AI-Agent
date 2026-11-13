@@ -6,9 +6,9 @@ import React, { useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { directionsUrl } from "../Components/utils/mapsLinks";
 import { openExternalUrl } from "../Components/utils/openExternalUrl";
-import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { useTheme } from "../Components/constants/theme";
+import { useTheme, Palette } from "../Components/constants/theme";
 import ScreenHeader from "../Components/ui/ScreenHeader";
 import { SkeletonCard } from "../Components/ui/Skeleton";
 import { auth, db } from "../Configs/FirebaseConfig";
@@ -24,7 +24,7 @@ export default function MyBookings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
-  const { userData, preferences } = useContext(CreateTripContext);
+  const { userData } = useContext(CreateTripContext);
 
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -35,9 +35,9 @@ export default function MyBookings() {
   const [selectedPass, setSelectedPass] = useState(null);
   const [isPassModalVisible, setIsPassModalVisible] = useState(false);
 
-  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const activeAccent = Colors.PRIMARY || Palette.slate900;
   const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
-  const iconColor = theme.isDark ? "#CBD5E1" : "#475569";
+  const iconColor = theme.isDark ? Palette.slate300 : "#475569";
 
   // Load custom bookings from Local Storage (@goguide_user_bookings) & Firestore
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function MyBookings() {
           if (!snap.empty) {
             remoteBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           }
-        } catch (e) {
+        } catch {
           // Firestore offline fallback
         }
       }
@@ -187,9 +187,9 @@ export default function MyBookings() {
                     styles.categoryText,
                     {
                       color: isSelected
-                        ? "#FFFFFF"
+                        ? Palette.white
                         : theme.isDark
-                        ? "#CBD5E1"
+                        ? Palette.slate300
                         : "#475569",
                     },
                   ]}
@@ -257,7 +257,7 @@ export default function MyBookings() {
                             : "ticket"
                         }
                         size={12}
-                        color="#FFFFFF"
+                        color={Palette.white}
                       />
                       <Text style={styles.typeBadgeText}>{item.type}</Text>
                     </View>
@@ -358,7 +358,7 @@ export default function MyBookings() {
                   {/* Details text */}
                   <View style={[styles.roomDetailWrap, { backgroundColor: badgeBg }]}>
                     <Ionicons name="information-circle-outline" size={14} color={iconColor} />
-                    <Text style={[styles.roomDetailText, { color: theme.isDark ? "#CBD5E1" : "#475569" }]}>
+                    <Text style={[styles.roomDetailText, { color: theme.isDark ? Palette.slate300 : "#475569" }]}>
                       {item.details}
                     </Text>
                   </View>
@@ -383,7 +383,7 @@ export default function MyBookings() {
                       onPress={() => handleOpenDigitalPass(item)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="qr-code-outline" size={16} color="#FFFFFF" />
+                      <Ionicons name="qr-code-outline" size={16} color={Palette.white} />
                       <Text style={styles.passBtnText}>Digital Pass</Text>
                     </TouchableOpacity>
                   </View>
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: "Outfit-Medium",
   },
   statusPill: {
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: "Outfit-Bold",
   },
   heroBottomTitle: {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 17,
     fontFamily: "Outfit-Bold",
-    color: "#FFFFFF",
+    color: Palette.white,
   },
   heroSubtitle: {
     fontSize: 12,
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   passBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   exploreBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },
@@ -776,10 +776,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   qrContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Palette.white,
     padding: 12,
     borderRadius: 12,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   doneBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 15,
     fontFamily: "Outfit-Bold",
   },

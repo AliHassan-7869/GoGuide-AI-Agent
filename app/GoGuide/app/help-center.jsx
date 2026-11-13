@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import useBackDismiss from "../hooks/useBackDismiss";
+import { useBackDismiss } from "../hooks/useBackDismiss";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import React, { useContext, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { Radius, Spacing, Typography, lightTheme, useTheme } from "../Components/constants/theme";
+import { Radius, Spacing, Typography, lightTheme, useTheme, Palette } from "../Components/constants/theme";
 import EmptyState from "../Components/ui/EmptyState";
 import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
@@ -76,7 +76,7 @@ export default function HelpCenter() {
   const theme = useTheme();
   const { userData } = useContext(CreateTripContext);
 
-  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const activeAccent = Colors.PRIMARY || Palette.slate900;
   const badgeBg = theme.badgeBg;
   const iconColor = theme.subtext;
   const onAccent = lightTheme.card;

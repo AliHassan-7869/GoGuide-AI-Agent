@@ -3,13 +3,14 @@ import React, { useState, useEffect } from "react";
 import { openExternalUrl as openUrl } from "../utils/openExternalUrl";
 import { Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as Linking from "expo-linking";
+
 import * as Haptics from "expo-haptics";
 
 import { Colors } from "../constants/constants";
 import { coordsOf, directionsUrl, routeUrl } from "../utils/mapsLinks";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 // Haversine formula to compute distance between coordinates in km
 function computeDistanceKm(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
@@ -57,7 +58,7 @@ export default function DayRouteModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const openExternalUrl = (url) => {
@@ -164,7 +165,7 @@ export default function DayRouteModal({
                       style={{
                         fontSize: 12,
                         fontFamily: "Outfit-Bold",
-                        color: isDayActive ? "#FFFFFF" : theme.text,
+                        color: isDayActive ? Palette.white : theme.text,
                       }}
                     >
                       Day {dItem.day}
@@ -191,7 +192,7 @@ export default function DayRouteModal({
                 loading="lazy"
               />
               <View style={styles.mapOverlayHint}>
-                <Ionicons name="location" size={14} color="#FFFFFF" />
+                <Ionicons name="location" size={14} color={Palette.white} />
                 <Text style={styles.mapOverlayHintText} numberOfLines={1}>
                   Google Maps Live: {activeStop?.placeName || destination} (Tap any stop below to focus)
                 </Text>
@@ -279,7 +280,7 @@ export default function DayRouteModal({
                         onPress={() => openSingleStop(act)}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="navigate" size={14} color="#10B981" />
+                        <Ionicons name="navigate" size={14} color={Palette.success} />
                         <Text style={styles.navigateMiniText}>Go</Text>
                       </TouchableOpacity>
                     </View>
@@ -313,7 +314,7 @@ export default function DayRouteModal({
             onPress={openFullDayRoute}
             activeOpacity={0.85}
           >
-            <Ionicons name="map" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Ionicons name="map" size={18} color={Palette.white} style={{ marginRight: 8 }} />
             <Text style={styles.fullRouteBtnText}>Launch Day Route in Maps</Text>
           </TouchableOpacity>
         </View>
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   dayPillText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   mapOverlayHintText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Medium",
   },
@@ -451,7 +452,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stopNumText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
   navigateMiniText: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#10B981",
+    color: Palette.success,
   },
   legBadge: {
     flexDirection: "row",
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   fullRouteBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
   },

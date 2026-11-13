@@ -1,6 +1,6 @@
 # 🌍 GoGuide AI Agent — Complete Workflow, User Capabilities & Implementation Manual
 
-**Date Created / Updated:** November 4, 2026  
+**Date Created / Updated:** November 4, 2026 (last updated November 13, 2026 - see sections 14-15)  
 **Project:** GoGuide AI Travel Agent (Mobile, Web & Backend)  
 **Branch:** `staging` / `main`  
 **Tech Stack:** React Native (Expo SDK 58, React 19.2, Expo Router), FastAPI (Python 3.12), Google Gemini 2.5 / 2.0 Flash & Groq Llama 3.3, OpenStreetMap (Nominatim & Overpass), Firebase Auth & Firestore (`goguideai`), AsyncStorage.
@@ -16,6 +16,10 @@
 6. [Offline Flight-Mode & Local Storage Architecture](#6-offline-flight-mode--local-storage-architecture)
 7. [Testing & Quality Verification](#7-testing--quality-verification)
 8. [How to Run the Application Locally](#8-how-to-run-the-application-locally)
+9-13. Milestone logs (Oct 22 - Nov 9, 2026)
+14. [Part 2 & 3: Trip Page, My Trips, Copilot, Keyboard Docking](#14-part-2--3-trip-page-my-trips-copilot-keyboard-docking-november-1213-2026)
+15. [Quality Hardening: Lint, Tokens, Tests (Nov 13, 2026)](#15-quality-hardening-lint-tokens-tests-november-13-2026)
+16. [Pre-Release Checklist (Render, Firebase, Keys)](#16-pre-release-checklist-render-firebase-keys)
 
 ---
 
@@ -424,4 +428,39 @@ npx expo start
 
 *Updated November 9, 2026 for the GoGuide development team as a permanent architectural and implementation record.*
 
+---
 
+## 14. Part 2 & 3: Trip Page, My Trips, Copilot, Keyboard Docking (November 12-13, 2026)
+
+| Area | What changed | Why |
+|---|---|---|
+| My Trips | Dedicated My Trips page; Home opens on "Plan My Trip". | One clear entry point for planning and for saved trips. |
+| Trip page | Simpler header, "More" sheet for secondary actions. | Less clutter; primary action stays obvious. |
+| Section nav | Sticky tabs with a scroll offset computed from header + nav + safe area + gap; tab highlight locked during tap-scroll (`isTabScrollLocked`); bottom spacer so Budget scrolls to its heading. | No hard-coded offsets, no flicker. |
+| Day chips | Chips filter the schedule in place (180ms fade) with zero page scroll; selection persists across add/delete/undo/expense actions. | Matches AGENTS.md rule 7. |
+| Destination Essentials | Fixed 2x2 grid on all widths, 3-line clamp with Read more, synchronous offline fallback. | No layout shift on slow networks. |
+| Copilot | Answers questions and hands plan requests to the planner. | Avoids two overlapping AI entry points. |
+| Chat bar | Flush on the keyboard, no double `insets.bottom`, compact 40-44px input and send button; web uses `interactive-widget=resizes-content`. | AGENTS.md rule 9. |
+
+Design rules live in `AGENTS.md` and `docs/UI_GUIDELINES.md`; product scope in `docs/PROJECT_BRIEF.md`. Do not duplicate them here.
+
+## 15. Quality Hardening: Lint, Tokens, Tests (November 13, 2026)
+
+| Area | What changed | Why |
+|---|---|---|
+| Lint | 9 errors to 0; warnings 125 to about 23 (remaining are unused helper functions and hook-dependency notes). Essentials data is derived from the destination instead of set in effects; undo countdown is set where the snackbar opens; render-time `Date.now()` moved to a helper. | Predictable renders, safer future edits. |
+| Design tokens | Added `Palette` to `Components/constants/theme.js`; about 640 hard-coded hex colors replaced across screens. `Typography.sizeXs` raised 11 to 12; sub-12px fonts removed. | AGENTS.md rules 2 and 3. Use `Palette.*` for fixed colors and `useTheme()` for theme-dependent ones. |
+| File size | Stylesheets moved out of the two largest screens: `Components/MyTrips/mytrip.styles.js` and `Components/MyTrips/trip.styles.js`. | `mytrip.jsx` 3,904 to 2,784 lines; `trip.jsx` 2,045 to 1,430. |
+| Accessibility | Audit found nearly every touchable already labeled or text-bearing; the 2 icon-only ones were labeled. `ui/Touchable` supplies role=button and a 10dp hitSlop by default. | Screen-reader and touch-target coverage. |
+| Tests | New `Components/utils/__tests__/Core.test.js` (JSON parsing, normalizer defaults, validator, currency math). Run with `npm test` (13 tests). | Regression safety for the data layer. |
+
+Verification (run before every release): `npm test`, `npx expo lint`, `npx expo export -p web`.
+
+## 16. Pre-Release Checklist (Render, Firebase, Keys)
+
+All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):
+1. **Render dashboard:** environment variables for the AI providers (Gemini, Groq) and any backend secrets; confirm the service URL matches `LIVE_BACKEND_URL` in `Configs/AiModel.js`.
+2. **Firebase console:** deploy `firestore.rules` and `firestore.indexes.json` (`firebase deploy --only firestore`); enable Anonymous, Email/Password auth; add production domains to Authorized domains.
+3. **Firebase web config** (`Configs/FirebaseConfig.js`) is public by design; protection comes from the Firestore rules and, optionally, API key restrictions in Google Cloud Console.
+4. **Rotate** any key that was ever committed or shared in chat.
+5. Re-run the verification commands above after changing any environment value.

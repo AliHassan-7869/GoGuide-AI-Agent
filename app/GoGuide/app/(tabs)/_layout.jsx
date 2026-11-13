@@ -1,11 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs, useRouter } from "expo-router";
-import { useContext, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { BackHandler, Platform, ToastAndroid } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../Components/constants/constants";
+
 import { useTheme } from "../../Components/constants/theme";
-import { CreateTripContext } from "../../context/CreateTripContext";
+
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();

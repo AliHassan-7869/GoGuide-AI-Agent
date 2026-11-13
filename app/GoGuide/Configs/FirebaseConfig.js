@@ -28,7 +28,7 @@ if (Platform.OS === "web") {
     authInstance = initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
-  } catch (e) {
+  } catch {
     authInstance = getAuth(app);
   }
 }

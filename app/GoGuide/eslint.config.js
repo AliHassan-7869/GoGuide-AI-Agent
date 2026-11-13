@@ -7,4 +7,9 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    // The linter's parser cannot read `import ... with { type: "json" }` (CuratedPlans.js),
+    // which Metro and Node both support, so skip cross-module namespace parsing.
+    rules: { 'import/namespace': 'off' },
+  },
 ]);

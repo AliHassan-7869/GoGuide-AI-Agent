@@ -1,9 +1,37 @@
 import { useContext, useSyncExternalStore } from "react";
 import { useColorScheme } from "react-native";
 import { CreateTripContext } from "../../context/CreateTripContext";
-import { Colors } from "./constants";
+
 
 // Centralized theme tokens for colors, spacing, radius, and typography
+// Fixed (non-theme-dependent) palette: status colors, overlays and neutrals used across screens
+export const Palette = {
+  white: "#FFFFFF",
+  black: "#000000",
+  success: "#10B981",
+  successLight: "#34D399",
+  warning: "#F59E0B",
+  warningLight: "#FBBF24",
+  danger: "#EF4444",
+  dangerLight: "#F87171",
+  dangerDark: "#DC2626",
+  gold: "#FFD700",
+  purple: "#8B5CF6",
+  teal: "#2DD4BF",
+  sky: "#0EA5E9",
+  skyDark: "#0284C7",
+  skyLight: "#38BDF8",
+  blue: "#3B82F6",
+  slate50: "#F8FAFC",
+  slate200: "#E2E8F0",
+  slate300: "#CBD5E1",
+  slate400: "#94A3B8",
+  slate500: "#64748B",
+  slate700: "#334155",
+  slate800: "#1E293B",
+  slate900: "#0F172A",
+};
+
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -27,7 +55,7 @@ export const Typography = {
   fontRegular: "Outfit-Regular",
   fontMedium: "Outfit-Medium",
   fontBold: "Outfit-Bold",
-  sizeXs: 11,
+  sizeXs: 12,
   sizeSm: 12,
   sizeMd: 14,
   sizeBase: 16,

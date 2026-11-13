@@ -23,7 +23,7 @@ export function robustParseJson(raw) {
   // 1. Direct standard parse attempt
   try {
     return JSON.parse(s);
-  } catch (e1) {
+  } catch {
     // Continue to repair
   }
 
@@ -47,7 +47,7 @@ export function robustParseJson(raw) {
 
   try {
     return JSON.parse(s);
-  } catch (e2) {
+  } catch {
     // Continue to bracket repair
   }
 
@@ -72,7 +72,7 @@ export function robustParseJson(raw) {
 
   try {
     return JSON.parse(s);
-  } catch (e3) {
+  } catch {
     return null;
   }
 }
@@ -190,11 +190,13 @@ export function normalizeTrip(raw) {
               return { time: "Scheduled", placeName: a, details: a, tickets: "" };
             }
             return {
+              ...a,
               time: a?.time || a?.timeSlot || "Scheduled",
               placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
               details: a?.details || a?.description || a?.notes || "",
               tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
               coordinates: a?.coordinates || a?.geo || null,
+              isVisited: Boolean(a?.isVisited),
             };
           })
         : [];
@@ -223,11 +225,13 @@ export function normalizeTrip(raw) {
               return { time: "Scheduled", placeName: a, details: a, tickets: "" };
             }
             return {
+              ...a,
               time: a?.time || a?.timeSlot || "Scheduled",
               placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
               details: a?.details || a?.description || a?.notes || "",
               tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
               coordinates: a?.coordinates || a?.geo || null,
+              isVisited: Boolean(a?.isVisited),
             };
           })
         : [];

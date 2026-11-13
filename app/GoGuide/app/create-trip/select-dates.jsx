@@ -1,12 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
-import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import React, { useContext, useMemo, useState } from "react";
+import { Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
@@ -172,12 +172,12 @@ function CustomCalendarView({
 
           if (isSelected) {
             bgColor = activeAccent;
-            textColor = "#FFFFFF";
+            textColor = Palette.white;
           } else if (cell.isInRange) {
             bgColor = activeAccent + "22";
             textColor = activeAccent;
           } else if (cell.isToday) {
-            bgColor = theme.isDark ? "#2E384D" : "#E2E8F0";
+            bgColor = theme.isDark ? "#2E384D" : Palette.slate200;
           }
 
           return (
@@ -253,7 +253,7 @@ export default function SelectDates() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   // Helper to format readable brief date (e.g. "24 Oct")
@@ -536,7 +536,7 @@ export default function SelectDates() {
                 <Text
                   style={[
                     styles.durationPillNumber,
-                    { color: isSel ? "#FFFFFF" : theme.text },
+                    { color: isSel ? Palette.white : theme.text },
                   ]}
                 >
                   {days}
@@ -560,13 +560,13 @@ export default function SelectDates() {
             styles.manualDaysCard,
             {
               backgroundColor: theme.card,
-              borderColor: isManualActive ? "#F59E0B" : theme.border,
+              borderColor: isManualActive ? Palette.warning : theme.border,
             },
           ]}
         >
           <View style={styles.manualHeaderRow}>
             <View style={styles.manualIconCircle}>
-              <Ionicons name="options-outline" size={18} color="#F59E0B" />
+              <Ionicons name="options-outline" size={18} color={Palette.warning} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.manualTitle, { color: theme.text }]}>
@@ -596,8 +596,8 @@ export default function SelectDates() {
               style={[
                 styles.manualInputWrapper,
                 {
-                  backgroundColor: theme.isDark ? "#0F172A" : "#FFFFFF",
-                  borderColor: isManualActive ? "#F59E0B" : theme.border,
+                  backgroundColor: theme.isDark ? Palette.slate900 : Palette.white,
+                  borderColor: isManualActive ? Palette.warning : theme.border,
                 },
               ]}
             >
@@ -606,10 +606,10 @@ export default function SelectDates() {
                 onChangeText={handleManualDaysChange}
                 keyboardType="number-pad"
                 maxLength={2}
-                selectionColor="#F59E0B"
-                style={[styles.manualTextInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
+                selectionColor={Palette.warning}
+                style={[styles.manualTextInput, { color: theme.isDark ? Palette.white : Palette.slate900 }]}
                 placeholder="5"
-                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+                placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
               />
               <Text style={[styles.manualDaysSuffix, { color: theme.subtext }]}>DAYS</Text>
             </View>
@@ -638,7 +638,7 @@ export default function SelectDates() {
 
         {/* 3. RECOMMENDED DATE BLOCKS (1-Tap Pick) */}
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="sparkles" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
+          <Ionicons name="sparkles" size={16} color={Palette.warning} style={{ marginRight: 6 }} />
           <Text style={[styles.sectionHeading, { color: theme.text }]}>
             Recommended Date Blocks
           </Text>
@@ -700,7 +700,7 @@ export default function SelectDates() {
 
                 {isSelected && (
                   <View style={[styles.selectedCheck, { backgroundColor: activeAccent }]}>
-                    <Ionicons name="checkmark" size={12} color="#FFF" />
+                    <Ionicons name="checkmark" size={12} color={Palette.white} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -742,7 +742,7 @@ export default function SelectDates() {
           <Text style={styles.continueText}>
             Continue to Budget ({selectedDuration} Days)
           </Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+          <Ionicons name="arrow-forward" size={18} color={Palette.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   durationBadgeText: {
-    color: "#F59E0B",
+    color: Palette.warning,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 20,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -969,12 +969,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   calmNoteTitle: {
-    color: "#F59E0B",
+    color: Palette.warning,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },
   calmNoteBody: {
-    color: "#94A3B8",
+    color: Palette.slate400,
     fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 4,
@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     position: "relative",
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 12,
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -1064,14 +1064,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 15,
     borderRadius: 24,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 3,
   },
   continueText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
   },

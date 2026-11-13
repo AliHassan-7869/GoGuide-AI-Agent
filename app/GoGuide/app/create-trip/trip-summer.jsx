@@ -3,14 +3,14 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext } from "react";
-import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../../Components/constants/constants";
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
   sanitizeImageUrl,
 } from "../../Components/constants/Destinations";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 
@@ -31,7 +31,7 @@ export default function TripSummer() {
   const imageUri = imgFailed ? DEFAULT_HD_TRAVEL_IMAGE : rawImageUri;
 
   const rating = tripData?.toLocationRating || "4.9";
-  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const activeAccent = Colors.PRIMARY || Palette.slate900;
 
   const destCity = destination.split(",")[0].trim();
 
@@ -122,7 +122,7 @@ export default function TripSummer() {
             onError={() => setImgFailed(true)}
           />
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => goBack(router)}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
+            <Ionicons name="arrow-back" size={24} color={Palette.white} />
           </TouchableOpacity>
 
           <FavoriteHeartButton
@@ -147,7 +147,7 @@ export default function TripSummer() {
           <View style={styles.imageOverlay}>
             <Text style={styles.destName}>{destCity}</Text>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={16} color="#FFD700" />
+              <Ionicons name="star" size={16} color={Palette.gold} />
               <Text style={styles.ratingText}>{rating} • AI Curated Destination</Text>
             </View>
           </View>
@@ -206,7 +206,7 @@ export default function TripSummer() {
           activeOpacity={0.85}
           onPress={handleInstantAIPlan}
         >
-          <Ionicons name="sparkles" size={18} color="#FFF" style={{ marginRight: 8 }} />
+          <Ionicons name="sparkles" size={18} color={Palette.white} style={{ marginRight: 8 }} />
           <Text style={styles.instantBtnText}>Generate 3-Day Plan</Text>
         </TouchableOpacity>
 
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   destName: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 34,
     fontFamily: "Outfit-Bold",
   },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   ratingText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 14,
     fontFamily: "Outfit-Medium",
     marginLeft: 6,
@@ -342,14 +342,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
   },
   instantBtnText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 15,
     fontFamily: "Outfit-Bold",
   },

@@ -9,28 +9,28 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { generateTripWithAgent } from "../../Configs/AiModel";
-import { auth } from "../../Configs/FirebaseConfig";
-import { saveTripToBookings } from "../../Components/utils/BookingService";
+
+
 import {
   DEFAULT_HD_TRAVEL_IMAGE,
   getDestinationImage,
   sanitizeImageUrl,
 } from "../../Components/constants/Destinations";
 import { toggleFavoritePlace, getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
-import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
+
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
 import { Skeleton } from "../../Components/ui/Skeleton";
-import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
 
 // Fixed overlay colours for text on photos (always white on a dark scrim, independent of theme)
-const ON_IMAGE = "#FFFFFF";
+const ON_IMAGE = Palette.white;
 const SCRIM_COLORS = ["rgba(0,0,0,0)", "rgba(0,0,0,0.78)"];
-const FAVOURITE_RED = "#EF4444";
-const AI_ACCENT = "#8B5CF6"; // small AI sparkle accents only
+const FAVOURITE_RED = Palette.danger;
+const AI_ACCENT = Palette.purple; // small AI sparkle accents only
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DATE_PRESETS = [
@@ -80,7 +80,7 @@ const QUICK_AI_VIBES = [
     id: "dubai",
     title: "Dubai Luxury Weekend",
     icon: "diamond-outline",
-    color: "#8B5CF6",
+    color: Palette.purple,
     destination: "Dubai, United Arab Emirates",
     days: 3,
     budget: "Luxury",
@@ -102,7 +102,7 @@ const QUICK_AI_VIBES = [
     id: "bali",
     title: "Bali Tropical Escape",
     icon: "sunny-outline",
-    color: "#F59E0B",
+    color: Palette.warning,
     destination: "Bali, Indonesia",
     days: 5,
     budget: "Economical",
@@ -113,7 +113,7 @@ const QUICK_AI_VIBES = [
     id: "rome",
     title: "Rome Historic Holiday",
     icon: "compass-outline",
-    color: "#10B981",
+    color: Palette.success,
     destination: "Rome, Italy",
     days: 3,
     budget: "Moderate",
@@ -1222,7 +1222,7 @@ export default function Discover() {
                         <LinearGradient colors={SCRIM_COLORS} style={styles.cardScrim} pointerEvents="none" />
 
                         <View style={styles.ratingBadge}>
-                          <Ionicons name="star" size={12} color="#FFD700" />
+                          <Ionicons name="star" size={12} color={Palette.gold} />
                           <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{dest.rating}</Text>
                         </View>
 

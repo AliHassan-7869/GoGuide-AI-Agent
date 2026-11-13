@@ -80,7 +80,7 @@ export async function getActiveReminders() {
   try {
     const raw = await AsyncStorage.getItem(REMINDER_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }

@@ -7,7 +7,7 @@ import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../Components/constants/constants";
 import { getDestinationImage } from "../Components/constants/Destinations";
-import { Radius, Spacing, Typography, useTheme } from "../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../Components/constants/theme";
 import EmptyState from "../Components/ui/EmptyState";
 import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
@@ -128,7 +128,7 @@ export default function MyTripsScreen() {
                       accessibilityLabel={`Delete trip to ${dest}`}
                       style={styles.deleteBtn}
                     >
-                      <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                      <Ionicons name="trash-outline" size={18} color={Palette.white} />
                     </TouchableOpacity>
                   </View>
 
@@ -163,7 +163,7 @@ export default function MyTripsScreen() {
                       style={[styles.openBtn, { backgroundColor: accent }]}
                     >
                       <Text style={styles.openText}>Open Itinerary</Text>
-                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                      <Ionicons name="arrow-forward" size={16} color={Palette.white} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     left: Spacing.md,
     right: 60,
     bottom: Spacing.sm,
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: Typography.sizeXl,
     fontFamily: Typography.fontBold,
   },
@@ -218,5 +218,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  openText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  openText: { color: Palette.white, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
 });

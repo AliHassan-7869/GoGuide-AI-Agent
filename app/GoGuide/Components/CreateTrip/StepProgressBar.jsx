@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../constants/constants';
-import { useTheme } from '../constants/theme';
+import { useTheme, Palette } from '../constants/theme';
 
 export default function StepProgressBar({ currentStep = 1, totalSteps = 5, stepTitle = "" }) {
   const theme = useTheme();
@@ -25,7 +25,7 @@ export default function StepProgressBar({ currentStep = 1, totalSteps = 5, stepT
           </Text>
         ) : null}
       </View>
-      <View style={[styles.track, { backgroundColor: theme.isDark ? "#2A2A2A" : "#E2E8F0" }]}>
+      <View style={[styles.track, { backgroundColor: theme.isDark ? "#2A2A2A" : Palette.slate200 }]}>
         <View style={[styles.bar, { width: `${percentage}%`, backgroundColor: Colors.PRIMARY }]} />
       </View>
     </View>

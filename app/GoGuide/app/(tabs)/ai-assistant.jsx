@@ -2,16 +2,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
 import { Colors } from "../../Components/constants/constants";
-import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
 import FadeInView from "../../Components/ui/FadeInView";
 import TypingIndicator from "../../Components/ui/TypingIndicator";
 import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
-import useReduceMotion from "../../hooks/useReduceMotion";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
@@ -80,8 +80,8 @@ function FormattedMarkdownText({ text, isAi, theme }) {
                 fontWeight: isBold || isHeader ? "700" : "400",
                 fontSize: isHeader ? 15 : 14,
                 color: isAi
-                  ? (theme.isDark ? "#F1F5F9" : "#1E293B")
-                  : "#FFFFFF",
+                  ? (theme.isDark ? "#F1F5F9" : Palette.slate800)
+                  : Palette.white,
                 lineHeight: isHeader ? 22 : 20,
               }}
             >
@@ -97,7 +97,7 @@ function FormattedMarkdownText({ text, isAi, theme }) {
                 style={{
                   fontSize: 14,
                   lineHeight: 20,
-                  color: isAi ? (theme.isDark ? "#38BDF8" : "#0A7EA4") : "#FFFFFF",
+                  color: isAi ? (theme.isDark ? Palette.skyLight : "#0A7EA4") : Palette.white,
                 }}
               >
                 •
@@ -132,14 +132,16 @@ export default function AiAssistant() {
   const flatListRef = useRef(null);
   const handledPromptRef = useRef(null);
 
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [, setIsKeyboardVisible] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [chipsHeight, setChipsHeight] = useState(0);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => {
         setIsKeyboardVisible(true);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
       }
     );
     const hideSub = Keyboard.addListener(
@@ -148,9 +150,26 @@ export default function AiAssistant() {
         setIsKeyboardVisible(false);
       }
     );
+
+    // Web / PWA visualViewport listener: detects soft-keyboard on mobile browsers
+    let removeVv = null;
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.visualViewport) {
+      const handleVvResize = () => {
+        if (window.visualViewport.height < window.innerHeight * 0.85) {
+          setIsKeyboardVisible(true);
+          flatListRef.current?.scrollToEnd({ animated: true });
+        } else {
+          setIsKeyboardVisible(false);
+        }
+      };
+      window.visualViewport.addEventListener("resize", handleVvResize);
+      removeVv = () => window.visualViewport.removeEventListener("resize", handleVvResize);
+    }
+
     return () => {
       showSub.remove();
       hideSub.remove();
+      if (removeVv) removeVv();
     };
   }, []);
 
@@ -260,7 +279,7 @@ export default function AiAssistant() {
       const finalMsgs = [...updatedWithUser, aiMsg];
       setMessages(finalMsgs);
       persistMessages(finalMsgs);
-    } catch (err) {
+    } catch {
       const errorMsg = {
         id: "err_" + Date.now(),
         sender: "ai",
@@ -331,7 +350,7 @@ export default function AiAssistant() {
       <FadeInView style={[styles.messageRow, isAi ? styles.messageRowAi : styles.messageRowUser]}>
         {isAi && (
           <View style={styles.aiAvatarBadge} accessibilityElementsHidden importantForAccessibility="no">
-            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+            <Ionicons name="sparkles" size={16} color={Palette.white} />
           </View>
         )}
 
@@ -362,9 +381,9 @@ export default function AiAssistant() {
               accessibilityLabel="Plan this trip with the trip planner"
               style={[styles.planCtaBtn, { backgroundColor: Colors.PRIMARY }]}
             >
-              <Ionicons name="map-outline" size={16} color="#FFFFFF" />
+              <Ionicons name="map-outline" size={16} color={Palette.white} />
               <Text style={styles.planCtaText} maxFontSizeMultiplier={1.3}>Plan this trip</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={16} color={Palette.white} />
             </TouchableOpacity>
           ) : null}
 
@@ -384,12 +403,17 @@ export default function AiAssistant() {
 
   const canSend = inputText.trim().length > 0 && !isLoading;
 
+  const keyboardVerticalOffset = Platform.select({
+    ios: (safeTopPadding || 0) + (headerHeight || 56) + (hasUserMessages ? (chipsHeight || 44) : 0),
+    default: 0,
+  });
+
   const renderFooter = () => (
     <View>
       {isLoading ? (
         <View style={[styles.messageRow, styles.messageRowAi, { marginTop: Spacing.sm }]}>
           <View style={styles.aiAvatarBadge} accessibilityElementsHidden importantForAccessibility="no">
-            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+            <Ionicons name="sparkles" size={16} color={Palette.white} />
           </View>
           <TypingIndicator theme={theme} />
         </View>
@@ -426,7 +450,10 @@ export default function AiAssistant() {
   return (
     <View style={[styles.safeContainer, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
       {/* Header Bar */}
-      <View style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.border }]}>
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={[styles.header, { backgroundColor: theme.header, borderBottomColor: theme.border }]}
+      >
         <View style={styles.headerTitleWrap}>
           <View style={styles.headerIconContainer}>
             <Ionicons name="sparkles" size={20} color={AI_ACCENT} />
@@ -462,7 +489,10 @@ export default function AiAssistant() {
 
       {/* Quick Suggestion Chips (shown once a conversation has started; before that the prompt cards do the job) */}
       {hasUserMessages ? (
-        <View style={styles.chipsWrapper}>
+        <View
+          onLayout={(e) => setChipsHeight(e.nativeEvent.layout.height)}
+          style={styles.chipsWrapper}
+        >
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -493,7 +523,7 @@ export default function AiAssistant() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 50 : 0}
+        keyboardVerticalOffset={keyboardVerticalOffset}
       >
         <Animated.View style={{ flex: 1, opacity: listFade }}>
           <FlatList
@@ -510,14 +540,14 @@ export default function AiAssistant() {
           />
         </Animated.View>
 
-        {/* Message Input Box: Flush against virtual keyboard when open, respecting safe area when closed */}
+        {/* Message Input Box: Flush against virtual keyboard when open, compact padding when closed */}
         <View
           style={[
             styles.inputContainer,
             {
               backgroundColor: theme.card,
               borderTopColor: theme.border,
-              paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
+              paddingBottom: 8,
             },
           ]}
         >
@@ -545,8 +575,9 @@ export default function AiAssistant() {
             }}
             disabled={!canSend}
             activeOpacity={0.8}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           >
-            <Ionicons name="paper-plane" size={18} color={canSend ? "#FFFFFF" : theme.subtext} />
+            <Ionicons name="paper-plane" size={18} color={canSend ? Palette.white : theme.subtext} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -585,8 +616,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: Radius.pill,
   },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10B981" },
-  statusText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, color: "#10B981" },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Palette.success },
+  statusText: { fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, color: Palette.success },
   clearButton: {
     minHeight: 44,
     minWidth: 64,
@@ -624,7 +655,7 @@ const styles = StyleSheet.create({
   aiBubble: {
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
@@ -656,7 +687,7 @@ const styles = StyleSheet.create({
     gap: 8,
     alignSelf: "flex-start",
   },
-  planCtaText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  planCtaText: { color: Palette.white, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
   messageTime: { fontSize: Typography.sizeSm, marginTop: 6, fontFamily: Typography.fontRegular },
   welcomeWrap: { marginTop: Spacing.lg },
   welcomeTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold, marginBottom: Spacing.md },
@@ -682,28 +713,29 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
     borderTopWidth: 1,
   },
   textInput: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 40,
     maxHeight: INPUT_MAX_HEIGHT,
-    borderRadius: 23,
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 12 : 10,
-    paddingBottom: Platform.OS === "ios" ? 12 : 10,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === "ios" ? 10 : 8,
+    paddingBottom: Platform.OS === "ios" ? 10 : 8,
     fontSize: Typography.sizeMd,
     lineHeight: 20,
     fontFamily: Typography.fontRegular,
   },
   sendButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "flex-end",
   },
 });

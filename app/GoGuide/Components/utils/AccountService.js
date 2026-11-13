@@ -56,7 +56,7 @@ export async function deleteAllUserData({ uid, email }) {
 export async function clearLocalUserData() {
   try {
     await AsyncStorage.clear();
-  } catch (e) {
+  } catch {
     // best effort
   }
 }

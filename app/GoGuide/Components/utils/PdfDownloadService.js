@@ -14,7 +14,7 @@ async function getJsPDFConstructor() {
       const mod = await import("jspdf");
       const ctor = mod.jsPDF || mod.default?.jsPDF || mod.default;
       if (typeof ctor === "function") return ctor;
-    } catch (e) {
+    } catch {
       // Proceed to window checks
     }
 
@@ -179,7 +179,7 @@ function openPrintableHtmlItinerary(data) {
     setTimeout(() => {
       try {
         printWin.print();
-      } catch (e) {}
+      } catch {}
     }, 450);
   } catch (err) {
     console.warn("Print window fallback notice:", err);
@@ -192,7 +192,7 @@ function normalizeTripPlan(rawPlan, destinationName) {
   if (typeof plan === "string") {
     try {
       plan = JSON.parse(plan);
-    } catch (e) {
+    } catch {
       // Keep as string if parsing fails
     }
   }

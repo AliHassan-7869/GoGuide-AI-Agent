@@ -70,14 +70,43 @@ Always reuse existing components rather than inventing duplicate markup:
 3. **Bottom Padding Rule:** All main scrollable screens must have bottom padding equal to:
    `paddingBottom: insets.bottom + 84` (to guarantee content is never cut off by the floating bottom tab bar or home indicator).
 4. **Top Safe Area Rule:** Top headers apply `paddingTop: Math.max(insets.top, 0) + 4` inside the header itself so the header surface background extends seamlessly behind the status bar. Never apply safe top padding to the outer root container.
+5. **Section Nav Dynamic Scroll Offset:**
+   - Scroll target offset = height of all sticky bars pinned at the top (header + sticky section nav + pinned chips) + safe area + consistent `12-16px` gap (standard `14px`). Never hardcode magic numbers (e.g. `-60` or `-140`).
+   - On web, set `scrollMarginTop: dynamicOffset` on each section anchor container.
+   - Re-evaluate target positions when collapsible cards, day tabs, or fetched data change heights.
+   - Lock tab highlight during smooth scroll animation (`isTabScrollLocked`) to prevent flickering across intermediate tabs.
+   - Add a bottom spacer (`Math.max(140, Math.round(height * 0.45))`) so the final section (Budget) can scroll all the way to its heading directly below the sticky bars.
+6. **Destination Essentials 2×2 Grid:**
+   - Display cards in strict 2 rows × 2 columns: Row 1 `[Visa & Entry | Money & Tipping]`, Row 2 `[Emergency | Season]`.
+   - Equal column widths (`flex: 1, minWidth: 0`), `12px` (`Spacing.md`) gap, cards in each row stretch to equal height.
+   - Body text truncated to 3 lines with ellipsis + `"Read more"` / `"Show less"` expansion button.
+7. **Daily Schedule Day Tabs (Filter, Not Scroll):**
+   - Day chips act as filter tabs (`"All Days"`, `"Day 1" .. "Day N"`).
+   - Tapping a day chip must NEVER scroll the page vertically.
+   - Content directly below the chip row is replaced in-place with a subtle `180ms` crossfade (respecting `useReduceMotion`).
+   - Selected chip auto-centers horizontally inside the chip row without clipping the last chip.
+   - State persists across in-trip edits (Add Activity, Delete + Undo, Log Expense, Route Map, Done checkbox).
 
 ---
 
 ## 4. Keyboard Docking & Input Rules
-1. **Flush Keyboard Docking:** Use `KeyboardAvoidingView` with `behavior={Platform.OS === 'ios' ? 'padding' : undefined}`.
-2. **Dynamic Insets:** When the virtual keyboard is open, input container bottom padding must be `8px - 10px` flush with keyboard top edge. When keyboard is closed, bottom padding expands to `Math.max(insets.bottom, 12)` to respect native home indicators.
-3. **Scroll View Configuration:** All form and chat lists must set `keyboardShouldPersistTaps="handled"` and `keyboardDismissMode="on-drag"`.
-4. **Touch Target Standard:** All interactable controls, buttons, and clear icons must have a minimum touch target of `44px × 44px` (add `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}` where needed).
+1. **Flush Keyboard Docking (0px Dead Space):**
+   - Use `KeyboardAvoidingView` with `behavior={Platform.OS === 'ios' ? 'padding' : undefined}`.
+   - On iOS, set `keyboardVerticalOffset` dynamically to the exact height of content above the avoiding view: `safeTopPadding + headerHeight + (chipsHeight || 0)`.
+   - On Android, use `windowSoftInputMode: "adjustResize"` without double-offsetting.
+2. **Tab Navigator Insets Hygiene (No Double Counting):**
+   - When a screen sits inside a tab navigator, the tab bar already absorbs `insets.bottom`.
+   - When the keyboard is closed, the chat bar sits directly above the tab bar with compact `8px` padding. Do NOT add `insets.bottom` on top of the tab bar.
+   - When the virtual keyboard opens, the chat bar sits flush directly on top of the keyboard with `paddingBottom: 8` (zero dead pixel gap).
+3. **Compact Chatbar Dimensions:**
+   - Container: `paddingVertical: 8`, `paddingHorizontal: 14` (12–16px), `borderTopWidth: 1`, `flexDirection: "row"`, `alignItems: "flex-end"`.
+   - Input: `minHeight: 40`, `maxHeight: 112` (~4 lines then scrolls), `borderRadius: 20`, `paddingHorizontal: 14`, `paddingTop: 8-10`, `paddingBottom: 8-10`, `fontSize: 14`, `lineHeight: 20`.
+   - Send Button: `40px × 40px`, `borderRadius: 20`, `alignSelf: "flex-end"`. Vertically centered with single-line input and aligned to bottom on multiline.
+4. **Mobile Web & PWA Viewport:**
+   - Viewport meta tag must include `interactive-widget=resizes-content` in `+html.jsx` so mobile browser virtual keyboards resize the visual viewport cleanly.
+   - Listen to `window.visualViewport` on web to auto-scroll chat lists to bottom on mobile focus.
+5. **Scroll View Configuration:** All form and chat lists must set `keyboardShouldPersistTaps="handled"` and `keyboardDismissMode="on-drag"`.
+6. **Touch Target Standard:** All interactable controls, buttons, and clear icons must have a minimum touch target of `44px × 44px` (add `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}` where needed).
 
 ---
 
@@ -103,3 +132,7 @@ Before completing any UI or data refactoring task, verify:
 - [ ] Keyboard docks flush with zero gap on iOS/Android.
 - [ ] Static export build passes with zero errors: `npx expo export -p web`.
 
+## Color tokens (added Nov 13, 2026)
+- Theme-dependent colors: `useTheme()` (bg, card, text, subtext, border, primary).
+- Fixed colors (status, overlays, neutrals): `Palette` from `Components/constants/theme.js` (e.g. `Palette.white`, `Palette.success`, `Palette.danger`). Do not write new hex literals in screens.
+- Minimum font size is `Typography.sizeSm` (12). `sizeXs` is now also 12.

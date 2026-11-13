@@ -6,6 +6,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "../Configs/FirebaseConfig";
 
 import { TouchableOpacity } from "./ui/Touchable";
+import { Palette } from "./constants/theme";
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -35,7 +36,7 @@ export class ErrorBoundary extends React.Component {
         timestamp: new Date().toISOString(),
       };
       addDoc(collection(db, "AppErrors"), errorReport).catch(() => {});
-    } catch (e) {
+    } catch {
       // Non-blocking telemetry
     }
   }
@@ -55,11 +56,10 @@ export class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      const isDark = false; // Graceful neutral dark-friendly theme
-      const bg = "#0F172A";
-      const cardBg = "#1E293B";
-      const textColor = "#F8FAFC";
-      const subtextColor = "#94A3B8";
+      const bg = Palette.slate900;
+      const cardBg = Palette.slate800;
+      const textColor = Palette.slate50;
+      const subtextColor = Palette.slate400;
 
       return (
         <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
@@ -67,7 +67,7 @@ export class ErrorBoundary extends React.Component {
           <View style={styles.contentWrap}>
             {/* Header Icon */}
             <View style={styles.iconCircle}>
-              <Ionicons name="alert-circle" size={44} color="#EF4444" />
+              <Ionicons name="alert-circle" size={44} color={Palette.danger} />
             </View>
 
             <Text style={[styles.title, { color: textColor }]}>
@@ -84,12 +84,12 @@ export class ErrorBoundary extends React.Component {
                 onPress={this.handleReset}
                 activeOpacity={0.8}
               >
-                <Ionicons name="refresh" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="refresh" size={18} color={Palette.white} style={{ marginRight: 6 }} />
                 <Text style={styles.primaryBtnText}>Try Again</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.secondaryBtn, { backgroundColor: cardBg, borderColor: "#334155" }]}
+                style={[styles.secondaryBtn, { backgroundColor: cardBg, borderColor: Palette.slate700 }]}
                 onPress={this.handleGoHome}
                 activeOpacity={0.8}
               >
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   primaryBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   debugText: {
-    color: "#F87171",
+    color: Palette.dangerLight,
     fontSize: 12,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },

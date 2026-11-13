@@ -5,12 +5,13 @@ import PolicyModal from "../../../Components/PolicyModal";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
-import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
+import { Palette } from "../../../Components/constants/theme";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -165,7 +166,7 @@ export default function SignIn() {
             {/* Prominent Error Banner */}
             {errorMessage ? (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle" size={22} color="#DC2626" style={{ marginRight: 10, marginTop: 1 }} />
+                <Ionicons name="alert-circle" size={22} color={Palette.dangerDark} style={{ marginRight: 10, marginTop: 1 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.errorTitle}>{errorTitle || "Wrong Credentials"}</Text>
                   <Text style={styles.errorText}>{errorMessage}</Text>
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     borderRadius: 24,
     padding: 25,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontFamily: "Outfit-Bold",
     fontSize: 13,
-    color: "#DC2626",
+    color: Palette.dangerDark,
     marginBottom: 2,
   },
   errorText: {
@@ -364,14 +365,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   inputError: {
-    borderColor: "#EF4444",
+    borderColor: Palette.danger,
     backgroundColor: "#FFF5F5",
     borderWidth: 1.5,
   },
   fieldErrorHint: {
     fontFamily: "Outfit-Regular",
     fontSize: 12,
-    color: "#DC2626",
+    color: Palette.dangerDark,
     marginTop: 4,
     marginLeft: 4,
   },
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   primaryText: {
-    color: "#fff",
+    color: Palette.white,
     fontFamily: "Outfit-Bold",
     fontSize: 16,
     letterSpacing: 0.5,
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     fontFamily: "Outfit-Regular",
-    color: "#64748B",
+    color: Palette.slate500,
     marginTop: 14,
     marginBottom: 4,
     lineHeight: 16,

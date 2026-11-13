@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, FlatList, Image, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useContext, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CreateTripContext } from '../context/CreateTripContext';
 import { Colors } from '../Components/constants/constants';
-import { useTheme } from '../Components/constants/theme';
+import { useTheme, Palette } from '../Components/constants/theme';
 import ScreenHeader from '../Components/ui/ScreenHeader';
 import {
   DESTINATIONS,
@@ -35,9 +35,8 @@ export default function Explore() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { category } = useLocalSearchParams();
-  const { preferences, setTripData } = useContext(CreateTripContext);
-  const isDark = theme.isDark;
-  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const { setTripData } = useContext(CreateTripContext);
+  const activeAccent = Colors.PRIMARY || Palette.slate900;
 
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");
   const [topRatedFirst, setTopRatedFirst] = useState(false);
@@ -78,8 +77,8 @@ export default function Explore() {
           : { backgroundColor: theme.card, borderColor: theme.border },
       ]}
     >
-      <Ionicons name={icon} size={15} color={active ? "#FFFFFF" : theme.text} />
-      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : theme.text }]}>{label}</Text>
+      <Ionicons name={icon} size={15} color={active ? Palette.white : theme.text} />
+      <Text style={[styles.chipText, { color: active ? Palette.white : theme.text }]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -131,7 +130,7 @@ export default function Explore() {
         renderItem={({ item }) => (
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={{ position: "relative" }}>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityLabel={`Open ${item.name || item.title || "destination"}`}
                 activeOpacity={0.9}
                 onPress={() => selectDestination(item)}
               >
@@ -162,7 +161,7 @@ export default function Explore() {
             >
               <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
               <View style={styles.ratingRow}>
-                <Ionicons name="star" size={15} color="#FFD700" />
+                <Ionicons name="star" size={15} color={Palette.gold} />
                 <Text style={[styles.ratingText, { color: theme.subtext }]}>{item.rating}</Text>
               </View>
             </TouchableOpacity>
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -263,7 +262,7 @@ const styles = StyleSheet.create({
     maxWidth: "65%",
   },
   categoryBadgeText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: "Outfit-Bold",
     fontSize: 12,
     letterSpacing: 0.3,

@@ -2,26 +2,25 @@ import { Stack, useRouter } from "expo-router";
 import { Alert, Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { Typography, useTheme, Palette } from "../../Components/constants/theme";
 import PlanIcon from "../images/svg";
 
 import { useContext, useEffect, useState, useRef, useMemo } from "react";
-import { AI_PROMPT } from "../../Components/constants/Option";
+
 import { CreateTripContext } from "../../context/CreateTripContext";
-import { auth, db } from "../../Configs/FirebaseConfig";
-import { addDoc, collection } from "firebase/firestore";
+import { auth } from "../../Configs/FirebaseConfig";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Haptics from "expo-haptics";
-import { scheduleTripCountdown, sendLocalNotification } from "../../Components/utils/NotificationService";
-import { saveTripToBookings } from "../../Components/utils/BookingService";
+
+
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
+import { TouchableOpacity } from "../../Components/ui/Touchable";
+import { goBack } from "../../Components/utils/navigation";
 
 const CURATED_CITIES_HINT = "Tokyo, Dubai, Paris, Istanbul, London and Lahore";
 
-import { TouchableOpacity } from "../../Components/ui/Touchable";
-import { goBack } from "../../Components/utils/navigation";
 // Visual progress only (the server does not report stages): four calm steps, advancing on a timer.
 const GENERATION_STEPS = [
   { text: "Analyzing preferences", icon: "options-outline" },
@@ -155,7 +154,6 @@ export default function GenerateTrip() {
 
     const user = auth.currentUser;
     const email = user?.email || userData?.email || "traveler@goguide.com";
-    const destName = plan?.destination || tripData?.toLocation?.name || "Trip Destination";
     const createdTripId = "trip_" + Date.now();
 
     // Tarika A: Store as active draft preview ONLY (do not auto-save to My Trips or My Bookings)
@@ -289,7 +287,7 @@ export default function GenerateTrip() {
           } else {
             Alert.alert("Verified highlights", note);
           }
-        } catch (e) {}
+        } catch {}
       }
 
       await handleSaveAndProceed(plan);
@@ -380,7 +378,7 @@ export default function GenerateTrip() {
                     },
                   ]}
                 >
-                  <Ionicons name={done ? "checkmark" : step.icon} size={14} color={done || active ? "#FFFFFF" : theme.subtext} />
+                  <Ionicons name={done ? "checkmark" : step.icon} size={14} color={done || active ? Palette.white : theme.subtext} />
                 </View>
                 <Text
                   maxFontSizeMultiplier={1.3}
@@ -396,7 +394,7 @@ export default function GenerateTrip() {
         </View>
 
         {/* Animated Progress Bar */}
-        <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : "#E2E8F0" }]}>
+        <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : Palette.slate200 }]}>
           <Animated.View
             style={[
               styles.progressBarFill,
@@ -434,7 +432,7 @@ export default function GenerateTrip() {
         {error && (
           <View style={[styles.errorCard, { backgroundColor: isDark ? "#2A1818" : "#FEF2F2", borderColor: isDark ? "#4C2424" : "#FECACA" }]}>
             <View style={styles.errorHeaderRow}>
-              <Ionicons name="alert-circle-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+              <Ionicons name="alert-circle-outline" size={20} color={Palette.danger} style={{ marginRight: 8 }} />
               <Text style={styles.errorTitle}>Server Notice</Text>
             </View>
             <Text style={[styles.errorMessage, { color: isDark ? "#FCA5A5" : "#991B1B" }]}>
@@ -464,7 +462,7 @@ export default function GenerateTrip() {
                   }}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="mail-outline" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Ionicons name="mail-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
                   <Text style={styles.retryText}>Resend Link</Text>
                 </TouchableOpacity>
               ) : error.isAuthError ? (
@@ -473,19 +471,19 @@ export default function GenerateTrip() {
                   onPress={() => router.push("/auth/sign-in")}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="log-in-outline" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Ionicons name="log-in-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
                   <Text style={styles.retryText}>Sign In</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.retryBtn} onPress={() => GenerateAiTrip(false)} activeOpacity={0.8}>
-                  <Ionicons name="refresh-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Ionicons name="refresh-outline" size={15} color={Palette.white} style={{ marginRight: 4 }} />
                   <Text style={styles.retryText}>Retry AI</Text>
                 </TouchableOpacity>
               )}
 
               {!error.isAuthError && canUseInstant && (
                 <TouchableOpacity style={styles.retryBtn} onPress={() => GenerateAiTrip(true)} activeOpacity={0.8}>
-                  <Ionicons name="flash-outline" size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Ionicons name="flash-outline" size={15} color={Palette.white} style={{ marginRight: 4 }} />
                   <Text style={styles.retryText}>Instant Plan</Text>
                 </TouchableOpacity>
               )}
@@ -518,7 +516,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderWidth: 1,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -535,7 +533,7 @@ const styles = StyleSheet.create({
   },
   engineBadgeText: {
     color: Colors.PRIMARY,
-    fontSize: 11,
+    fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.8,
     marginLeft: 5,
@@ -605,7 +603,7 @@ const styles = StyleSheet.create({
   stepDoneText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
-    color: "#10B981",
+    color: Palette.success,
   },
   cancelBtn: {
     minHeight: 44,
@@ -667,7 +665,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 14,
     fontFamily: "Outfit-Bold",
-    color: "#EF4444",
+    color: Palette.danger,
   },
   errorMessage: {
     fontSize: 12,
@@ -691,7 +689,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   retryText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },

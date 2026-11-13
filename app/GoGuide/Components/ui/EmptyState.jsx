@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/constants";
-import { Radius, Spacing, Typography, useTheme } from "../constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../constants/theme";
 import { TouchableOpacity } from "./Touchable";
 
 /**
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   title: { fontSize: Typography.sizeLg, fontFamily: Typography.fontBold, textAlign: "center" },
   text: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, textAlign: "center", marginTop: 6, lineHeight: 20 },
   primaryBtn: { minHeight: 48, minWidth: 180, paddingHorizontal: 22, borderRadius: Radius.pill, alignItems: "center", justifyContent: "center", marginTop: Spacing.xl },
-  primaryText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  primaryText: { color: Palette.white, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
   secondaryBtn: { minHeight: 44, paddingHorizontal: 20, borderRadius: Radius.pill, borderWidth: 1, alignItems: "center", justifyContent: "center", marginTop: Spacing.md },
   secondaryText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium },
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, View, Linking, Modal } from "react-native";
+import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, View, Modal } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
@@ -10,7 +10,7 @@ import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import PolicyModal from "../../Components/PolicyModal";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -21,7 +21,7 @@ import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function Profile() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { tripData, setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
+  const { setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -34,7 +34,6 @@ export default function Profile() {
   const [savedTripsList, setSavedTripsList] = useState([]);
   const [favoritePlacesList, setFavoritePlacesList] = useState([]);
   const [showSavedTripsModal, setShowSavedTripsModal] = useState(false);
-  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
 
   // Track if user navigated to /trip or /explore from inside Saved Trips / Favorites modal
@@ -61,7 +60,7 @@ export default function Profile() {
           localTrips.push(normalized);
         });
       }
-    } catch (e) {}
+    } catch {}
 
     const user = auth.currentUser;
     const email = user?.email || userData?.email;
@@ -127,7 +126,7 @@ export default function Profile() {
       const localBookingsRaw = await AsyncStorage.getItem("@goguide_user_bookings");
       const localBookings = localBookingsRaw ? JSON.parse(localBookingsRaw) : [];
       bookingsCount = Array.isArray(localBookings) ? localBookings.length : 0;
-    } catch (e) {}
+    } catch {}
     if (email) {
       try {
         const bookingsQuery = query(
@@ -136,7 +135,7 @@ export default function Profile() {
         );
         const bookingsSnap = await getDocs(bookingsQuery);
         bookingsCount = Math.max(bookingsCount, bookingsSnap.size);
-      } catch (e) {}
+      } catch {}
     }
 
     // Fetch favorites
@@ -173,7 +172,7 @@ export default function Profile() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   // Pick profile photo from device gallery
@@ -258,7 +257,6 @@ export default function Profile() {
   };
 
 
-
   // Subscribe to real-time changes in favorites
   useEffect(() => {
     const unsubscribe = subscribeToFavorites((favs) => {
@@ -295,7 +293,7 @@ export default function Profile() {
         if (tripToDelete.id) {
           try {
             await deleteDoc(doc(db, "UserTrips", String(tripToDelete.id)));
-          } catch (e) {}
+          } catch {}
         }
 
         const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
@@ -423,10 +421,10 @@ export default function Profile() {
   // Determine explorer tier based on trip count
   const getExplorerTier = () => {
     if (stats.trips >= 5) {
-      return { title: "Elite Globetrotter", level: "Tier 3", icon: "diamond-outline", color: "#8B5CF6" };
+      return { title: "Elite Globetrotter", level: "Tier 3", icon: "diamond-outline", color: Palette.purple };
     }
     if (stats.trips >= 1) {
-      return { title: "Voyager Pro", level: "Tier 2", icon: "compass-outline", color: "#10B981" };
+      return { title: "Voyager Pro", level: "Tier 2", icon: "compass-outline", color: Palette.success };
     }
     return { title: "Novice Explorer", level: "Tier 1", icon: "sparkles-outline", color: Colors.PRIMARY };
   };
@@ -435,7 +433,7 @@ export default function Profile() {
 
   // Unified Calm Luxury Brand Icon Styling (Theme-aware)
   const titleColor = theme.isDark ? theme.text : Colors.PRIMARY;
-  const brandIconColor = theme.isDark ? "#38BDF8" : Colors.PRIMARY;
+  const brandIconColor = theme.isDark ? Palette.skyLight : Colors.PRIMARY;
   const brandIconBg = theme.isDark ? "rgba(56, 189, 248, 0.12)" : "rgba(10, 126, 164, 0.08)";
   const brandBorderColor = theme.isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(10, 126, 164, 0.14)";
 
@@ -595,7 +593,7 @@ export default function Profile() {
           <Ionicons
             name={theme.isDark ? "sunny" : "moon"}
             size={20}
-            color={theme.isDark ? "#FBBF24" : theme.subtext}
+            color={theme.isDark ? Palette.warningLight : theme.subtext}
           />
         </TouchableOpacity>
       </View>
@@ -621,7 +619,7 @@ export default function Profile() {
               style={styles.avatar}
             />
             <View style={styles.editAvatarBadge}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
+              <Ionicons name="camera" size={14} color={Palette.white} />
             </View>
           </TouchableOpacity>
 
@@ -687,7 +685,7 @@ export default function Profile() {
             activeOpacity={0.7}
           >
             <View style={[styles.statIconWrap, { backgroundColor: "rgba(2, 132, 199, 0.12)" }]}>
-              <Ionicons name="ticket" size={22} color="#0284C7" />
+              <Ionicons name="ticket" size={22} color={Palette.skyDark} />
             </View>
             <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Bookings</Text>
           </TouchableOpacity>
@@ -734,7 +732,7 @@ export default function Profile() {
               accessibilityLabel="Smart Travel Alerts"
               accessibilityState={{ checked: !!preferences?.notifications }}
               trackColor={{ false: theme.isDark ? "#333" : "#D1D5DB", true: Colors.PRIMARY }}
-              thumbColor="#FFFFFF"
+              thumbColor={Palette.white}
             />
           </View>
           {settingsItems.map((item, idx) => renderMenuItem(item, idx === settingsItems.length - 1))}
@@ -758,9 +756,9 @@ export default function Profile() {
                 },
               ]}
             >
-              <Ionicons name="log-out-outline" size={20} color={theme.isDark ? "#F87171" : "#DC2626"} />
+              <Ionicons name="log-out-outline" size={20} color={theme.isDark ? Palette.dangerLight : Palette.dangerDark} />
             </View>
-            <Text style={[styles.signOutText, { color: theme.isDark ? "#F87171" : "#DC2626" }]}>Sign Out</Text>
+            <Text style={[styles.signOutText, { color: theme.isDark ? Palette.dangerLight : Palette.dangerDark }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
@@ -853,8 +851,8 @@ export default function Profile() {
                   router.push("/create-trip/search-place");
                 }}
               >
-                <Ionicons name="add-circle-outline" size={17} color="#FFF" style={{ marginRight: 5 }} />
-                <Text style={{ color: "#FFF", fontSize: 13, fontFamily: "Outfit-Bold" }}>
+                <Ionicons name="add-circle-outline" size={17} color={Palette.white} style={{ marginRight: 5 }} />
+                <Text style={{ color: Palette.white, fontSize: 13, fontFamily: "Outfit-Bold" }}>
                   Plan New Trip
                 </Text>
               </TouchableOpacity>
@@ -914,7 +912,7 @@ export default function Profile() {
                     router.push("/create-trip/search-place");
                   }}
                 >
-                  <Ionicons name="sparkles" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Ionicons name="sparkles" size={16} color={Palette.white} style={{ marginRight: 6 }} />
                   <Text style={styles.modalPrimaryBtnText}>Plan a New Trip</Text>
                 </TouchableOpacity>
               </View>
@@ -949,7 +947,7 @@ export default function Profile() {
                           style={styles.tripItemDelete}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                          <Ionicons name="trash-outline" size={16} color={Palette.danger} />
                         </TouchableOpacity>
                       </View>
 
@@ -966,7 +964,7 @@ export default function Profile() {
                               "@goguide_cached_trip",
                               JSON.stringify(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip })
                             );
-                          } catch (e) {}
+                          } catch {}
                           if (setTripData) {
                             setTripData(trip.aiTripPlan ? trip : { ...trip, aiTripPlan: trip.aiTripPlan || trip });
                           }
@@ -975,7 +973,7 @@ export default function Profile() {
                         }}
                       >
                         <Text style={styles.openTripBtnText}>Open Itinerary</Text>
-                        <Ionicons name="arrow-forward" size={13} color="#FFF" style={{ marginLeft: 4 }} />
+                        <Ionicons name="arrow-forward" size={13} color={Palette.white} style={{ marginLeft: 4 }} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1031,7 +1029,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 18,
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -1060,7 +1058,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: Palette.white,
   },
   userName: {
     fontSize: 22,
@@ -1094,7 +1092,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderWidth: 1,
     marginBottom: 24,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 5,
@@ -1137,7 +1135,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
     marginBottom: 20,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
@@ -1178,7 +1176,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   badgeText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -1192,7 +1190,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 15,
     fontFamily: "Outfit-Medium",
-    color: "#DC2626",
+    color: Palette.dangerDark,
   },
   footerWrap: {
     alignItems: "center",
@@ -1279,7 +1277,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalPrimaryBtnText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 14,
     fontFamily: "Outfit-Bold",
   },
@@ -1289,7 +1287,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
     marginBottom: 16,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -1330,7 +1328,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   openTripBtnText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },

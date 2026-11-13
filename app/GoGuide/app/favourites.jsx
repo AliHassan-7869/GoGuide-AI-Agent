@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { Radius, Spacing, Typography, useTheme } from "../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../Components/constants/theme";
 import EmptyState from "../Components/ui/EmptyState";
 import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
@@ -182,7 +182,7 @@ export default function Favourites() {
 
                   <View style={styles.heroTopBadges}>
                     <View style={styles.categoryPill}>
-                      <Ionicons name="location-outline" size={12} color="#FFFFFF" />
+                      <Ionicons name="location-outline" size={12} color={Palette.white} />
                       <Text style={styles.categoryPillText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                         {categoryLabel}
                       </Text>
@@ -195,7 +195,7 @@ export default function Favourites() {
                       style={styles.heartButton}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="heart" size={20} color={Colors.DANGER || "#EF4444"} />
+                      <Ionicons name="heart" size={20} color={Colors.DANGER || Palette.danger} />
                     </TouchableOpacity>
                   </View>
 
@@ -204,7 +204,7 @@ export default function Favourites() {
                       {title}
                     </Text>
                     <View style={styles.ratingBadge} accessible accessibilityLabel={`Rating ${rating}`}>
-                      <Ionicons name="star" size={13} color="#F59E0B" />
+                      <Ionicons name="star" size={13} color={Palette.warning} />
                       <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{rating}</Text>
                     </View>
                   </View>
@@ -218,7 +218,7 @@ export default function Favourites() {
                     onPress={() => handlePlanTrip(place)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="sparkles" size={15} color="#FFFFFF" style={styles.btnIcon} />
+                    <Ionicons name="sparkles" size={15} color={Palette.white} style={styles.btnIcon} />
                     <Text style={styles.primaryActionBtnText} maxFontSizeMultiplier={1.3}>Plan AI Trip</Text>
                   </TouchableOpacity>
 
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   categoryPillText: {
     fontSize: Typography.sizeXs,
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: Typography.fontMedium,
   },
   heartButton: {
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: Typography.sizeLg,
     fontFamily: Typography.fontBold,
-    color: "#FFFFFF",
+    color: Palette.white,
     marginRight: 6,
   },
   ratingBadge: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: Typography.sizeXs,
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: Typography.fontBold,
   },
   cardActionsRow: {
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
   },
   primaryActionBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: Typography.sizeMd,
     fontFamily: Typography.fontBold,
   },

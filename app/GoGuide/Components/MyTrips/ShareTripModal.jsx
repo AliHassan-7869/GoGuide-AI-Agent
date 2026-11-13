@@ -7,6 +7,7 @@ import { auth, db } from "../../Configs/FirebaseConfig";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 export default function ShareTripModal({
   visible,
   tripId,
@@ -25,7 +26,7 @@ export default function ShareTripModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const cleanTripId = tripId || "current-trip";
@@ -128,16 +129,16 @@ export default function ShareTripModal({
               Anyone with this link can view the complete itinerary, hotels, and places.
             </Text>
 
-            <View style={[styles.urlBox, { backgroundColor: theme.isDark ? "#252525" : "#F8FAFC", borderColor: theme.border }]}>
+            <View style={[styles.urlBox, { backgroundColor: theme.isDark ? "#252525" : Palette.slate50, borderColor: theme.border }]}>
               <Text style={[styles.urlText, { color: theme.text }]} numberOfLines={1}>
                 {shareableUrl}
               </Text>
               <TouchableOpacity
-                style={[styles.copyBtn, { backgroundColor: copied ? "#10B981" : Colors.PRIMARY }]}
+                style={[styles.copyBtn, { backgroundColor: copied ? Palette.success : Colors.PRIMARY }]}
                 onPress={handleCopyLink}
                 activeOpacity={0.8}
               >
-                <Ionicons name={copied ? "checkmark" : "copy-outline"} size={14} color="#FFF" />
+                <Ionicons name={copied ? "checkmark" : "copy-outline"} size={14} color={Palette.white} />
                 <Text style={styles.copyBtnText}>{copied ? "Copied" : "Copy"}</Text>
               </TouchableOpacity>
             </View>
@@ -147,7 +148,7 @@ export default function ShareTripModal({
               onPress={handleNativeShare}
               activeOpacity={0.8}
             >
-              <Ionicons name="share-social-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Ionicons name="share-social-outline" size={18} color={Palette.white} style={{ marginRight: 6 }} />
               <Text style={styles.inviteBtnText}>Share via WhatsApp / Email</Text>
             </TouchableOpacity>
           </View>
@@ -155,7 +156,7 @@ export default function ShareTripModal({
           {/* Collaboration & Clone Card */}
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 14 }]}>
             <View style={[styles.cardIconCircle, { backgroundColor: "#10B98118" }]}>
-              <Ionicons name="copy" size={22} color="#10B981" />
+              <Ionicons name="copy" size={22} color={Palette.success} />
             </View>
             <Text style={[styles.cardTitle, { color: theme.text }]}>Clone Trip to Account</Text>
             <Text style={[styles.cardSub, { color: theme.subtext }]}>
@@ -174,7 +175,7 @@ export default function ShareTripModal({
 
           {/* Co-Travelers Pass Summary */}
           <View style={[styles.coTravelersInfo, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 14 }]}>
-            <Ionicons name="people-circle-outline" size={24} color="#8B5CF6" />
+            <Ionicons name="people-circle-outline" size={24} color={Palette.purple} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.coTravelerTitle, { color: theme.text }]}>Co-Traveler Sync</Text>
               <Text style={[styles.coTravelerDesc, { color: theme.subtext }]}>
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   copyBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY,
   },
   inviteBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 14,
     fontFamily: "Outfit-Bold",
   },

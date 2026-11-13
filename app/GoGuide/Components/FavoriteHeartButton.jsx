@@ -8,12 +8,13 @@ import {
 } from "./utils/FavoriteService";
 
 import { TouchableOpacity } from "./ui/Touchable";
+import { Palette } from "./constants/theme";
 export default function FavoriteHeartButton({
   item,
   place,
   size = 18,
   style,
-  inactiveColor = "#FFFFFF",
+  inactiveColor = Palette.white,
   variant = "overlay", // "overlay" (for images) or "inline" (for vibe cards)
 }) {
   const [isFav, setIsFav] = useState(false);
@@ -88,7 +89,7 @@ export default function FavoriteHeartButton({
       <Ionicons
         name={isFav ? "heart" : "heart-outline"}
         size={size}
-        color={isFav ? "#EF4444" : inactiveColor}
+        color={isFav ? Palette.danger : inactiveColor}
       />
     </TouchableOpacity>
   );
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   overlayBtnActive: {
     backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderColor: "#EF4444",
+    borderColor: Palette.danger,
     borderWidth: 2,
   },
   inlineBtnActive: {

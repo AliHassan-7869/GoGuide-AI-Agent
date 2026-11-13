@@ -10,7 +10,8 @@
     "ios": "npx expo run:ios",
     "web": "npx expo start --web",
     "build": "npx expo export -p web",
-    "lint": "npx expo lint"
+    "lint": "npx expo lint",
+    "test": "node --test Components/utils/__tests__/*.test.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

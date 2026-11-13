@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/constants';
-import { useTheme } from '../constants/theme';
+import { useTheme, Palette } from '../constants/theme';
 
 export default function WeatherCard({ weatherBrief: weatherBriefProp, destination = "" }) {
   const theme = useTheme();
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    shadowColor: '#000',
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,

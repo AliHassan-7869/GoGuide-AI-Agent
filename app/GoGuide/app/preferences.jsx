@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { Radius, Spacing, Typography, lightTheme, useTheme } from "../Components/constants/theme";
+import { Radius, Spacing, Typography, lightTheme, useTheme, Palette } from "../Components/constants/theme";
 import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../context/CreateTripContext";
@@ -102,7 +102,7 @@ export default function Preferences() {
   const theme = useTheme();
   const [clearingCache, setClearingCache] = useState(false);
 
-  const activeAccent = Colors.PRIMARY || "#0F172A";
+  const activeAccent = Colors.PRIMARY || Palette.slate900;
 
   const updatePreference = (key, value) => {
     setPreferences((prev) => ({

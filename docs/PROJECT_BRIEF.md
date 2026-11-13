@@ -61,3 +61,38 @@ GoGuide AI is a premium, AI-powered travel planning companion and real-time co-p
 - Render markdown in AI bubbles (no raw `**` asterisks).
 - Discover placeholder: "e.g. 5 days in Istanbul" (short enough to fit on 360px phones).
 
+---
+
+## Part 2 & Part 3 Status & Key Implementations
+
+### 1. Generated Itinerary Architecture & Screen Redesign
+- **Sticky Section Nav with Dynamic Offset:**
+  - Auto-calculates scroll target offset dynamically: `headerHeight + navHeight + safeTopPadding + 14px gap`.
+  - Immune to image loading or content expansions on both Web and Native.
+  - Active tab highlight locking (`isTabScrollLocked`) prevents flickering through intermediate tabs during smooth scroll animations.
+  - Dynamic bottom spacer ensures the last section (Budget) can scroll all the way to its heading directly below the sticky bars.
+- **Destination Essentials (Fixed 2×2 Grid):**
+  - Strict 2 rows × 2 columns layout on all viewport widths (including `360px`): `Row 1: [Visa & Entry | Money & Tipping]`, `Row 2: [Emergency | Season]`.
+  - 3-line text truncation with `"Read more"` / `"Show less"` expansion toggle.
+  - Synchronous fallback (`buildFallbackDestinationEssentials`) eliminates layout shifts on slow or offline networks.
+- **Daily Schedule Day Tabs (Filter, Not Scroll):**
+  - Chips act as filter tabs (`"All Days"`, `"Day 1" .. "Day N"`).
+  - Tapping a day chip replaces the schedule content in-place with a subtle 180ms fade without scrolling the page vertically.
+  - Active day chip auto-centers horizontally inside the scrollable chip bar.
+  - Selected tab state persists across in-trip actions (Add Activity, Delete + Undo, Log Expense, Route Map, Visited Checkbox).
+  - Empty state (`"No activities yet"`) rendered when a day has zero activities.
+
+### 2. AI Copilot Chat Bar & Keyboard Docking
+- **Zero-Pixel Flush Keyboard Docking:**
+  - Chat bar sits flush directly on top of the virtual keyboard on iOS and Android.
+  - Tab navigator safe-area hygiene: avoids double-counting `insets.bottom` when the bottom tab bar is visible.
+  - `KeyboardAvoidingView` on iOS uses dynamic `keyboardVerticalOffset` matching content height above the view.
+- **Compact Bar Dimensions:**
+  - Container: `paddingVertical: 8`, `paddingHorizontal: 14`, `borderTopWidth: 1`.
+  - Input: `minHeight: 40`, `maxHeight: 112` (~4 lines then scrolls), `borderRadius: 20`, `paddingHorizontal: 14`, `fontSize: 14`, `lineHeight: 20`.
+  - Send button: `40px × 40px`, `borderRadius: 20`, vertically centered with single-line input and pinned to bottom edge when multiline text grows.
+- **Web & PWA Mobile Virtual Keyboard:**
+  - `interactive-widget=resizes-content` added to viewport meta tag in `+html.jsx`.
+  - `visualViewport` listener ensures automatic list scrolling when mobile virtual keyboards open.
+
+

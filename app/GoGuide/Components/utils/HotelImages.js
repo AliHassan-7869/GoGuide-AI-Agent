@@ -49,7 +49,7 @@ async function lookup(name, city) {
       if (p?.thumbnail?.source && titleMatchesHotel(p.title, name, city)) return p.thumbnail.source;
     }
     return null; // searched fine, nothing matching
-  } catch (e) {
+  } catch {
     return undefined; // offline / timeout: do not cache
   } finally {
     clearTimeout(timer);
@@ -66,7 +66,7 @@ export async function fetchHotelImage(name, city) {
       const { url, ts } = JSON.parse(raw);
       if (Date.now() - ts < (url ? HIT_TTL_MS : MISS_TTL_MS)) return url || null;
     }
-  } catch (e) {}
+  } catch {}
 
   if (inFlight.has(key)) return inFlight.get(key);
   const job = (async () => {
@@ -74,7 +74,7 @@ export async function fetchHotelImage(name, city) {
     if (result !== undefined) {
       try {
         await AsyncStorage.setItem(key, JSON.stringify({ url: result, ts: Date.now() }));
-      } catch (e) {}
+      } catch {}
     }
     return result || null;
   })().finally(() => inFlight.delete(key));

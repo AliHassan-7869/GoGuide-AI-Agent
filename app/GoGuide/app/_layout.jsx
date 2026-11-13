@@ -1,15 +1,16 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { View, Platform, StyleSheet, useWindowDimensions, LogBox } from "react-native";
-LogBox.ignoreAllLogs(true);
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useTheme } from "../Components/constants/theme";
 import { CreateTripProvider } from "../context/CreateTripContext";
-import ErrorBoundary from "../Components/ErrorBoundary";
+import { ErrorBoundary } from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
 import { installWebAlert } from "../Components/utils/webAlert";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+LogBox.ignoreAllLogs(true);
 
 installAndroidTextDefaults();
 installWebAlert();
@@ -17,7 +18,6 @@ installWebAlert();
 function AppContent() {
   const { width } = useWindowDimensions();
   const theme = useTheme();
-  const isDark = theme.isDark;
 
   const isDesktopWeb = Platform.OS === "web" && width > 520;
 

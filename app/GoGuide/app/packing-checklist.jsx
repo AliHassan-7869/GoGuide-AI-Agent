@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import useBackDismiss from "../hooks/useBackDismiss";
+import { useBackDismiss } from "../hooks/useBackDismiss";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
@@ -323,7 +323,7 @@ export default function PackingChecklist() {
             await navigator.clipboard.writeText(text);
             Alert.alert("Checklist Copied! 📋", "Your checklist was copied to clipboard.");
           }
-        } catch (copyErr) {
+        } catch {
           console.log("Error sharing checklist:", e);
         }
       }
@@ -333,7 +333,6 @@ export default function PackingChecklist() {
   // Computed metrics
   const totalCount = items.length;
   const packedCount = items.filter((i) => i.packed).length;
-  const unpackedCount = totalCount - packedCount;
   const progressPercent = totalCount > 0 ? Math.round((packedCount / totalCount) * 100) : 0;
 
   // Items matching current active category
@@ -343,9 +342,7 @@ export default function PackingChecklist() {
       : items.filter((it) => it.category === activeCategory);
   }, [items, activeCategory]);
 
-  const catTotalCount = currentCategoryItems.length;
   const catPackedCount = currentCategoryItems.filter((i) => i.packed).length;
-  const catUnpackedCount = catTotalCount - catPackedCount;
 
   // Filtered Items for FlatList
   const filteredItems = useMemo(() => {

@@ -6,11 +6,12 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, Linking } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
 import { goBack } from "../../../Components/utils/navigation";
+import { Palette } from "../../../Components/constants/theme";
 export default function Signup() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function Signup() {
           return;
         }
       }
-    } catch (e) {}
+    } catch {}
 
     try {
       setLoading(true);
@@ -132,7 +133,7 @@ export default function Signup() {
           list.push(cleanEmail.toLowerCase());
           await AsyncStorage.setItem("@goguide_registered_emails", JSON.stringify(list));
         }
-      } catch (e) {}
+      } catch {}
 
       // Send official Firebase Email Verification link
       try {
@@ -187,7 +188,7 @@ export default function Signup() {
         {/* Prominent Error Banner */}
         {errorMessage ? (
           <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={22} color="#DC2626" style={{ marginRight: 10, marginTop: 1 }} />
+            <Ionicons name="alert-circle" size={22} color={Palette.dangerDark} style={{ marginRight: 10, marginTop: 1 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.errorTitle}>{errorTitle || "Registration Notice"}</Text>
               <Text style={styles.errorText}>{errorMessage}</Text>
@@ -291,7 +292,7 @@ export default function Signup() {
               accessibilityRole="checkbox"
               accessibilityState={{ checked: termsAccepted }}
           >
-            {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFF" />}
+            {termsAccepted && <Ionicons name="checkmark" size={14} color={Palette.white} />}
           </TouchableOpacity>
           <Text style={styles.termsText}>
             I agree to GoGuide&apos;s{" "}
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 25,
 
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
   },
 
   primaryText: {
-    color: "#fff",
+    color: Palette.white,
     fontFamily: "Outfit-Bold",
     fontSize: 16,
     letterSpacing: 0.5,
@@ -464,11 +465,11 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#94A3B8",
+    borderColor: Palette.slate400,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: Palette.slate50,
   },
   checkboxActive: {
     backgroundColor: Colors.PRIMARY,
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: "Outfit-Regular",
-    color: "#64748B",
+    color: Palette.slate500,
     lineHeight: 18,
   },
   termsLink: {
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontFamily: "Outfit-Bold",
     fontSize: 13,
-    color: "#DC2626",
+    color: Palette.dangerDark,
     marginBottom: 2,
   },
   errorText: {
@@ -509,27 +510,27 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   inputError: {
-    borderColor: "#EF4444",
+    borderColor: Palette.danger,
     backgroundColor: "#FFF5F5",
     borderWidth: 1.5,
   },
   fieldErrorHint: {
     fontFamily: "Outfit-Regular",
     fontSize: 12,
-    color: "#DC2626",
+    color: Palette.dangerDark,
     marginTop: 4,
     marginLeft: 4,
   },
   signInShortcutBtn: {
     marginTop: 8,
     alignSelf: "flex-start",
-    backgroundColor: "#DC2626",
+    backgroundColor: Palette.dangerDark,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   signInShortcutText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontFamily: "Outfit-Bold",
     fontSize: 12,
   },

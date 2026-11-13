@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Colors } from "../../Components/constants/constants";
-import { Radius, Spacing, Typography, useTheme } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
@@ -27,14 +27,14 @@ const getCategoryBadgeStyle = (category, isDark) => {
     case "Beaches":
       return {
         bg: isDark ? "rgba(14, 165, 233, 0.18)" : "#E0F2FE",
-        text: isDark ? "#38BDF8" : "#0284C7",
+        text: isDark ? Palette.skyLight : Palette.skyDark,
         border: isDark ? "rgba(14, 165, 233, 0.35)" : "#BAE6FD",
       };
     case "History":
     case "Museum":
       return {
         bg: isDark ? "rgba(245, 158, 11, 0.18)" : "#FEF3C7",
-        text: isDark ? "#FBBF24" : "#B45309",
+        text: isDark ? Palette.warningLight : "#B45309",
         border: isDark ? "rgba(245, 158, 11, 0.35)" : "#FDE68A",
       };
     case "Nature":
@@ -65,7 +65,7 @@ const getCategoryBadgeStyle = (category, isDark) => {
     default:
       return {
         bg: isDark ? "rgba(10, 126, 164, 0.2)" : "rgba(10, 126, 164, 0.08)",
-        text: isDark ? "#38BDF8" : Colors.PRIMARY,
+        text: isDark ? Palette.skyLight : Colors.PRIMARY,
         border: isDark ? "rgba(10, 126, 164, 0.35)" : "rgba(10, 126, 164, 0.15)",
       };
   }
@@ -170,7 +170,7 @@ const InterestCard = ({ item, index, isSelected, onPress, theme }) => {
               },
             ]}
           >
-            {isSelected ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
+            {isSelected ? <Ionicons name="checkmark" size={18} color={Palette.white} /> : null}
           </View>
         </View>
       </TouchableOpacity>
@@ -758,7 +758,7 @@ export default function YourInterest() {
             return;
           }
         }
-      } catch (e) {}
+      } catch {}
 
       // 1. Primary: Server-side AI (/destination/interests) with multi-model fallback (Gemini -> NVIDIA -> DeepSeek)
       let aiResponse = null;
@@ -776,7 +776,7 @@ export default function YourInterest() {
         updateTransports(aiResponse.transports);
         try {
           await AsyncStorage.setItem(cacheKey, JSON.stringify(aiResponse));
-        } catch (e) {}
+        } catch {}
         setLoadingInterests(false);
         return;
       }
@@ -811,7 +811,7 @@ export default function YourInterest() {
             });
             try {
               await AsyncStorage.setItem(cacheKey, JSON.stringify({ interests: fetchedPlaces, transports: transportList }));
-            } catch (e) {}
+            } catch {}
           }
         }
       } catch (nomErr) {
@@ -888,11 +888,11 @@ export default function YourInterest() {
     (async () => {
       try {
         await AsyncStorage.setItem("@goguide_saved_interests", JSON.stringify(names));
-      } catch (e) {}
+      } catch {}
       try {
         const uid = auth?.currentUser?.uid;
         if (uid) await setDoc(doc(db, "users", uid), { savedInterests: names }, { merge: true });
-      } catch (e) {}
+      } catch {}
     })();
   };
 
@@ -1002,7 +1002,7 @@ export default function YourInterest() {
                         activeOpacity={0.75}
                       >
                         <Text style={styles.categoryChipIcon}>{cat.icon}</Text>
-                        <Text style={[styles.categoryChipLabel, { color: isActive ? "#FFFFFF" : theme.text }]}>
+                        <Text style={[styles.categoryChipLabel, { color: isActive ? Palette.white : theme.text }]}>
                           {cat.label}
                         </Text>
                         <View
@@ -1011,7 +1011,7 @@ export default function YourInterest() {
                             { backgroundColor: isActive ? "rgba(255, 255, 255, 0.25)" : theme.border },
                           ]}
                         >
-                          <Text style={[styles.countBadgeText, { color: isActive ? "#FFFFFF" : theme.subtext }]}>
+                          <Text style={[styles.countBadgeText, { color: isActive ? Palette.white : theme.subtext }]}>
                             {cat.count}
                           </Text>
                         </View>
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, flex: 1, minWidth: 140 },
   retryBtn: { minHeight: 44, paddingHorizontal: Spacing.lg, borderRadius: Radius.pill, backgroundColor: Colors.PRIMARY, alignItems: "center", justifyContent: "center" },
   retryBtnDisabled: { opacity: 0.5 },
-  retryText: { color: "#FFFFFF", fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
+  retryText: { color: Palette.white, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold },
   emptyContainer: { alignItems: "center", paddingVertical: Spacing.xxl },
   emptyText: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, marginBottom: Spacing.md },
   retryMinBtn: { minHeight: 44, paddingHorizontal: Spacing.lg, justifyContent: "center" },
@@ -1297,5 +1297,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   button: { minHeight: 52, borderRadius: Radius.pill, alignItems: "center", justifyContent: "center" },
-  buttonText: { color: "#FFFFFF", fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
+  buttonText: { color: Palette.white, fontSize: Typography.sizeBase, fontFamily: Typography.fontBold },
 });

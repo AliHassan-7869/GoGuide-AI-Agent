@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { Animated, Easing, Platform } from "react-native";
-import useReduceMotion from "../../hooks/useReduceMotion";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 
 const STAGGER_MS = 40;
 const DURATION_MS = 230;

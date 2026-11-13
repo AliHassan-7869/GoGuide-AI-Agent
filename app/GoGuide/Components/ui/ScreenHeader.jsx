@@ -4,7 +4,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/constants";
-import { Radius, Spacing, Typography, useTheme } from "../constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../constants/theme";
 import { TouchableOpacity } from "./Touchable";
 
 /**
@@ -41,8 +41,8 @@ export default function ScreenHeader({
         styles.header,
         {
           paddingTop: Math.max(insets.top, 0) + 4,
-          backgroundColor: theme.header || (theme.isDark ? "#0B0F17" : "#FFFFFF"),
-          borderBottomColor: theme.headerBorder || (theme.isDark ? "#20202F" : "#E2E8F0"),
+          backgroundColor: theme.header || (theme.isDark ? "#0B0F17" : Palette.white),
+          borderBottomColor: theme.headerBorder || (theme.isDark ? "#20202F" : Palette.slate200),
         },
         style,
       ]}
@@ -87,7 +87,7 @@ export default function ScreenHeader({
           <Text
             style={[
               styles.headerSubtitle,
-              { color: theme.isDark ? "#94A3B8" : "#64748B" },
+              { color: theme.isDark ? Palette.slate400 : Palette.slate500 },
             ]}
             numberOfLines={1}
           >

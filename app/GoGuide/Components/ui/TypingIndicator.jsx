@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
-import useReduceMotion from "../../hooks/useReduceMotion";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { Radius, Spacing } from "../constants/theme";
 
 const DOT_COUNT = 3;

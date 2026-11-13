@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Animated, Platform, View } from "react-native";
-import { Radius, useTheme } from "../constants/theme";
-import useReduceMotion from "../../hooks/useReduceMotion";
+import { Radius, useTheme, Palette } from "../constants/theme";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 
 /** Pulsing placeholder block. Static (no pulse) when reduce-motion is on. */
 export function Skeleton({ width = "100%", height = 16, radius = Radius.md, style }) {
@@ -26,7 +26,7 @@ export function Skeleton({ width = "100%", height = 16, radius = Radius.md, styl
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[
-        { width, height, borderRadius: radius, opacity: pulse, backgroundColor: theme.isDark ? "#243044" : "#E2E8F0" },
+        { width, height, borderRadius: radius, opacity: pulse, backgroundColor: theme.isDark ? "#243044" : Palette.slate200 },
         style,
       ]}
     />

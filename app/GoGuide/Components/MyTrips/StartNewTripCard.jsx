@@ -3,16 +3,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/constants";
-import { Radius, Typography, useTheme } from "../constants/theme";
+import { Radius, Typography, useTheme, Palette } from "../constants/theme";
 import FadeInView from "../ui/FadeInView";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../FavoriteHeartButton";
 import DayRouteModal from "./DayRouteModal";
 
 import { TouchableOpacity } from "../ui/Touchable";
-const { width } = Dimensions.get("window");
 
 // Curated Verified HD Destination Cards (1200px)
 const TRENDING_DESTINATIONS = [
@@ -129,7 +128,7 @@ const FEATURE_PILLS = [
   {
     id: "ai_plans",
     icon: "flash",
-    color: "#10B981",
+    color: Palette.success,
     bg: "rgba(16, 185, 129, 0.12)",
     label: "5s AI Plans",
     route: "/create-trip/search-place",
@@ -137,7 +136,7 @@ const FEATURE_PILLS = [
   {
     id: "weather",
     icon: "sunny",
-    color: "#F59E0B",
+    color: Palette.warning,
     bg: "rgba(245, 158, 11, 0.12)",
     label: "Weather Ready",
     route: "/location",
@@ -145,7 +144,7 @@ const FEATURE_PILLS = [
   {
     id: "packing",
     icon: "bag-check",
-    color: "#3B82F6",
+    color: Palette.blue,
     bg: "rgba(59, 130, 246, 0.12)",
     label: "Smart Packing",
     route: "/packing-checklist",
@@ -153,7 +152,7 @@ const FEATURE_PILLS = [
   {
     id: "routes",
     icon: "map",
-    color: "#8B5CF6",
+    color: Palette.purple,
     bg: "rgba(139, 92, 246, 0.12)",
     label: "Live Routes",
     route: "/explore",
@@ -228,7 +227,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
   const triggerHaptic = () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    } catch {}
   };
 
   const openTripLiveRoutes = (tripObj) => {
@@ -340,7 +339,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                     backgroundColor: theme.card,
                     overflow: "hidden",
                     elevation: 3,
-                    shadowColor: "#000",
+                    shadowColor: Palette.black,
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.1,
                     shadowRadius: 6,
@@ -353,7 +352,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                       style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
                     />
                     <View style={{ position: "absolute", top: 10, left: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                      <Text style={{ color: "#FFF", fontSize: Typography.sizeSm, fontFamily: Typography.fontBold }} maxFontSizeMultiplier={1.3}>{budget}</Text>
+                      <Text style={{ color: Palette.white, fontSize: Typography.sizeSm, fontFamily: Typography.fontBold }} maxFontSizeMultiplier={1.3}>{budget}</Text>
                     </View>
                     <FavoriteHeartButton
                       place={{
@@ -373,11 +372,11 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                         }}
                         style={{ position: "absolute", top: 4, right: 4, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(239,68,68,0.85)", alignItems: "center", justifyContent: "center", zIndex: 20 }}
                       >
-                        <Ionicons name="trash-outline" size={18} color="#FFF" />
+                        <Ionicons name="trash-outline" size={18} color={Palette.white} />
                       </TouchableOpacity>
                     )}
                     <View style={{ position: "absolute", bottom: 10, left: 12, right: 12 }} pointerEvents="none">
-                      <Text style={{ color: "#FFF", fontSize: Typography.sizeBase, fontFamily: Typography.fontBold }} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+                      <Text style={{ color: Palette.white, fontSize: Typography.sizeBase, fontFamily: Typography.fontBold }} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                         {destTitle}
                       </Text>
                       <Text style={{ color: "#F1F5F9", fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 }} maxFontSizeMultiplier={1.3}>
@@ -407,8 +406,8 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                       }}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="map" size={12} color="#8B5CF6" style={{ marginRight: 4 }} />
-                      <Text style={{ color: "#8B5CF6", fontSize: Typography.sizeSm, fontFamily: Typography.fontBold }} maxFontSizeMultiplier={1.3}>Live Route</Text>
+                      <Ionicons name="map" size={12} color={Palette.purple} style={{ marginRight: 4 }} />
+                      <Text style={{ color: Palette.purple, fontSize: Typography.sizeSm, fontFamily: Typography.fontBold }} maxFontSizeMultiplier={1.3}>Live Route</Text>
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -421,7 +420,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
       {/* 1. HERO BANNER CARD */}
       <FadeInView index={1} style={styles.heroCardWrapper}>
         <LinearGradient
-          colors={theme.isDark ? ["#1E1E2F", "#0F172A"] : [activeAccent, "#1E293B"]}
+          colors={theme.isDark ? ["#1E1E2F", Palette.slate900] : [activeAccent, Palette.slate800]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroCard}
@@ -429,7 +428,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
           {/* Floating Glow Indicator */}
           <View style={styles.topBadgeRow}>
             <View style={styles.aiGlowPill}>
-              <Ionicons name="sparkles" size={13} color="#FBBF24" />
+              <Ionicons name="sparkles" size={13} color={Palette.warningLight} />
               <Text style={styles.aiGlowText}>AI Travel Planner</Text>
             </View>
             <View style={styles.statusDotRow}>
@@ -572,7 +571,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
       {/* 4. TRENDING DESTINATIONS SLIDER */}
       <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="flame-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+          <Ionicons name="flame-outline" size={18} color={Palette.danger} style={{ marginRight: 6 }} />
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Popular AI Itineraries</Text>
         </View>
         <Text style={[styles.sectionSubtitle, { color: theme.subtext }]}>Instant Plan ⚡</Text>
@@ -606,7 +605,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
             {/* Top Badge & Heart Button */}
             <View style={styles.destTopRow}>
               <View style={styles.destDurationBadge}>
-                <Ionicons name="time-outline" size={11} color="#FFF" />
+                <Ionicons name="time-outline" size={11} color={Palette.white} />
                 <Text style={styles.destDurationText} maxFontSizeMultiplier={1.3}>{dest.days} Days</Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -616,7 +615,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                 <FavoriteHeartButton
                   variant="inline"
                   size={15}
-                  inactiveColor="#FFFFFF"
+                  inactiveColor={Palette.white}
                   style={{ backgroundColor: "rgba(0, 0, 0, 0.55)" }}
                   item={{
                     id: dest.id,
@@ -642,7 +641,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
               <View style={styles.instantPlanRow}>
                 <Text style={styles.instantPlanText} maxFontSizeMultiplier={1.3}>Select Itinerary</Text>
-                <Ionicons name="arrow-forward-circle" size={16} color="#38BDF8" />
+                <Ionicons name="arrow-forward-circle" size={16} color={Palette.skyLight} />
               </View>
             </View>
           </TouchableOpacity>
@@ -699,7 +698,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 18,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -718,7 +717,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   savedTripsBannerSub: {
-    fontSize: 11,
+    fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Regular",
     marginTop: 2,
   },
@@ -729,12 +728,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
     borderRadius: 24,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.16,
     shadowRadius: 12,
     elevation: 5,
-    backgroundColor: "#0F172A",
+    backgroundColor: Palette.slate900,
   },
   heroCard: {
     borderRadius: 24,
@@ -759,7 +758,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   aiGlowText: {
-    color: "#FBBF24",
+    color: Palette.warningLight,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -772,29 +771,29 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#10B981",
+    backgroundColor: Palette.success,
   },
   readyText: {
-    color: "#E2E8F0",
+    color: Palette.slate200,
     fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Medium",
   },
   heroHeadline: {
     fontSize: 26,
     fontFamily: "Outfit-Bold",
-    color: "#FFFFFF",
+    color: Palette.white,
     letterSpacing: -0.3,
     marginBottom: 8,
   },
   heroSubText: {
     fontSize: Typography.sizeMd,
     fontFamily: "Outfit-Regular",
-    color: "#E2E8F0",
+    color: Palette.slate200,
     lineHeight: 21,
     marginBottom: 20,
   },
   primaryPlanBtn: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Palette.white,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -803,7 +802,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 8,
     borderRadius: 30,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -812,7 +811,7 @@ const styles = StyleSheet.create({
   primaryPlanBtnText: {
     fontSize: 15,
     fontFamily: "Outfit-Bold",
-    color: "#0F172A",
+    color: Palette.slate900,
   },
   btnIconCircle: {
     width: 36,
@@ -845,7 +844,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     borderWidth: 1,
     gap: 7,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -931,7 +930,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -968,7 +967,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   destDurationText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Medium",
   },
@@ -979,7 +978,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   destBudgetText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Bold",
   },
@@ -992,12 +991,12 @@ const styles = StyleSheet.create({
   destName: {
     fontSize: 18,
     fontFamily: "Outfit-Bold",
-    color: "#FFFFFF",
+    color: Palette.white,
   },
   destCountry: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
-    color: "#E2E8F0",
+    color: Palette.slate200,
     marginBottom: 4,
   },
   destTagline: {
@@ -1016,7 +1015,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   instantPlanText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Bold",
   },
@@ -1049,7 +1048,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   inspireBtnText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },

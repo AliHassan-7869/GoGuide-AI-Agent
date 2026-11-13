@@ -16,7 +16,7 @@ const notifyListeners = (favorites) => {
   listeners.forEach((fn) => {
     try {
       fn(favorites);
-    } catch (e) {}
+    } catch {}
   });
 };
 
@@ -59,7 +59,7 @@ async function syncFromFirebase(email, localFavorites) {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       notifyListeners(merged);
     }
-  } catch (err) {
+  } catch {
     // Silent offline fallback
   }
 }
@@ -78,7 +78,7 @@ export async function isPlaceFavorite(placeIdentifier) {
         (f.name && String(f.name).toLowerCase() === idStr) ||
         (f.title && String(f.title).toLowerCase() === idStr)
     );
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -93,7 +93,7 @@ export async function toggleFavoritePlace(place) {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-  } catch (e) {}
+  } catch {}
 
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);

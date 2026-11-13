@@ -3,14 +3,14 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../Configs/FirebaseConfig";
-import { sendEmailVerification } from "firebase/auth";
+
 
 import { Colors } from "../../Components/constants/constants";
 import { detectCurrencyFromLocation, detectUserHomeCurrency, convertAmount, formatCurrencyAmount, CURRENCY_RATES } from "../../Components/constants/Currency";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
@@ -34,7 +34,7 @@ export default function ReviewTrip() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleBuildTrip = async () => {
@@ -194,8 +194,8 @@ export default function ReviewTrip() {
           style={[
             styles.boardingPassCard,
             {
-              backgroundColor: theme.isDark ? "#1E293B" : "#FFFFFF",
-              borderColor: theme.isDark ? "rgba(10, 126, 164, 0.25)" : "#E2E8F0",
+              backgroundColor: theme.isDark ? Palette.slate800 : Palette.white,
+              borderColor: theme.isDark ? "rgba(10, 126, 164, 0.25)" : Palette.slate200,
             },
           ]}
         >
@@ -220,7 +220,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.passFlightCode,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
               >
                 EXP-AI-2026
@@ -245,7 +245,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.passCityValue,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
                 numberOfLines={1}
               >
@@ -256,7 +256,7 @@ export default function ReviewTrip() {
             <View
               style={[
                 styles.planeIconContainer,
-                { backgroundColor: theme.isDark ? "#0F172A" : "#F1F5F9" },
+                { backgroundColor: theme.isDark ? Palette.slate900 : "#F1F5F9" },
               ]}
             >
               <Text style={{ fontSize: 20 }}>✈️</Text>
@@ -275,7 +275,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.passCityValue,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A", textAlign: "right" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900, textAlign: "right" },
                 ]}
                 numberOfLines={1}
               >
@@ -289,14 +289,14 @@ export default function ReviewTrip() {
             <View
               style={[
                 styles.weatherStrip,
-                { backgroundColor: theme.isDark ? "#0F172A" : "#F8FAFC" },
+                { backgroundColor: theme.isDark ? Palette.slate900 : Palette.slate50 },
               ]}
             >
-              <Ionicons name="partly-sunny" size={16} color="#0EA5E9" style={{ marginRight: 8 }} />
+              <Ionicons name="partly-sunny" size={16} color={Palette.sky} style={{ marginRight: 8 }} />
               <Text
                 style={[
                   styles.weatherText,
-                  { color: theme.isDark ? "#94A3B8" : "#475569" },
+                  { color: theme.isDark ? Palette.slate400 : "#475569" },
                 ]}
               >
                 Current {destCity} Temp:{" "}
@@ -326,7 +326,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.matrixVal,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
               >
                 {durationDays} Days
@@ -349,7 +349,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.matrixVal,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
                 numberOfLines={1}
               >
@@ -373,7 +373,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.matrixVal,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
               >
                 {interestCount} Styles
@@ -386,7 +386,7 @@ export default function ReviewTrip() {
           <View
             style={[
               styles.budgetEstimateBox,
-              { backgroundColor: theme.isDark ? "#0F172A" : "#F8FAFC", borderColor: theme.border },
+              { backgroundColor: theme.isDark ? Palette.slate900 : Palette.slate50, borderColor: theme.border },
             ]}
           >
             <View style={styles.budgetEstimateHeader}>
@@ -395,7 +395,7 @@ export default function ReviewTrip() {
                 <Text
                   style={[
                     styles.budgetEstimateTitle,
-                    { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                    { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                   ]}
                 >
                   ESTIMATED TRIP BUDGET
@@ -416,7 +416,7 @@ export default function ReviewTrip() {
             </View>
 
             <View style={styles.currencyRow}>
-              <Text style={[styles.currencyLabel, { color: theme.isDark ? "#94A3B8" : "#64748B" }]}>
+              <Text style={[styles.currencyLabel, { color: theme.isDark ? Palette.slate400 : Palette.slate500 }]}>
                 In {destCity} ({destCurrency}):
               </Text>
               <Text style={[styles.currencyDestAmount, { color: activeAccent }]}>
@@ -429,7 +429,7 @@ export default function ReviewTrip() {
                 style={[
                   styles.currencyHomeRow,
                   {
-                    borderTopColor: theme.isDark ? "#1E293B" : "#E2E8F0",
+                    borderTopColor: theme.isDark ? Palette.slate800 : Palette.slate200,
                     backgroundColor: theme.isDark ? "#064E3B20" : "#ECFDF5",
                   },
                 ]}
@@ -448,7 +448,7 @@ export default function ReviewTrip() {
                 <Text
                   style={[
                     styles.currencyHomeAmount,
-                    { color: theme.isDark ? "#34D399" : "#059669" },
+                    { color: theme.isDark ? Palette.successLight : "#059669" },
                   ]}
                 >
                   ≈ {formattedHomeTotal}
@@ -463,7 +463,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.barcodeLines,
-                  { color: theme.isDark ? "#64748B" : "#334155" },
+                  { color: theme.isDark ? Palette.slate500 : Palette.slate700 },
                 ]}
               >
                 ||||||| | ||||| |||| || |||||| |
@@ -482,9 +482,9 @@ export default function ReviewTrip() {
             styles.modeCard,
             {
               backgroundColor: isDeepPlan
-                ? theme.isDark ? "#1E293B" : "#F0FDF4"
-                : theme.isDark ? "#0F172A" : "#F8FAFC",
-              borderColor: isDeepPlan ? "#10B981" : (theme.border || "#E2E8F0"),
+                ? theme.isDark ? Palette.slate800 : "#F0FDF4"
+                : theme.isDark ? Palette.slate900 : Palette.slate50,
+              borderColor: isDeepPlan ? Palette.success : (theme.border || Palette.slate200),
             },
           ]}
           onPress={() => {
@@ -497,7 +497,7 @@ export default function ReviewTrip() {
             <Ionicons
               name={isDeepPlan ? "sparkles" : "flash"}
               size={20}
-              color={isDeepPlan ? "#10B981" : "#0284C7"}
+              color={isDeepPlan ? Palette.success : Palette.skyDark}
             />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
@@ -505,7 +505,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.modeTitle,
-                  { color: theme.isDark ? "#F8FAFC" : "#0F172A" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
               >
                 {isDeepPlan ? "Deep Multi-Agent AI" : "Standard Fast AI"}
@@ -513,7 +513,7 @@ export default function ReviewTrip() {
               <View
                 style={[
                   styles.modeBadge,
-                  { backgroundColor: isDeepPlan ? "#10B981" : "#0284C7" },
+                  { backgroundColor: isDeepPlan ? Palette.success : Palette.skyDark },
                 ]}
               >
                 <Text style={styles.modeBadgeText}>
@@ -524,7 +524,7 @@ export default function ReviewTrip() {
             <Text
               style={[
                 styles.modeDesc,
-                { color: theme.isDark ? "#94A3B8" : "#64748B" },
+                { color: theme.isDark ? Palette.slate400 : Palette.slate500 },
               ]}
             >
               {isDeepPlan
@@ -535,7 +535,7 @@ export default function ReviewTrip() {
           <Ionicons
             name={isDeepPlan ? "checkbox" : "square-outline"}
             size={22}
-            color={isDeepPlan ? "#10B981" : "#94A3B8"}
+            color={isDeepPlan ? Palette.success : Palette.slate400}
           />
         </TouchableOpacity>
 
@@ -567,7 +567,7 @@ export default function ReviewTrip() {
         >
           {isGenerating ? (
             <View style={styles.generatingRow}>
-              <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 8 }} />
+              <ActivityIndicator size="small" color={Palette.white} style={{ marginRight: 8 }} />
               <Text style={styles.launchBtnText}>Mapping Routes & Hotels... 🚀</Text>
             </View>
           ) : (
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     position: "relative",
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
   passLabel: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#94A3B8",
+    color: Palette.slate400,
     letterSpacing: 1,
   },
   passFlightCode: {
@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
   passCityTag: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#94A3B8",
+    color: Palette.slate400,
     letterSpacing: 0.8,
   },
   passCityValue: {
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   ticketDottedLine: {
     height: 1,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: Palette.slate300,
     borderStyle: "dashed",
     marginVertical: 14,
   },
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   matrixLabel: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#94A3B8",
+    color: Palette.slate400,
   },
   matrixVal: {
     fontSize: 14,
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   matrixSubVal: {
     fontSize: 12,
     fontFamily: "Outfit-Regular",
-    color: "#94A3B8",
+    color: Palette.slate400,
     marginTop: 1,
   },
   passFooter: {
@@ -792,12 +792,12 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: "#10B981",
+    backgroundColor: Palette.success,
   },
   authorizedText: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#94A3B8",
+    color: Palette.slate400,
     letterSpacing: 1,
   },
     modeCard: {
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   modeBadgeText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
   },
   calmPacingDesc: {
-    color: "#94A3B8",
+    color: Palette.slate400,
     fontSize: 12,
     fontFamily: "Outfit-Regular",
     marginTop: 4,
@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   launchBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
     letterSpacing: 0.5,

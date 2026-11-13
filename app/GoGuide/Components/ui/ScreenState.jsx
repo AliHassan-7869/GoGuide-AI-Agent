@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import Touchable from "./Touchable";
 import { Colors } from "../constants/constants";
-import { useTheme } from "../constants/theme";
+import { useTheme, Palette } from "../constants/theme";
 
 /** Shared Loading / Error (retry) / Empty states. */
 export default function ScreenState({ loading, error, empty, onRetry, emptyText = "Nothing here yet.", children, color = Colors.PRIMARY }) {
@@ -41,8 +41,8 @@ export default function ScreenState({ loading, error, empty, onRetry, emptyText 
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  title: { fontSize: 18, fontFamily: "Outfit-Bold", marginBottom: 6, color: "#64748B", textAlign: "center" },
-  sub: { fontSize: 14, color: "#64748B", textAlign: "center", marginBottom: 12, flexShrink: 1 },
+  title: { fontSize: 18, fontFamily: "Outfit-Bold", marginBottom: 6, color: Palette.slate500, textAlign: "center" },
+  sub: { fontSize: 14, color: Palette.slate500, textAlign: "center", marginBottom: 12, flexShrink: 1 },
   btn: { minHeight: 48, minWidth: 120, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
-  btnText: { color: "#fff", fontFamily: "Outfit-Bold", fontSize: 15, includeFontPadding: false },
+  btnText: { color: Palette.white, fontFamily: "Outfit-Bold", fontSize: 15, includeFontPadding: false },
 });

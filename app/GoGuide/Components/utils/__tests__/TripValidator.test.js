@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateTripPlan, deriveTripDates } from "../TripNormalizer.js";
-import { buildCuratedPlan, findCuratedKey } from "../CuratedPlans.js";
+import { validateTripPlan, deriveTripDates, normalizeTrip } from "../TripNormalizer.js";
+import { buildCuratedPlan } from "../CuratedPlans.js";
 
 test("deriveTripDates calculates exact canonical dates, nights, and daily tabs", () => {
   const result = deriveTripDates("2026-06-01", 5);
@@ -114,4 +114,25 @@ test("buildCuratedPlan returns null when requested days exceed catalog without a
   const partialValidation = validateTripPlan(partialPlan.trip, 5);
   assert.equal(partialValidation.isValid, true);
 });
+
+test("normalizeTrip preserves activity isVisited state across updates", () => {
+  const rawTrip = {
+    destination: "Istanbul",
+    duration: "3 Days",
+    itinerary: [
+      {
+        day: 1,
+        theme: "Imperial Core",
+        activities: [
+          { placeName: "Hagia Sophia", time: "9:00 AM", isVisited: true },
+          { placeName: "Topkapi Palace", time: "1:00 PM", isVisited: false },
+        ],
+      },
+    ],
+  };
+  const normalized = normalizeTrip(rawTrip);
+  assert.equal(normalized.itinerary[0].activities[0].isVisited, true);
+  assert.equal(normalized.itinerary[0].activities[1].isVisited, false);
+});
+
 

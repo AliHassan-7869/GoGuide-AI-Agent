@@ -6,7 +6,7 @@ import { Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatLis
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { SelectTravelerList } from "../../Components/constants/Option";
@@ -39,7 +39,7 @@ export default function SelectBudget() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   // Detect User Origin Currency & Destination Currency dynamically
@@ -294,7 +294,7 @@ export default function SelectBudget() {
                       style={[
                         styles.rangePill,
                         {
-                          backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9",
+                          backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9",
                           borderColor: isSelected ? activeAccent + "60" : theme.border,
                         },
                       ]}
@@ -329,14 +329,14 @@ export default function SelectBudget() {
                         <Ionicons
                           name="home-outline"
                           size={13}
-                          color={theme.isDark ? "#34D399" : "#059669"}
+                          color={theme.isDark ? Palette.successLight : "#059669"}
                           style={{ marginRight: 5 }}
                         />
                         <Text
                           style={[
                             styles.rangeText,
                             {
-                              color: theme.isDark ? "#34D399" : "#065F46",
+                              color: theme.isDark ? Palette.successLight : "#065F46",
                               fontSize: 12,
                             },
                           ]}
@@ -356,7 +356,7 @@ export default function SelectBudget() {
                       },
                     ]}
                   >
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                    {isSelected && <Ionicons name="checkmark" size={14} color={Palette.white} />}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -402,7 +402,7 @@ export default function SelectBudget() {
                 styles.quickCurrencyBtn,
                 customCurrency === homeCurrency
                   ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
-                  : { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border },
+                  : { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border },
               ]}
               activeOpacity={0.7}
             >
@@ -418,7 +418,7 @@ export default function SelectBudget() {
                   styles.quickCurrencyBtn,
                   customCurrency === destCurrency
                     ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
-                    : { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border },
+                    : { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border },
                 ]}
                 activeOpacity={0.7}
               >
@@ -433,7 +433,7 @@ export default function SelectBudget() {
                 triggerHaptic();
                 setShowCurrencyModal(true);
               }}
-              style={[styles.quickCurrencyBtn, { backgroundColor: theme.isDark ? "#1E293B" : "#F1F5F9", borderColor: theme.border }]}
+              style={[styles.quickCurrencyBtn, { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border }]}
               activeOpacity={0.7}
             >
               <Text style={[styles.quickCurrencyText, { color: theme.text }]}>
@@ -442,13 +442,13 @@ export default function SelectBudget() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.inputWrapper, { backgroundColor: theme.isDark ? "#1E293B" : "#F8FAFC", borderColor: isCustomMode ? activeAccent : theme.border }]}>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.isDark ? Palette.slate800 : Palette.slate50, borderColor: isCustomMode ? activeAccent : theme.border }]}>
             <TouchableOpacity
               onPress={() => {
                 triggerHaptic();
                 setShowCurrencyModal(true);
               }}
-              style={[styles.currencySelectorPill, { backgroundColor: isCustomMode ? activeAccent + "18" : (theme.isDark ? "#334155" : "#E2E8F0") }]}
+              style={[styles.currencySelectorPill, { backgroundColor: isCustomMode ? activeAccent + "18" : (theme.isDark ? Palette.slate700 : Palette.slate200) }]}
               activeOpacity={0.7}
             >
               <Text style={[styles.currencySelectorText, { color: isCustomMode ? activeAccent : theme.text }]}>
@@ -457,9 +457,9 @@ export default function SelectBudget() {
             </TouchableOpacity>
 
             <TextInput
-              style={[styles.amountInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
+              style={[styles.amountInput, { color: theme.isDark ? Palette.white : Palette.slate900 }]}
               placeholder="e.g. 150000"
-              placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+              placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
               keyboardType="numeric"
               selectionColor={activeAccent}
               value={customAmount}
@@ -535,7 +535,7 @@ export default function SelectBudget() {
           <Text style={styles.continueBtnText}>
             {canContinue ? "Continue to Review" : !selectedTraveler ? "Choose who's travelling" : "Choose a budget"}
           </Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+          <Ionicons name="arrow-forward" size={18} color={Palette.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
 
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
-    color: "#64748B",
+    color: Palette.slate500,
     marginTop: 14,
     marginBottom: 4,
   },
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   continueBtnText: {
     fontSize: 16,
     fontFamily: "Outfit-Bold",
-    color: "#FFF",
+    color: Palette.white,
   },
 
   // OR Divider Styles

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
 import { getDestinationImage } from "../../Components/constants/Destinations";
-import { useTheme } from "../../Components/constants/theme";
+import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
@@ -83,7 +83,7 @@ export default function SearchPlace() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const searchPlace = (text, type) => {
@@ -211,7 +211,7 @@ export default function SearchPlace() {
             const city = data?.address?.city || data?.address?.town || data?.address?.state;
             const country = data?.address?.country;
             if (city || country) locName = [city, country].filter(Boolean).join(", ");
-          } catch (e) {
+          } catch {
             // Reverse-geocode failed; the numeric label keeps the exact fix.
           }
           setFromQuery(locName);
@@ -222,7 +222,7 @@ export default function SearchPlace() {
           return;
         }
       }
-    } catch (e) {
+    } catch {
       reason = "error";
     }
 
@@ -323,18 +323,18 @@ export default function SearchPlace() {
           {/* FROM INPUT ROW */}
           <View style={styles.inputRow}>
             <View style={[styles.pinCircle, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-              <Ionicons name="radio-button-on" size={16} color="#10B981" />
+              <Ionicons name="radio-button-on" size={16} color={Palette.success} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DEPARTURE CITY</Text>
               <TextInput
                 placeholder="Starting from?"
-                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+                placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
                 value={fromQuery}
                 onFocus={() => setActiveField("from")}
                 onChangeText={(text) => searchPlace(text, "from")}
                 selectionColor={activeAccent}
-                style={[styles.textInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
+                style={[styles.textInput, { color: theme.isDark ? Palette.white : Palette.slate900 }]}
               />
             </View>
             <TouchableOpacity
@@ -365,18 +365,18 @@ export default function SearchPlace() {
           {/* TO INPUT ROW */}
           <View style={styles.inputRow}>
             <View style={[styles.pinCircle, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
-              <Ionicons name="location" size={18} color="#EF4444" />
+              <Ionicons name="location" size={18} color={Palette.danger} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.inputLabel, { color: theme.subtext }]}>DESTINATION</Text>
               <TextInput
                 placeholder="Where to? (e.g. Dubai)"
-                placeholderTextColor={theme.isDark ? "#64748B" : "#94A3B8"}
+                placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
                 value={toQuery}
                 onFocus={() => setActiveField("to")}
                 onChangeText={(text) => searchPlace(text, "to")}
                 selectionColor={activeAccent}
-                style={[styles.textInput, { color: theme.isDark ? "#FFFFFF" : "#0F172A" }]}
+                style={[styles.textInput, { color: theme.isDark ? Palette.white : Palette.slate900 }]}
               />
             </View>
           </View>
@@ -468,7 +468,7 @@ export default function SearchPlace() {
           activeOpacity={0.85}
         >
           <Text style={styles.continueText}>Continue to Travelers</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+          <Ionicons name="arrow-forward" size={18} color={Palette.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   gpsBadgeText: {
-    color: "#10B981",
+    color: Palette.success,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#CBD5E1",
+    backgroundColor: Palette.slate300,
   },
   quickChipText: {
     fontSize: 13,
@@ -648,14 +648,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 15,
     borderRadius: 24,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 3,
   },
   continueText: {
-    color: "#FFF",
+    color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
   },

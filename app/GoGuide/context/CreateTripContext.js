@@ -136,7 +136,7 @@ export const CreateTripProvider = ({ children }) => {
   useEffect(() => {
     try {
       AsyncStorage.setItem("@goguide_preferences", JSON.stringify(preferences));
-    } catch (e) {}
+    } catch {}
   }, [preferences]);
 
   return (

@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 
+import { Palette } from "./theme";
 /**
  * Explicit, theme-independent colours for auth text fields. The card behind them is
  * always white, so system dark mode / Android WebView force-dark / autofill must
@@ -10,7 +11,7 @@ export const AUTH_INPUT_COLOR = "#111827";
 /** Merge into the `input` style of every auth TextInput. */
 export const authInputTextStyle = {
   color: AUTH_INPUT_COLOR,
-  backgroundColor: "#FFFFFF",
+  backgroundColor: Palette.white,
   ...Platform.select({
     web: { WebkitTextFillColor: AUTH_INPUT_COLOR, caretColor: AUTH_INPUT_COLOR, colorScheme: "light" },
     default: {},

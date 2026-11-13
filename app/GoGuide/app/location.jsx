@@ -1,12 +1,12 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { openExternalUrl } from "../Components/utils/openExternalUrl";
-import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../Components/constants/constants';
-import { useTheme } from '../Components/constants/theme';
+import { useTheme, Palette } from '../Components/constants/theme';
 import ScreenHeader from '../Components/ui/ScreenHeader';
 import { CreateTripContext } from '../context/CreateTripContext';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -25,14 +25,14 @@ const QUICK_CITIES = [
 ];
 
 const getWeatherMeta = (code) => {
-  if (code === 0) return { label: "Sunny / Clear Sky", icon: "sunny", color: "#F59E0B" };
-  if (code <= 3) return { label: "Partly Cloudy", icon: "partly-sunny", color: "#3B82F6" };
+  if (code === 0) return { label: "Sunny / Clear Sky", icon: "sunny", color: Palette.warning };
+  if (code <= 3) return { label: "Partly Cloudy", icon: "partly-sunny", color: Palette.blue };
   if (code <= 48) return { label: "Foggy / Mist", icon: "cloudy", color: "#6B7280" };
   if (code <= 67) return { label: "Rainy", icon: "rainy", color: "#2563EB" };
-  if (code <= 77) return { label: "Snowy", icon: "snow", color: "#38BDF8" };
-  if (code <= 82) return { label: "Rain Showers", icon: "rainy", color: "#0284C7" };
-  if (code <= 99) return { label: "Thunderstorm", icon: "thunderstorm", color: "#8B5CF6" };
-  return { label: "Pleasant", icon: "partly-sunny", color: "#F59E0B" };
+  if (code <= 77) return { label: "Snowy", icon: "snow", color: Palette.skyLight };
+  if (code <= 82) return { label: "Rain Showers", icon: "rainy", color: Palette.skyDark };
+  if (code <= 99) return { label: "Thunderstorm", icon: "thunderstorm", color: Palette.purple };
+  return { label: "Pleasant", icon: "partly-sunny", color: Palette.warning };
 };
 
 export default function LocationPage() {
@@ -63,7 +63,7 @@ export default function LocationPage() {
   const triggerHaptic = () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    } catch {}
   };
 
   const fetchWeather = async (lat, lon) => {
@@ -210,7 +210,7 @@ export default function LocationPage() {
                 <Ionicons
                   name={weatherMeta?.icon || "partly-sunny"}
                   size={52}
-                  color={weatherMeta?.color || "#F59E0B"}
+                  color={weatherMeta?.color || Palette.warning}
                   style={{ marginRight: 12 }}
                 />
                 <Text style={[styles.temp, { color: theme.text }]}>{Math.round(weather.temperature)}°C</Text>
@@ -364,7 +364,7 @@ export default function LocationPage() {
                 <Text
                   style={[
                     styles.cityChipText,
-                    { color: isActive ? "#FFF" : theme.text, fontFamily: isActive ? "Outfit-Bold" : "Outfit-Medium" },
+                    { color: isActive ? Palette.white : theme.text, fontFamily: isActive ? "Outfit-Bold" : "Outfit-Medium" },
                   ]}
                 >
                   {city.name}
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     marginBottom: 24,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,

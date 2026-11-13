@@ -113,9 +113,11 @@ graph TD
 - Live advisories on neighborhood safety, verified taxi practices, common street scams, emergency hotlines, and health guidelines.
 
 ### 🎨 7. Modern Glassmorphism UI & Shimmer Skeleton Loading
+- **Sticky Section Nav with Auto-Offset**: Dynamically computes header, nav, and safe-area heights to land section headings with a consistent 14px gap directly below sticky bars. Tab highlight locking prevents flicker during scroll animations, and dynamic bottom padding ensures the Budget section can scroll all the way to the top.
+- **In-Place Tabbed Daily Schedule**: Day chips (`All Days`, `Day 1` .. `Day N`) act as tabs that filter itinerary activities in-place with a subtle 180ms fade, with zero vertical page jump. Auto-centers the selected chip in the horizontal row.
+- **Destination Essentials (Fixed 2×2 Grid)**: Displays Visa, Currency, Emergency, and Season guidelines in an exact 2 rows × 2 columns grid across all phone widths with a `"Read more"` / `"Show less"` expansion toggle and synchronous intel seeding.
 - **60fps Native Shimmer**: Replaced generic loading spinners with animated placeholder skeleton cards mirroring real layouts.
 - **Time-Coded Schedule Nodes**: Visual timeline with color-coded nodes (Amber Sunny for Morning, Sky Blue for Afternoon, Deep Purple Moon for Evening).
-- **Interactive Day Filter Pills**: Instant day selection with native haptic feedback.
 
 ### 💰 8. In-Trip Expense Tracker with Live Dual-Currency Auto-Conversion & 1-Tap Renew
 - **Live Budget Consumption Gauge**: Visual progress bar tracking spending across *Food*, *Transport*, *Stay*, and *Activities*.
@@ -134,7 +136,7 @@ graph TD
 
 ### 🤖 11. Dual AI Engine Architecture & Seamless Guest Access
 - **AI Trip Generator (Discover)**: 1-click comprehensive multi-day itinerary generation engine powered by `/plan` with 24-hour TTL caching for 200ms instantaneous repeat queries.
-- **AI Copilot (Tab 3)**: 24/7 conversational travel concierge powered by `/chat` for live travel inquiries, cultural etiquette, packing questions, and neighborhood advice.
+- **AI Copilot (Tab 3) with Zero-Pixel Flush Keyboard Docking**: 24/7 conversational travel concierge featuring a compact chat bar (40px input/button, 8px padding) that sits 100% flush on top of virtual keyboards on iOS, Android, and mobile web/PWA with zero dead pixel gaps. Includes multiline expansion up to 4 lines and auto-scroll to latest message on focus.
 - **Seamless Guest Anonymous Auth**: Automated `signInAnonymously(auth)` fallback enables guest travelers to immediately query the AI Copilot and generate trips without mandatory sign-in barriers.
 
 ### 💱 12. Origin-to-Destination Dual Currency Engine

@@ -1,13 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo } from 'react';
-import { Animated, Image, Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Animated, Image, Platform, StyleSheet, Text, View } from "react-native";
 import { Colors } from "./constants/constants";
 
 import { TouchableOpacity } from "./ui/Touchable";
+import { Palette } from "./constants/theme";
 export default function Login() {
   const router = useRouter();
-  const { height, width } = useWindowDimensions();
 
   // Animation values for a premium entrance effect
   const fadeAnim = useMemo(() => new Animated.Value(0), []);
@@ -42,7 +42,7 @@ export default function Login() {
 
       {/* Smooth Gradient Overlay for text readability */}
       <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.9)", "#000000"]}
+        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.9)", Palette.black]}
         locations={[0, 0.4, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -87,7 +87,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: Colors.BLACK || "#000",
+    backgroundColor: Colors.BLACK || Palette.black,
   },
   contentContainer: {
     flex: 1,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48, // Even larger and more striking
     fontFamily: "Outfit-Bold",
-    color: Colors.WHITE || "#FFF",
+    color: Colors.WHITE || Palette.white,
     marginBottom: 10,
     letterSpacing: 2, // Wider, elegant tracking
     textAlign: "center",
@@ -119,14 +119,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: "100%",
-    backgroundColor: Colors.WHITE || "#FFF", // White button gives a high-end luxury feel
+    backgroundColor: Colors.WHITE || Palette.white, // White button gives a high-end luxury feel
     paddingVertical: 18,
     borderRadius: 60,
     alignItems: "center",
     marginBottom: 25,
 
     // Soft white glow
-    shadowColor: Colors.WHITE || "#FFF",
+    shadowColor: Colors.WHITE || Palette.white,
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 15,

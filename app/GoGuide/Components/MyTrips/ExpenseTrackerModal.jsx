@@ -13,13 +13,14 @@ import {
 } from "../constants/Currency";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 const EXPENSE_CATEGORIES = [
-  { id: "Food", label: "Dining", icon: "restaurant-outline", color: "#F59E0B" },
-  { id: "Transit", label: "Transport", icon: "car-outline", color: "#0284C7" },
-  { id: "Tickets", label: "Tickets", icon: "ticket-outline", color: "#8B5CF6" },
-  { id: "Stay", label: "Hotel", icon: "bed-outline", color: "#10B981" },
+  { id: "Food", label: "Dining", icon: "restaurant-outline", color: Palette.warning },
+  { id: "Transit", label: "Transport", icon: "car-outline", color: Palette.skyDark },
+  { id: "Tickets", label: "Tickets", icon: "ticket-outline", color: Palette.purple },
+  { id: "Stay", label: "Hotel", icon: "bed-outline", color: Palette.success },
   { id: "Shopping", label: "Shopping", icon: "bag-handle-outline", color: "#EC4899" },
-  { id: "Other", label: "Other", icon: "wallet-outline", color: "#64748B" },
+  { id: "Other", label: "Other", icon: "wallet-outline", color: Palette.slate500 },
 ];
 
 const QUICK_PRESETS = [
@@ -80,7 +81,7 @@ export default function ExpenseTrackerModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const showAlert = (title, message) => {
@@ -295,7 +296,7 @@ export default function ExpenseTrackerModal({
                       style={{
                         fontSize: 12,
                         fontFamily: "Outfit-Bold",
-                        color: isActive ? "#FFF" : theme.text,
+                        color: isActive ? Palette.white : theme.text,
                       }}
                     >
                       {code} ({sym.trim()})
@@ -318,7 +319,7 @@ export default function ExpenseTrackerModal({
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={[styles.metricLabel, { color: theme.subtext }]}>Remaining ({activeViewCurrency})</Text>
-                <Text style={[styles.metricValue, { color: remainingBudget > 0 ? "#10B981" : "#EF4444" }]}>
+                <Text style={[styles.metricValue, { color: remainingBudget > 0 ? Palette.success : Palette.danger }]}>
                   {symbol}{remainingBudget.toLocaleString()}
                 </Text>
                 <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
@@ -334,7 +335,7 @@ export default function ExpenseTrackerModal({
                   styles.progressBarFill,
                   {
                     width: `${percentSpent}%`,
-                    backgroundColor: percentSpent > 90 ? "#EF4444" : percentSpent > 70 ? "#F59E0B" : Colors.PRIMARY,
+                    backgroundColor: percentSpent > 90 ? Palette.danger : percentSpent > 70 ? Palette.warning : Colors.PRIMARY,
                   },
                 ]}
               />
@@ -459,7 +460,7 @@ export default function ExpenseTrackerModal({
                     borderColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.border,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === destCurrency ? "#FFF" : theme.text }}>
+                  <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === destCurrency ? Palette.white : theme.text }}>
                     📍 Local ({destCurrency})
                   </Text>
                 </TouchableOpacity>
@@ -481,7 +482,7 @@ export default function ExpenseTrackerModal({
                       borderColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.border,
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === originCurrency ? "#FFF" : theme.text }}>
+                    <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: inputCurrency === originCurrency ? Palette.white : theme.text }}>
                       🏠 Home ({originCurrency})
                     </Text>
                   </TouchableOpacity>
@@ -505,7 +506,7 @@ export default function ExpenseTrackerModal({
                           backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
                         }}
                       >
-                        <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: isSel ? "#FFF" : theme.text }}>
+                        <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: isSel ? Palette.white : theme.text }}>
                           {code}
                         </Text>
                       </TouchableOpacity>
@@ -591,13 +592,13 @@ export default function ExpenseTrackerModal({
                       <Ionicons
                         name={cat.icon}
                         size={14}
-                        color={isSelected ? "#FFF" : theme.subtext}
+                        color={isSelected ? Palette.white : theme.subtext}
                         style={{ marginRight: 4 }}
                       />
                       <Text
                         style={[
                           styles.categoryPillText,
-                          { color: isSelected ? "#FFFFFF" : theme.text },
+                          { color: isSelected ? Palette.white : theme.text },
                         ]}
                       >
                         {cat.label}
@@ -614,16 +615,16 @@ export default function ExpenseTrackerModal({
                     onPress={() => handleSaveOrUpdate(false)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                    <Ionicons name="checkmark-circle-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
                     <Text style={styles.submitBtnText}>Update</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.submitBtn, { flex: 1, backgroundColor: "#10B981" }]}
+                    style={[styles.submitBtn, { flex: 1, backgroundColor: Palette.success }]}
                     onPress={() => handleSaveOrUpdate(true)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="repeat-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                    <Ionicons name="repeat-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
                     <Text style={styles.submitBtnText}>Re-Add (Renew)</Text>
                   </TouchableOpacity>
                 </View>
@@ -698,7 +699,7 @@ export default function ExpenseTrackerModal({
                       style={[styles.iconBtn, { marginHorizontal: 2 }]}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="repeat-outline" size={16} color="#10B981" />
+                      <Ionicons name="repeat-outline" size={16} color={Palette.success} />
                     </TouchableOpacity>
 
                     {/* Delete */}
@@ -707,7 +708,7 @@ export default function ExpenseTrackerModal({
                       style={styles.iconBtn}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                      <Ionicons name="trash-outline" size={16} color={Palette.danger} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -867,7 +868,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 15,
     fontFamily: "Outfit-Bold",
   },

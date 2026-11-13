@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 const TIME_SLOTS = ["Morning", "Afternoon", "Evening", "Night"];
 
 const PRESETS = [
@@ -32,7 +33,7 @@ export default function AddActivityModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleApplyPreset = (preset) => {
@@ -135,7 +136,7 @@ export default function AddActivityModal({
                     <Text
                       style={[
                         styles.timeSlotText,
-                        { color: isSelected ? "#FFFFFF" : theme.text },
+                        { color: isSelected ? Palette.white : theme.text },
                       ]}
                     >
                       {slot}
@@ -222,7 +223,7 @@ export default function AddActivityModal({
                 style={[styles.saveBtn, { backgroundColor: Colors.PRIMARY }]}
                 activeOpacity={0.85}
               >
-                <Ionicons name="add-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="add-circle" size={18} color={Palette.white} style={{ marginRight: 6 }} />
                 <Text style={styles.saveBtnText}>Add Activity</Text>
               </TouchableOpacity>
             </View>
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   saveBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 14,
     fontFamily: "Outfit-Bold",
   },

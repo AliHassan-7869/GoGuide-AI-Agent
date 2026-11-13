@@ -1,12 +1,13 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 import { downloadItineraryPDF } from "../utils/PdfDownloadService";
 
 import { TouchableOpacity } from "../ui/Touchable";
+import { Palette } from "../constants/theme";
 export default function PrintableItineraryModal({
   visible,
   plan,
@@ -24,7 +25,7 @@ export default function PrintableItineraryModal({
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handlePrintOrPdf = async () => {
@@ -94,11 +95,11 @@ export default function PrintableItineraryModal({
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.duration || "Multi-Day"}</Text>
               </View>
               <View style={[styles.metaPill, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F1F5F9" }]}>
-                <Ionicons name="wallet-outline" size={12} color="#10B981" />
+                <Ionicons name="wallet-outline" size={12} color={Palette.success} />
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.budget || "Budget"}</Text>
               </View>
               <View style={[styles.metaPill, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F1F5F9" }]}>
-                <Ionicons name="people-outline" size={12} color="#8B5CF6" />
+                <Ionicons name="people-outline" size={12} color={Palette.purple} />
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.traveler || "Explorer"}</Text>
               </View>
             </View>
@@ -109,8 +110,8 @@ export default function PrintableItineraryModal({
                 style={[
                   styles.flightPreviewBox,
                   {
-                    backgroundColor: theme.isDark ? "#1E293B" : "#F0F9FF",
-                    borderColor: theme.isDark ? "#334155" : "#BAE6FD",
+                    backgroundColor: theme.isDark ? Palette.slate800 : "#F0F9FF",
+                    borderColor: theme.isDark ? Palette.slate700 : "#BAE6FD",
                   },
                 ]}
               >
@@ -122,7 +123,7 @@ export default function PrintableItineraryModal({
               </View>
             )}
 
-            <View style={[styles.divider, { backgroundColor: theme.isDark ? "#2C2C2C" : "#E2E8F0" }]} />
+            <View style={[styles.divider, { backgroundColor: theme.isDark ? "#2C2C2C" : Palette.slate200 }]} />
 
             {/* Daily Schedule Preview List */}
             <Text style={[styles.sectionHeading, { color: theme.text }]}>Schedule Summary</Text>
@@ -159,7 +160,7 @@ export default function PrintableItineraryModal({
             onPress={handlePrintOrPdf}
             activeOpacity={0.85}
           >
-            <Ionicons name="download-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Ionicons name="download-outline" size={18} color={Palette.white} style={{ marginRight: 8 }} />
             <Text style={styles.printBtnText}>{downloading ? "Generating Official PDF..." : "Download Itinerary PDF"}</Text>
           </TouchableOpacity>
         </View>
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: Palette.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   passTagText: {
-    color: "#10B981",
+    color: Palette.success,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
   flightPrice: {
     fontSize: 12,
     fontFamily: "Outfit-Bold",
-    color: "#10B981",
+    color: Palette.success,
   },
   flightDetailsText: {
     fontSize: 12,
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dayMiniBadgeText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   printBtnText: {
-    color: "#FFFFFF",
+    color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
   },
