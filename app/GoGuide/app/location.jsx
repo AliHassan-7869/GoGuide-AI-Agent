@@ -41,11 +41,6 @@ export default function LocationPage() {
   const theme = useTheme();
   const { userData, setUserData, uid } = useContext(CreateTripContext);
 
-  const safeTopPadding = Platform.select({
-    android: insets.top + 8,
-    ios: Math.max(insets.top, 44),
-    default: 16,
-  });
 
   const initialLoc = userData?.userLocation || {
     name: "Tokyo, Japan",

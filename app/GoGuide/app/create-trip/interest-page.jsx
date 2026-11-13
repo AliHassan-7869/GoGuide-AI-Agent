@@ -503,10 +503,6 @@ export default function YourInterest() {
 
   const triggerHaptic = () => tapHaptic();
 
-  const parseCoord = (v) => {
-    const n = typeof v === "string" ? Number(v) : v;
-    return Number.isFinite(n) ? n : null;
-  };
 
   const haversineKm = (aLat, aLng, bLat, bLng) => {
     const toRad = (d) => (d * Math.PI) / 180;
@@ -584,109 +580,6 @@ export default function YourInterest() {
     return transports.slice(0, 5);
   };
 
-  const fetchOverpassInterests = async ({ lat, lng }) => {
-    const radius = 8000; // Optimized 8km radius for high density and rapid response
-    const query = `
-      [out:json][timeout:3];
-      (
-        nwr(around:${radius},${lat},${lng})[tourism~"^(attraction|museum|viewpoint)$"];
-        nwr(around:${radius},${lat},${lng})[historic];
-        nwr(around:${radius},${lat},${lng})[natural~"^(peak|water|beach)$"];
-        nwr(around:${radius},${lat},${lng})[leisure~"^(park|beach_resort)$"];
-        nwr(around:${radius},${lat},${lng})[amenity~"^(cafe|restaurant|marketplace)$"];
-        nwr(around:${radius},${lat},${lng})[railway=station];
-      );
-      out center 35;
-    `.trim();
-
-    // Parallel Racing over 3 fast global Overpass mirrors with individual 2.8s timeouts
-    const OVERPASS_MIRRORS = [
-      "https://overpass-api.de/api/interpreter",
-      "https://lz4.overpass-api.de/api/interpreter",
-      "https://overpass.kumi.systems/api/interpreter",
-    ];
-
-    const fetchFromMirror = async (mirrorUrl) => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2800);
-      try {
-        const res = await fetch(mirrorUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `data=${encodeURIComponent(query)}`,
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`Mirror ${mirrorUrl} error ${res.status}`);
-        return await res.json();
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    // Fastest responding mirror wins immediately
-    const data = await Promise.any(OVERPASS_MIRRORS.map(fetchFromMirror));
-    const elements = Array.isArray(data?.elements) ? data.elements : [];
-
-    let hasRail = false;
-    let peakCount = 0;
-    const seen = new Set();
-
-    const pickLocalizedName = (tags) => {
-      const localized = (tags?.[`name:${lang}`] || "").trim();
-      if (localized) return localized;
-      const intl = (tags?.[`int_name`] || "").trim();
-      const name = (tags?.name || "").trim();
-      return localized || intl || name;
-    };
-
-    const interests = elements
-      .map((el) => {
-        const tags = el?.tags || {};
-        const name = pickLocalizedName(tags);
-        if (!name) return null;
-
-        if (tags.railway === "station") hasRail = true;
-        if (tags.natural === "peak") peakCount += 1;
-
-        const centerLat = el?.lat ?? el?.center?.lat;
-        const centerLng = el?.lon ?? el?.center?.lon;
-        if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return null;
-
-        const { category, emoji } = categoryFromTags(tags);
-        const key = `${name.toLowerCase()}|${category}`;
-        if (seen.has(key)) return null;
-        seen.add(key);
-
-        const distKm = haversineKm(lat, lng, centerLat, centerLng);
-        const description =
-          category === "Beaches"
-            ? "Scenic coastal or waterfront relaxation"
-            : category === "Viewpoint"
-            ? "Great spot for panoramic photos"
-            : category === "Food"
-              ? "Try a local favorite nearby"
-              : category === "Nature"
-                ? "Scenic place worth exploring"
-                : category === "History"
-                  ? "A historic landmark with character"
-                  : "A popular local place to check out";
-
-        return {
-          id: `${el.type}-${el.id}`,
-          name: `${emoji} ${name}`,
-          description,
-          category,
-          _distKm: distKm,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a._distKm - b._distKm)
-      .slice(0, 20)
-      .map(({ _distKm, ...rest }) => rest);
-
-    const transports = makeTransportList({ isMountain: peakCount >= 3, hasRail });
-    return { interests, transports };
-  };
 
   useEffect(() => {
     return () => {
@@ -710,13 +603,6 @@ export default function YourInterest() {
     }, 1000);
   };
 
-  const extractRetrySeconds = (err) => {
-    const msg = String(err?.message || "");
-    const m = msg.match(/Please retry in\s+([\d.]+)s/i);
-    if (!m) return 0;
-    const n = Math.ceil(Number(m[1]));
-    return Number.isFinite(n) ? n : 0;
-  };
 
   const updateTransports = (list) => {
     if (Array.isArray(list) && list.length > 0) {

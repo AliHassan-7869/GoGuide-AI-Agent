@@ -12,6 +12,7 @@ import FadeInView from "../../Components/ui/FadeInView";
 import TypingIndicator from "../../Components/ui/TypingIndicator";
 import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
+import { isPlanRequest } from "../../Components/utils/copilotIntent";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
@@ -27,14 +28,6 @@ const PROMPT_CARDS = [
   { icon: "partly-sunny-outline", title: "Weather & packing tips", query: "What is the expected weather and what essential items should I pack?" },
   { icon: "location-outline", title: "Hidden gems near me", query: "What are the top hidden gems near me, off the beaten tourist path?" },
 ];
-
-/**
- * The Copilot helps with questions; full plans come from the trip planner (saved, mapped, budgeted).
- * When the user asks for a plan, the reply gets a "Plan this trip" button that opens the planner.
- */
-const PLAN_REQUEST_RE =
-  /\b(plan|itinerary|schedule|bana\s*do|banao)\b[\s\S]*\b(trip|tour|days?|din|week|weekend|itinerary|vacation|holiday)\b|\b\d+\s*-?\s*(days?|din|nights?)\b[\s\S]*\b(trip|plan|itinerary|in|to)\b|\b(plan|create|make|build|generate)\s+(a|my|me\s+a)\b[\s\S]*\b(trip|itinerary)\b/i;
-const isPlanRequest = (text) => PLAN_REQUEST_RE.test(String(text || ""));
 
 const QUICK_CHIPS = [
   { label: "🍜 Best Local & Halal Food", query: "What are the top local and halal food spots I must try?" },

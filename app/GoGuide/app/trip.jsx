@@ -526,22 +526,6 @@ export default function SharedTripView() {
     }
   };
 
-  const handleBookFlight = async (flightInfo) => {
-    triggerHaptic();
-    if (!flightInfo) return;
-    try {
-      await addFlightBooking(flightInfo, destination, tripPlan, auth.currentUser);
-      setIsFlightBooked(true);
-      const msg = `Flight pass (${flightInfo.airline}) added to My Bookings! Access your ticket under Profile -> My Bookings.`;
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.alert(msg);
-      } else {
-        Alert.alert("Flight Added to Bookings! ✈️", msg);
-      }
-    } catch (e) {
-      console.warn("Flight booking error:", e);
-    }
-  };
 
   const handleBookActivity = async (activity, dayNumber) => {
     triggerHaptic();

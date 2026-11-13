@@ -236,18 +236,6 @@ export default function MyTrip() {
     });
   }, []);
 
-  const handleBookActivity = async (activity, dayNumber) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (!activity) return;
-    try {
-      const destName = plan?.destination || tripData?.destination || "Destination";
-      await addActivityBooking(activity, dayNumber, destName, tripData, auth.currentUser);
-      setBookedActivities((prev) => ({ ...prev, [activity.placeName]: true }));
-      Alert.alert("Activity Pass Saved! 🎫", `"${activity.placeName}" has been added to My Bookings.`);
-    } catch (e) {
-      console.warn("Error booking activity:", e);
-    }
-  };
 
   useEffect(() => {
     AsyncStorage.getItem("@goguide_user_trips").then((raw) => {
@@ -756,12 +744,6 @@ export default function MyTrip() {
     }
   };
 
-  // 3. Interactive Multi-Stop Day Route in Maps (exact coordinates when known)
-  const openDayRouteInMaps = (dayObj) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const url = routeUrl(dayObj?.activities || [], plan?.destination);
-    if (url) openExternalUrl(url);
-  };
 
   // 4. Direct Turn-by-Turn Navigation for an activity or hotel item
   const getDirectDirections = (item) => {

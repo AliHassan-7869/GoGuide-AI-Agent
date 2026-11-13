@@ -355,12 +355,6 @@ export default function Profile() {
     }
   };
 
-  const handleRemoveFavorite = async (place) => {
-    triggerHaptic();
-    await toggleFavoritePlace(place);
-    const updated = await getFavoritePlaces();
-    setFavoritePlacesList(updated);
-  };
 
   const toggleTheme = () => {
     triggerHaptic();
