@@ -57,7 +57,7 @@ export default function PrintableItineraryModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Export Itinerary & Pass</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
@@ -65,7 +65,7 @@ export default function PrintableItineraryModal({
             </Text>
           </View>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-            style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
+            style={[styles.closeBtn, { backgroundColor: theme.isDark ? Palette.charcoal : Palette.gray100 }]}
             onPress={onClose}
           >
             <Ionicons name="close" size={20} color={theme.text} />
@@ -90,15 +90,15 @@ export default function PrintableItineraryModal({
             <Text style={[styles.destName, { color: theme.text }]}>{plan.destination}</Text>
 
             <View style={styles.pillRow}>
-              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F1F5F9" }]}>
+              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? Palette.charcoalMid : Palette.slate100 }]}>
                 <Ionicons name="time-outline" size={12} color={Colors.PRIMARY} />
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.duration || "Multi-Day"}</Text>
               </View>
-              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F1F5F9" }]}>
+              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? Palette.charcoalMid : Palette.slate100 }]}>
                 <Ionicons name="wallet-outline" size={12} color={Palette.success} />
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.budget || "Budget"}</Text>
               </View>
-              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? "#2A2A2A" : "#F1F5F9" }]}>
+              <View style={[styles.metaPill, { backgroundColor: theme.isDark ? Palette.charcoalMid : Palette.slate100 }]}>
                 <Ionicons name="people-outline" size={12} color={Palette.purple} />
                 <Text style={[styles.metaPillText, { color: theme.text }]}>{plan.traveler || "Explorer"}</Text>
               </View>
@@ -154,7 +154,7 @@ export default function PrintableItineraryModal({
         </ScrollView>
 
         {/* Action Button */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <TouchableOpacity
             style={styles.printBtn}
             onPress={handlePrintOrPdf}

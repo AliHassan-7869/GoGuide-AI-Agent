@@ -25,7 +25,7 @@ export default function StepProgressBar({ currentStep = 1, totalSteps = 5, stepT
           </Text>
         ) : null}
       </View>
-      <View style={[styles.track, { backgroundColor: theme.isDark ? "#2A2A2A" : Palette.slate200 }]}>
+      <View style={[styles.track, { backgroundColor: theme.isDark ? Palette.charcoalMid : Palette.slate200 }]}>
         <View style={[styles.bar, { width: `${percentage}%`, backgroundColor: Colors.PRIMARY }]} />
       </View>
     </View>

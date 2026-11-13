@@ -32,7 +32,7 @@ export default function SelectBudget() {
 
   const totalDays = Number(tripData?.totalNoOfDays || 5);
 
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const triggerHaptic = () => {
     try {
@@ -204,8 +204,8 @@ export default function SelectBudget() {
           style={[
             styles.currencyBadge,
             {
-              backgroundColor: theme.isDark ? "#064E3B" : "#ECFDF5",
-              borderColor: theme.isDark ? "#059669" : "#A7F3D0",
+              backgroundColor: theme.isDark ? "#064E3B" : Palette.mintLight,
+              borderColor: theme.isDark ? "#059669" : Palette.mint,
             },
           ]}
         >
@@ -214,7 +214,7 @@ export default function SelectBudget() {
             <Text
               style={[
                 styles.currencyBadgeTitle,
-                { color: theme.isDark ? "#A7F3D0" : "#065F46" },
+                { color: theme.isDark ? Palette.mint : "#065F46" },
               ]}
             >
               {originCity} ({homeCurrency}) ➔ {destCity} ({destCurrency})
@@ -294,7 +294,7 @@ export default function SelectBudget() {
                       style={[
                         styles.rangePill,
                         {
-                          backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9",
+                          backgroundColor: theme.isDark ? Palette.slate800 : Palette.slate100,
                           borderColor: isSelected ? activeAccent + "60" : theme.border,
                         },
                       ]}
@@ -321,8 +321,8 @@ export default function SelectBudget() {
                         style={[
                           styles.rangePill,
                           {
-                            backgroundColor: theme.isDark ? "#064E3B30" : "#ECFDF5",
-                            borderColor: theme.isDark ? "#05966960" : "#A7F3D0",
+                            backgroundColor: theme.isDark ? "#064E3B30" : Palette.mintLight,
+                            borderColor: theme.isDark ? "#05966960" : Palette.mint,
                           },
                         ]}
                       >
@@ -402,7 +402,7 @@ export default function SelectBudget() {
                 styles.quickCurrencyBtn,
                 customCurrency === homeCurrency
                   ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
-                  : { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border },
+                  : { backgroundColor: theme.isDark ? Palette.slate800 : Palette.slate100, borderColor: theme.border },
               ]}
               activeOpacity={0.7}
             >
@@ -418,7 +418,7 @@ export default function SelectBudget() {
                   styles.quickCurrencyBtn,
                   customCurrency === destCurrency
                     ? { backgroundColor: activeAccent + "20", borderColor: activeAccent }
-                    : { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border },
+                    : { backgroundColor: theme.isDark ? Palette.slate800 : Palette.slate100, borderColor: theme.border },
                 ]}
                 activeOpacity={0.7}
               >
@@ -433,7 +433,7 @@ export default function SelectBudget() {
                 triggerHaptic();
                 setShowCurrencyModal(true);
               }}
-              style={[styles.quickCurrencyBtn, { backgroundColor: theme.isDark ? Palette.slate800 : "#F1F5F9", borderColor: theme.border }]}
+              style={[styles.quickCurrencyBtn, { backgroundColor: theme.isDark ? Palette.slate800 : Palette.slate100, borderColor: theme.border }]}
               activeOpacity={0.7}
             >
               <Text style={[styles.quickCurrencyText, { color: theme.text }]}>

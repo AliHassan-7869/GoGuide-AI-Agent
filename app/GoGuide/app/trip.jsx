@@ -7,7 +7,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db, auth } from "../Configs/FirebaseConfig";
-import { addHotelBooking, addFlightBooking, addActivityBooking } from "../Components/utils/BookingService";
+import { addHotelBooking, addActivityBooking } from "../Components/utils/BookingService";
 import AddActivityModal from "../Components/MyTrips/AddActivityModal";
 import ExpenseTrackerModal from "../Components/MyTrips/ExpenseTrackerModal";
 import { Colors } from "../Components/constants/constants";
@@ -212,7 +212,6 @@ export default function SharedTripView() {
   const [isDraft, setIsDraft] = useState(params?.isDraft === "true");
   const [isSavedInTrips, setIsSavedInTrips] = useState(false);
   const [bookedHotels, setBookedHotels] = useState({});
-  const [, setIsFlightBooked] = useState(false);
   const [bookedActivities, setBookedActivities] = useState({});
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [targetDayForActivity, setTargetDayForActivity] = useState(1);
@@ -370,6 +369,7 @@ export default function SharedTripView() {
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [targetId]);
 
   const triggerHaptic = () => {
@@ -588,7 +588,10 @@ export default function SharedTripView() {
 
   const hotelPhotos = useHotelImages(tripPlan?.hotels, tripPlan?.destination);
 
-  const rawItinerary = Array.isArray(tripPlan?.itinerary) ? tripPlan.itinerary : [];
+  const rawItinerary = useMemo(
+    () => (Array.isArray(tripPlan?.itinerary) ? tripPlan.itinerary : []),
+    [tripPlan]
+  );
   const itinerary = useMemo(() => {
     const parsedDuration = parseInt(tripPlan?.duration, 10) || 0;
     const totalDays = Math.max(rawItinerary.length, parsedDuration);

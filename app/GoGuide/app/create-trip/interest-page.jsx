@@ -26,7 +26,7 @@ const getCategoryBadgeStyle = (category, isDark) => {
   switch (category) {
     case "Beaches":
       return {
-        bg: isDark ? "rgba(14, 165, 233, 0.18)" : "#E0F2FE",
+        bg: isDark ? "rgba(14, 165, 233, 0.18)" : Palette.skyPale,
         text: isDark ? Palette.skyLight : Palette.skyDark,
         border: isDark ? "rgba(14, 165, 233, 0.35)" : "#BAE6FD",
       };
@@ -40,7 +40,7 @@ const getCategoryBadgeStyle = (category, isDark) => {
     case "Nature":
     case "Adventure":
       return {
-        bg: isDark ? "rgba(34, 197, 94, 0.18)" : "#DCFCE7",
+        bg: isDark ? "rgba(34, 197, 94, 0.18)" : Palette.greenPale,
         text: isDark ? "#4ADE80" : "#15803D",
         border: isDark ? "rgba(34, 197, 94, 0.35)" : "#BBF7D0",
       };
@@ -498,87 +498,12 @@ export default function YourInterest() {
   const retryTimerRef = useRef(null);
   const nextAllowedRequestAtRef = useRef(0);
 
-  const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale || "en";
-  const lang = deviceLocale.split("-")[0]?.toLowerCase() || "en";
-
   const triggerHaptic = () => tapHaptic();
 
 
-  const haversineKm = (aLat, aLng, bLat, bLng) => {
-    const toRad = (d) => (d * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(bLat - aLat);
-    const dLng = toRad(bLng - aLng);
-    const sa =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(aLat)) *
-        Math.cos(toRad(bLat)) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    return 2 * R * Math.atan2(Math.sqrt(sa), Math.sqrt(1 - sa));
-  };
 
-  // Tag categorizer with Beach and coastal recognition
-  const categoryFromTags = (tags = {}) => {
-    if (tags.natural === "beach" || tags.leisure === "beach_resort" || tags.beach) {
-      return { category: "Beaches", emoji: "🏖️" };
-    }
-    if (tags.natural === "peak") return { category: "Nature", emoji: "⛰️" };
-    if (tags.natural === "water" || tags.water) return { category: "Nature", emoji: "🌊" };
-    if (tags.tourism === "museum") return { category: "History", emoji: "🏛️" };
-    if (tags.historic) return { category: "History", emoji: "🏰" };
-    if (tags.tourism === "viewpoint") return { category: "Viewpoint", emoji: "👀" };
-    if (tags.tourism === "attraction") return { category: "Attraction", emoji: "📍" };
-    if (tags.leisure === "park") return { category: "Leisure", emoji: "🌳" };
-    if (tags.amenity === "restaurant" || tags.amenity === "cafe") return { category: "Food", emoji: "🍴" };
-    if (tags.amenity === "marketplace") return { category: "Shopping", emoji: "🛍️" };
-    if (tags.tourism) return { category: "Tourism", emoji: "🧭" };
-    return { category: "General", emoji: "✨" };
-  };
 
-  const t = (key) => {
-    const dict = {
-      walk: { en: "Walking", ur: "پیدل", it: "A piedi", de: "Zu Fuß", es: "A pie", fr: "À pied", ar: "مشياً" },
-      bus: { en: "Local Bus", ur: "مقامی بس", it: "Autobus locale", de: "Linienbus", es: "Autobús local", fr: "Bus local", ar: "حافلة محلية" },
-      taxi: { en: "Taxi", ur: "ٹیکسی", it: "Taxi", de: "Taxi", es: "Taxi", fr: "Taxi", ar: "تاكسي" },
-      bike: { en: "Bike / E-bike", ur: "سائیکل / ای-بائیک", it: "Bici / E-bike", de: "Fahrrad / E‑Bike", es: "Bici / E‑bike", fr: "Vélo / VAE", ar: "دراجة / كهربائية" },
-      car: { en: "Car Rental", ur: "کار کرایہ", it: "Noleggio auto", de: "Mietwagen", es: "Alquiler de coche", fr: "Location de voiture", ar: "تأجير سيارة" },
-      hike: { en: "Hiking Trails", ur: "پیدل راستے", it: "Sentieri", de: "Wanderwege", es: "Senderos", fr: "Sentiers", ar: "مسارات مشي" },
-      cable: { en: "Cable Car / Lift", ur: "کیبل کار / لفٹ", it: "Funivia / Impianto", de: "Seilbahn / Lift", es: "Teleférico", fr: "Téléphérique", ar: "تلفريك" },
-      jeep: { en: "Mountain Shuttle / 4x4", ur: "4x4 شٹل", it: "Navetta / 4x4", de: "Shuttle / 4x4", es: "Transporte / 4x4", fr: "Navette / 4x4", ar: "مكوك / 4x4" },
-      train: { en: "Regional Train", ur: "علاقائی ٹرین", it: "Treno regionale", de: "Regionalzug", es: "Tren regional", fr: "Train régional", ar: "قطار إقليمي" },
-    };
-    return dict[key]?.[lang] || dict[key]?.en || key;
-  };
 
-  const makeTransportList = ({ isMountain, hasRail }) => {
-    const base = [
-      { id: "walk", name: `🚶 ${t("walk")}` },
-      { id: "bus", name: `🚌 ${t("bus")}` },
-      { id: "taxi", name: `🚕 ${t("taxi")}` },
-      { id: "bike", name: `🚲 ${t("bike")}` },
-      { id: "car", name: `🚗 ${t("car")}` },
-    ];
-    const mountainExtras = [
-      { id: "hike", name: `🥾 ${t("hike")}` },
-      { id: "cable", name: `🚠 ${t("cable")}` },
-      { id: "jeep", name: `🚙 ${t("jeep")}` },
-    ];
-    let transports = base;
-    if (hasRail) {
-      transports = [
-        { id: "train", name: `🚆 ${t("train")}` },
-        ...transports.filter((t) => t.id !== "train"),
-      ];
-    }
-    if (isMountain) {
-      transports = [
-        ...mountainExtras,
-        ...transports.filter((t) => !mountainExtras.some((m) => m.id === t.id)),
-      ];
-    }
-    return transports.slice(0, 5);
-  };
 
 
   useEffect(() => {
@@ -715,6 +640,7 @@ export default function YourInterest() {
     if (tripData?.toLocation?.name) {
       GetDynamicInterests();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [tripData?.toLocation?.name]);
 
   // Compute dynamic category recommendations based on what actually exists for this destination

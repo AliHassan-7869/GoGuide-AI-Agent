@@ -11,7 +11,7 @@ import { TouchableOpacity } from "./Touchable";
  */
 export default function EmptyState({ icon = "compass-outline", title, text, actionLabel, onAction, secondaryLabel, onSecondary, style }) {
   const theme = useTheme();
-  const accent = Colors.PRIMARY || "#0A7EA4";
+  const accent = Colors.PRIMARY || Palette.brand;
   return (
     <View style={[styles.wrap, style]} accessibilityRole="summary">
       <View style={[styles.iconCircle, { backgroundColor: theme.isDark ? "rgba(10,126,164,0.18)" : "rgba(10,126,164,0.10)" }]}>

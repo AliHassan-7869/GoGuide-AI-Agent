@@ -27,6 +27,7 @@ export default function Login() {
         useNativeDriver: true,
       }),
     ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, []);
 
   return (
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   buttonText: {
-    color: Colors.PRIMARY || "#0a7ea4", // App theme color for text
+    color: Colors.PRIMARY || Palette.brand, // App theme color for text
     fontSize: 18,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1,

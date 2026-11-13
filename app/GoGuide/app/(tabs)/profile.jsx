@@ -15,7 +15,7 @@ import PolicyModal from "../../Components/PolicyModal";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { getDestinationImage } from "../../Components/constants/Destinations";
-import { getFavoritePlaces, subscribeToFavorites, toggleFavoritePlace } from "../../Components/utils/FavoriteService";
+import { getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function Profile() {
@@ -164,7 +164,7 @@ export default function Profile() {
         reopenFavoritesModalRef.current = false;
         router.push("/favourites");
       }
-    }, [fetchStats, params?.openSaved, params?.openFavorites])
+    }, [fetchStats, router, params?.openSaved, params?.openFavorites])
   );
 
   const triggerHaptic = () => {
@@ -795,7 +795,7 @@ export default function Profile() {
             </View>
 
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? "#282828" : "#E5E7EB" }]}
+              style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}
               onPress={() => setShowSavedTripsModal(false)}
             >
               <Ionicons name="close" size={20} color={titleColor} />

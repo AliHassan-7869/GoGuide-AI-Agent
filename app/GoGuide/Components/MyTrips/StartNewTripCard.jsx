@@ -222,7 +222,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
   const { setTripData } = useContext(CreateTripContext);
   const [liveRouteConfig, setLiveRouteConfig] = useState(null);
 
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const triggerHaptic = () => {
     try {
@@ -379,7 +379,7 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
                       <Text style={{ color: Palette.white, fontSize: Typography.sizeBase, fontFamily: Typography.fontBold }} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                         {destTitle}
                       </Text>
-                      <Text style={{ color: "#F1F5F9", fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 }} maxFontSizeMultiplier={1.3}>
+                      <Text style={{ color: Palette.slate100, fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, marginTop: 2 }} maxFontSizeMultiplier={1.3}>
                         {duration} • Day-by-Day Plan
                       </Text>
                     </View>
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: Palette.slate100,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1002,7 +1002,7 @@ const styles = StyleSheet.create({
   destTagline: {
     fontSize: Typography.sizeSm,
     fontFamily: "Outfit-Regular",
-    color: "#F1F5F9",
+    color: Palette.slate100,
     marginBottom: 8,
   },
   instantPlanRow: {

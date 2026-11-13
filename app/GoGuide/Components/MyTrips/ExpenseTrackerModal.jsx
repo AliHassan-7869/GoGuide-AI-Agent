@@ -243,7 +243,7 @@ export default function ExpenseTrackerModal({
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Trip Budget & Expenses</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
@@ -251,7 +251,7 @@ export default function ExpenseTrackerModal({
             </Text>
           </View>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-            style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
+            style={[styles.closeBtn, { backgroundColor: theme.isDark ? Palette.charcoal : Palette.gray100 }]}
             onPress={onClose}
           >
             <Ionicons name="close" size={20} color={theme.text} />
@@ -329,7 +329,7 @@ export default function ExpenseTrackerModal({
             </View>
 
             {/* Gauge Progress Bar */}
-            <View style={[styles.progressBarTrack, { backgroundColor: theme.isDark ? "#2A2A2A" : "#E5E7EB" }]}>
+            <View style={[styles.progressBarTrack, { backgroundColor: theme.isDark ? Palette.charcoalMid : Palette.gray200 }]}>
               <View
                 style={[
                   styles.progressBarFill,
@@ -403,7 +403,7 @@ export default function ExpenseTrackerModal({
                 style={[
                   styles.input,
                   {
-                    backgroundColor: theme.isDark ? "#252525" : "#F9FAFB",
+                    backgroundColor: theme.isDark ? Palette.charcoalDark : "#F9FAFB",
                     color: theme.text,
                     borderColor: theme.border,
                   },
@@ -455,7 +455,7 @@ export default function ExpenseTrackerModal({
                     paddingHorizontal: 9,
                     paddingVertical: 4,
                     borderRadius: 10,
-                    backgroundColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                    backgroundColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.isDark ? Palette.charcoalDark : Palette.gray100,
                     borderWidth: 1,
                     borderColor: inputCurrency === destCurrency ? Colors.PRIMARY : theme.border,
                   }}
@@ -477,7 +477,7 @@ export default function ExpenseTrackerModal({
                       paddingHorizontal: 9,
                       paddingVertical: 4,
                       borderRadius: 10,
-                      backgroundColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                      backgroundColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.isDark ? Palette.charcoalDark : Palette.gray100,
                       borderWidth: 1,
                       borderColor: inputCurrency === originCurrency ? Colors.PRIMARY : theme.border,
                     }}
@@ -503,7 +503,7 @@ export default function ExpenseTrackerModal({
                           paddingHorizontal: 8,
                           paddingVertical: 4,
                           borderRadius: 10,
-                          backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? "#252525" : "#F3F4F6",
+                          backgroundColor: isSel ? Colors.PRIMARY : theme.isDark ? Palette.charcoalDark : Palette.gray100,
                         }}
                       >
                         <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: isSel ? Palette.white : theme.text }}>
@@ -523,7 +523,7 @@ export default function ExpenseTrackerModal({
                 style={[
                   styles.input,
                   {
-                    backgroundColor: theme.isDark ? "#252525" : "#F9FAFB",
+                    backgroundColor: theme.isDark ? Palette.charcoalDark : "#F9FAFB",
                     color: theme.text,
                     borderColor: theme.border,
                   },
@@ -579,8 +579,8 @@ export default function ExpenseTrackerModal({
                           backgroundColor: isSelected
                             ? cat.color
                             : theme.isDark
-                            ? "#252525"
-                            : "#F3F4F6",
+                            ? Palette.charcoalDark
+                            : Palette.gray100,
                           borderColor: isSelected ? cat.color : theme.border,
                         },
                       ]}

@@ -36,7 +36,7 @@ export default function Favourites() {
   const [error, setError] = useState(false);
 
   const [reloadKey, setReloadKey] = useState(0);
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const retry = () => {
     setLoading(true);

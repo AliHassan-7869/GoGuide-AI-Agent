@@ -80,7 +80,7 @@ export class ErrorBoundary extends React.Component {
             {/* Actions */}
             <View style={styles.btnRow}>
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: "#0A7EA4" }]}
+                style={[styles.primaryBtn, { backgroundColor: Palette.brand }]}
                 onPress={this.handleReset}
                 activeOpacity={0.8}
               >

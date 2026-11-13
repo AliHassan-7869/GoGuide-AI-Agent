@@ -119,7 +119,7 @@ function CustomCalendarView({
           style={{
             padding: 8,
             borderRadius: 8,
-            backgroundColor: theme.isDark ? "#242436" : "#F1F5F9",
+            backgroundColor: theme.isDark ? "#242436" : Palette.slate100,
           }}
         >
           <Ionicons name="chevron-back" size={18} color={activeAccent} />
@@ -134,7 +134,7 @@ function CustomCalendarView({
           style={{
             padding: 8,
             borderRadius: 8,
-            backgroundColor: theme.isDark ? "#242436" : "#F1F5F9",
+            backgroundColor: theme.isDark ? "#242436" : Palette.slate100,
           }}
         >
           <Ionicons name="chevron-forward" size={18} color={activeAccent} />
@@ -246,7 +246,7 @@ export default function SelectDates() {
   });
   const [selectedBlockId, setSelectedBlockId] = useState(null);
 
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const triggerHaptic = () => {
     try {
@@ -584,7 +584,7 @@ export default function SelectDates() {
               onPress={() => handleStepDays(-1)}
               style={[
                 styles.stepperBtn,
-                { backgroundColor: theme.isDark ? "#283042" : "#F1F5F9" },
+                { backgroundColor: theme.isDark ? "#283042" : Palette.slate100 },
               ]}
               activeOpacity={0.7}
             >
@@ -619,7 +619,7 @@ export default function SelectDates() {
               onPress={() => handleStepDays(1)}
               style={[
                 styles.stepperBtn,
-                { backgroundColor: theme.isDark ? "#283042" : "#F1F5F9" },
+                { backgroundColor: theme.isDark ? "#283042" : Palette.slate100 },
               ]}
               activeOpacity={0.7}
             >
@@ -671,7 +671,7 @@ export default function SelectDates() {
                           ? activeAccent + "18"
                           : theme.isDark
                           ? "#252538"
-                          : "#F1F5F9",
+                          : Palette.slate100,
                       },
                     ]}
                   >
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   heroPreTitle: {
-    color: "#0A7EA4",
+    color: Palette.brand,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
   calmNoteBox: {
     backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderLeftWidth: 3,
-    borderLeftColor: "#0A7EA4",
+    borderLeftColor: Palette.brand,
     padding: 14,
     borderRadius: 8,
     marginBottom: 24,

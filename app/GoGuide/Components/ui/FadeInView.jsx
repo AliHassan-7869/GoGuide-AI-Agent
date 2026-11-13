@@ -28,6 +28,7 @@ export default function FadeInView({ index = 0, delay = 0, style, children, ...r
     });
     anim.start();
     return () => anim.stop();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [reduce, progress]);
 
   return (

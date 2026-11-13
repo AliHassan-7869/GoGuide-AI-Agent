@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { openExternalUrl } from "../../Components/utils/openExternalUrl";
-import { directionsUrl, placeUrl, routeUrl } from "../../Components/utils/mapsLinks";
+import { directionsUrl, placeUrl } from "../../Components/utils/mapsLinks";
 import { useCallback, useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, useWindowDimensions } from "react-native";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
@@ -29,7 +29,7 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { buildFlightItinerary } from "../../Components/utils/FlightEngine";
 import { normalizeTrip } from "../../Components/utils/TripNormalizer";
 import { downloadItineraryPDF } from "../../Components/utils/PdfDownloadService";
-import { saveTripToBookings, addActivityBooking } from "../../Components/utils/BookingService";
+import { saveTripToBookings } from "../../Components/utils/BookingService";
 import { buildFallbackDestinationEssentials, fetchDestinationEssentials } from "../../Configs/AiModel";
 import { convertPriceString, hotelPriceLabel } from "../../Components/constants/Currency";
 import {
@@ -340,6 +340,7 @@ export default function MyTrip() {
         }),
       ]).start();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [userTripsList.length]);
 
   // Skeleton pulse: only while loading, stopped on cleanup (no stacked loops), static with reduce-motion.
@@ -445,6 +446,7 @@ export default function MyTrip() {
       GetMyTrips();
     }, 0);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [auth.currentUser]);
 
   const handleSelectTrip = (selectedTrip) => {
@@ -1576,7 +1578,7 @@ export default function MyTrip() {
 
               {plan?.qualityAudit?.noulConfidence != null && (
                 <View style={styles.verifiedAuditBadge}>
-                  <Ionicons name="shield-checkmark" size={11} color="#A7F3D0" />
+                  <Ionicons name="shield-checkmark" size={11} color={Palette.mint} />
                   <Text style={styles.verifiedAuditText}>
                     AI Verified · {Math.round(plan.qualityAudit.noulConfidence * 100)}%
                   </Text>

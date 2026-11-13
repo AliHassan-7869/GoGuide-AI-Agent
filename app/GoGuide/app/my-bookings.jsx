@@ -36,8 +36,8 @@ export default function MyBookings() {
   const [isPassModalVisible, setIsPassModalVisible] = useState(false);
 
   const activeAccent = Colors.PRIMARY || Palette.slate900;
-  const badgeBg = theme.isDark ? "#222232" : "#F1F5F9";
-  const iconColor = theme.isDark ? Palette.slate300 : "#475569";
+  const badgeBg = theme.isDark ? "#222232" : Palette.slate100;
+  const iconColor = theme.isDark ? Palette.slate300 : Palette.slate600;
 
   // Load custom bookings from Local Storage (@goguide_user_bookings) & Firestore
   useEffect(() => {
@@ -190,7 +190,7 @@ export default function MyBookings() {
                         ? Palette.white
                         : theme.isDark
                         ? Palette.slate300
-                        : "#475569",
+                        : Palette.slate600,
                     },
                   ]}
                 >
@@ -358,7 +358,7 @@ export default function MyBookings() {
                   {/* Details text */}
                   <View style={[styles.roomDetailWrap, { backgroundColor: badgeBg }]}>
                     <Ionicons name="information-circle-outline" size={14} color={iconColor} />
-                    <Text style={[styles.roomDetailText, { color: theme.isDark ? Palette.slate300 : "#475569" }]}>
+                    <Text style={[styles.roomDetailText, { color: theme.isDark ? Palette.slate300 : Palette.slate600 }]}>
                       {item.details}
                     </Text>
                   </View>

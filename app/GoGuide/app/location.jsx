@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -37,7 +36,6 @@ const getWeatherMeta = (code) => {
 
 export default function LocationPage() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { userData, setUserData, uid } = useContext(CreateTripContext);
 
@@ -89,6 +87,7 @@ export default function LocationPage() {
         clearTimeout(timer);
       };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, []);
 
   const handleSelectQuickCity = (city) => {

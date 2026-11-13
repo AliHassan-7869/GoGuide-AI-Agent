@@ -28,6 +28,7 @@ export default function SignIn() {
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, []);
 
   const isDisabled = !email || !password || loading;

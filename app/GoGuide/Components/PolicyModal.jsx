@@ -56,7 +56,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
               <View
                 style={[
                   styles.iconBadge,
-                  { backgroundColor: isTerms ? "#E0F2FE" : "#DCFCE7" },
+                  { backgroundColor: isTerms ? Palette.skyPale : Palette.greenPale },
                 ]}
               >
                 <Ionicons
@@ -123,7 +123,7 @@ export default function PolicyModal({ visible, onClose, type = "terms" }) {
           >
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.doneBtn, { backgroundColor: Colors.PRIMARY || "#0A7EA4" }]}
+              style={[styles.doneBtn, { backgroundColor: Colors.PRIMARY || Palette.brand }]}
               activeOpacity={0.85}
             >
               <Text style={styles.doneBtnText}>I Understand & Close</Text>
@@ -147,14 +147,14 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           1. Acceptance of Terms
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           By downloading, accessing, or using GoGuide AI Travel Agent (&ldquo;the App&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, please discontinue using the application.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           2. AI-Generated Content Disclaimer
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           GoGuide utilizes advanced artificial intelligence models (including Google Gemini and DeepSeek) to generate customized travel itineraries, suggestions, safety advisories, and budget estimates.{"\n\n"}
           • AI recommendations are provided for informational and planning purposes only.{"\n"}
           • Travel conditions, opening hours, local pricing, flight schedules, visa requirements, and safety advisories can change rapidly.{"\n"}
@@ -164,28 +164,28 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           3. Bookings and Third-Party Links
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           The App may display links to third-party booking providers (e.g. Booking.com, Google Maps, airline portals). GoGuide does not process financial transactions for external stays, flights, or tickets and is not liable for bookings made through third-party platforms.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           4. User Accounts & Security
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           You are responsible for maintaining the confidentiality of your login credentials.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           5. Account Deletion & Termination
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           You have the right to permanently delete your account and all associated travel records at any time from your Profile Settings. Upon deletion, your data is irreversibly purged from our servers.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           6. Contact & Disputes
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           For any legal inquiries, questions about these terms, or support assistance, reach out to support@goguide.com or submit a ticket through our in-app Help Center.
         </Text>
       </>
@@ -194,7 +194,7 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           1. Information We Collect
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           We collect information necessary to deliver personalized AI travel experiences:{"\n\n"}
           • Account Information: Name, email address, profile avatar, and account credentials.{"\n"}
           • Travel Preferences: Desired destinations, trip duration, traveler type, budget tier, and curated activity interests.{"\n"}
@@ -204,7 +204,7 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           2. How We Use Your Information
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           Your data is strictly utilized to:{"\n\n"}
           • Generate hyper-personalized multi-day day-by-day travel itineraries.{"\n"}
           • Synchronize your booked trips, wishlist favorites, and custom packing checklists across your devices.{"\n"}
@@ -214,21 +214,21 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           3. Zero Third-Party Data Selling
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           We do NOT sell, rent, or trade your personal information or travel history to data brokers or advertising networks. Your data remains solely yours.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           4. Data Storage & Security
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           All user data is encrypted in transit using industry-standard TLS 1.3 and at rest using enterprise Firebase Firestore rules with strict user-level authentication scoping.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           5. Your Privacy Rights (GDPR & CCPA)
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           You have full ownership of your data:{"\n\n"}
           • Right to Access: View all your saved trips, bookings, and profile data anytime.{"\n"}
           • Right to Export: Export your itineraries and profile records as JSON from Account Settings.{"\n"}
@@ -238,7 +238,7 @@ export function PolicyBody({ type = "terms" }) {
         <Text style={[styles.sectionTitle, { color: isDark ? Palette.slate50 : Palette.slate900 }]}>
           6. Contact Privacy Officer
         </Text>
-        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : "#475569" }]}>
+        <Text style={[styles.paragraph, { color: isDark ? Palette.slate300 : Palette.slate600 }]}>
           For privacy requests, GDPR inquiries, or data queries, contact our Data Protection Officer at privacy@goguide.com.
         </Text>
       </>

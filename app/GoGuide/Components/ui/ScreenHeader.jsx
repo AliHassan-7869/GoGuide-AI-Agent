@@ -30,7 +30,7 @@ export default function ScreenHeader({
   const router = useRouter();
   const theme = useTheme();
 
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
   // Pages opened from a link or after a refresh have no history: fall back to Home instead of a dead button.
   const handleBack =
     onBack || (() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/mytrip")));

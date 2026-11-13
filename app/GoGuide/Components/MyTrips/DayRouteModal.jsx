@@ -109,7 +109,7 @@ export default function DayRouteModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Modal Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <View style={{ flex: 1 }}>
             <View style={styles.badgeRow}>
               <View style={styles.dayPill}>
@@ -125,7 +125,7 @@ export default function DayRouteModal({
           </View>
 
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-            style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
+            style={[styles.closeBtn, { backgroundColor: theme.isDark ? Palette.charcoal : Palette.gray100 }]}
             onPress={onClose}
           >
             <Ionicons name="close" size={20} color={theme.text} />
@@ -293,7 +293,7 @@ export default function DayRouteModal({
 
                     {/* Distance indicator to next stop */}
                     {!isLast && (
-                      <View style={[styles.legBadge, { backgroundColor: theme.isDark ? "#242424" : "#F3F4F6" }]}>
+                      <View style={[styles.legBadge, { backgroundColor: theme.isDark ? "#242424" : Palette.gray100 }]}>
                         <Ionicons name="arrow-down" size={11} color={theme.subtext} />
                         <Text style={[styles.legText, { color: theme.subtext }]}>
                           {dist ? `~${dist} km to Stop ${idx + 2}` : `Next stop in route`}
@@ -308,7 +308,7 @@ export default function DayRouteModal({
         </ScrollView>
 
         {/* Bottom Floating Navigation Action */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8, backgroundColor: theme.card, borderTopColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <TouchableOpacity
             style={styles.fullRouteBtn}
             onPress={openFullDayRoute}

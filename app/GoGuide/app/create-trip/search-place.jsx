@@ -76,7 +76,7 @@ export default function SearchPlace() {
   const [activeField, setActiveField] = useState("to");
 
   const timeoutRef = useRef(null);
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const triggerHaptic = () => {
     try {
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   heroPreTitle: {
-    color: "#0A7EA4",
+    color: Palette.brand,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,

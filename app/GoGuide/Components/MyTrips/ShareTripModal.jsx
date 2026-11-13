@@ -103,7 +103,7 @@ export default function ShareTripModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? "#282828" : "#E5E7EB" }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Share & Collaborate</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
@@ -111,7 +111,7 @@ export default function ShareTripModal({
             </Text>
           </View>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
-            style={[styles.closeBtn, { backgroundColor: theme.isDark ? "#282828" : "#F3F4F6" }]}
+            style={[styles.closeBtn, { backgroundColor: theme.isDark ? Palette.charcoal : Palette.gray100 }]}
             onPress={onClose}
           >
             <Ionicons name="close" size={20} color={theme.text} />
@@ -129,7 +129,7 @@ export default function ShareTripModal({
               Anyone with this link can view the complete itinerary, hotels, and places.
             </Text>
 
-            <View style={[styles.urlBox, { backgroundColor: theme.isDark ? "#252525" : Palette.slate50, borderColor: theme.border }]}>
+            <View style={[styles.urlBox, { backgroundColor: theme.isDark ? Palette.charcoalDark : Palette.slate50, borderColor: theme.border }]}>
               <Text style={[styles.urlText, { color: theme.text }]} numberOfLines={1}>
                 {shareableUrl}
               </Text>
@@ -164,7 +164,7 @@ export default function ShareTripModal({
             </Text>
 
             <TouchableOpacity
-              style={[styles.cloneBtn, { backgroundColor: theme.isDark ? "#252525" : "#F1F5F9", borderColor: theme.border }]}
+              style={[styles.cloneBtn, { backgroundColor: theme.isDark ? Palette.charcoalDark : Palette.slate100, borderColor: theme.border }]}
               onPress={handleClone}
               activeOpacity={0.8}
             >

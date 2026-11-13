@@ -170,7 +170,7 @@ export default function TripSummer() {
           </Text>
           {highlights.map((item, index) => (
             <View key={index} style={styles.highlightItem}>
-              <View style={[styles.iconBox, { backgroundColor: theme.isDark ? "#222232" : "#F1F5F9" }]}>
+              <View style={[styles.iconBox, { backgroundColor: theme.isDark ? "#222232" : Palette.slate100 }]}>
                 <Ionicons name={item.icon} size={20} color={activeAccent} />
               </View>
               <View style={styles.highlightText}>

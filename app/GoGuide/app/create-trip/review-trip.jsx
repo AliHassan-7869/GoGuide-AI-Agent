@@ -27,7 +27,7 @@ export default function ReviewTrip() {
   const [weather, setWeather] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const activeAccent = Colors.PRIMARY || "#0A7EA4";
+  const activeAccent = Colors.PRIMARY || Palette.brand;
 
   const triggerHaptic = () => {
     try {
@@ -256,7 +256,7 @@ export default function ReviewTrip() {
             <View
               style={[
                 styles.planeIconContainer,
-                { backgroundColor: theme.isDark ? Palette.slate900 : "#F1F5F9" },
+                { backgroundColor: theme.isDark ? Palette.slate900 : Palette.slate100 },
               ]}
             >
               <Text style={{ fontSize: 20 }}>✈️</Text>
@@ -296,7 +296,7 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.weatherText,
-                  { color: theme.isDark ? Palette.slate400 : "#475569" },
+                  { color: theme.isDark ? Palette.slate400 : Palette.slate600 },
                 ]}
               >
                 Current {destCity} Temp:{" "}
@@ -430,7 +430,7 @@ export default function ReviewTrip() {
                   styles.currencyHomeRow,
                   {
                     borderTopColor: theme.isDark ? Palette.slate800 : Palette.slate200,
-                    backgroundColor: theme.isDark ? "#064E3B20" : "#ECFDF5",
+                    backgroundColor: theme.isDark ? "#064E3B20" : Palette.mintLight,
                   },
                 ]}
               >
@@ -439,7 +439,7 @@ export default function ReviewTrip() {
                   <Text
                     style={[
                       styles.currencyHomeLabel,
-                      { color: theme.isDark ? "#A7F3D0" : "#065F46" },
+                      { color: theme.isDark ? Palette.mint : "#065F46" },
                     ]}
                   >
                     In your currency ({homeCurrency}):
@@ -493,7 +493,7 @@ export default function ReviewTrip() {
           }}
           activeOpacity={0.8}
         >
-          <View style={[styles.modeIconWrap, { backgroundColor: isDeepPlan ? "#DCFCE7" : "#E0F2FE" }]}>
+          <View style={[styles.modeIconWrap, { backgroundColor: isDeepPlan ? Palette.greenPale : Palette.skyPale }]}>
             <Ionicons
               name={isDeepPlan ? "sparkles" : "flash"}
               size={20}
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   heroPreTitle: {
-    color: "#0A7EA4",
+    color: Palette.brand,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
     letterSpacing: 1.5,
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   vipTagText: {
-    color: "#0A7EA4",
+    color: Palette.brand,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
   },
@@ -838,13 +838,13 @@ const styles = StyleSheet.create({
   calmPacingBox: {
     backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderLeftWidth: 3,
-    borderLeftColor: "#0A7EA4",
+    borderLeftColor: Palette.brand,
     padding: 14,
     borderRadius: 8,
     marginTop: 20,
   },
   calmPacingTitle: {
-    color: "#0A7EA4",
+    color: Palette.brand,
     fontSize: 13,
     fontFamily: "Outfit-Bold",
   },

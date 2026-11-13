@@ -73,7 +73,7 @@ function FormattedMarkdownText({ text, isAi, theme }) {
                 fontWeight: isBold || isHeader ? "700" : "400",
                 fontSize: isHeader ? 15 : 14,
                 color: isAi
-                  ? (theme.isDark ? "#F1F5F9" : Palette.slate800)
+                  ? (theme.isDark ? Palette.slate100 : Palette.slate800)
                   : Palette.white,
                 lineHeight: isHeader ? 22 : 20,
               }}
@@ -90,7 +90,7 @@ function FormattedMarkdownText({ text, isAi, theme }) {
                 style={{
                   fontSize: 14,
                   lineHeight: 20,
-                  color: isAi ? (theme.isDark ? Palette.skyLight : "#0A7EA4") : Palette.white,
+                  color: isAi ? (theme.isDark ? Palette.skyLight : Palette.brand) : Palette.white,
                 }}
               >
                 •
@@ -296,6 +296,7 @@ export default function AiAssistant() {
         handleSend(String(prompt));
       }, 500);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [prompt]);
 
   const hasUserMessages = messages.some((m) => m.sender === "user");

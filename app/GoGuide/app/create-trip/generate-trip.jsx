@@ -317,6 +317,7 @@ export default function GenerateTrip() {
       hasGenerated.current = true;
       GenerateAiTrip();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [tripData]);
 
   const canUseInstant = hasCuratedPlan(tripData?.toLocation?.name);
