@@ -454,7 +454,11 @@ Design rules live in `AGENTS.md` and `docs/UI_GUIDELINES.md`; product scope in `
 | Accessibility | Audit found nearly every touchable already labeled or text-bearing; the 2 icon-only ones were labeled. `ui/Touchable` supplies role=button and a 10dp hitSlop by default. | Screen-reader and touch-target coverage. |
 | Tests | New `Components/utils/__tests__/Core.test.js` (JSON parsing, normalizer defaults, validator, currency math). Run with `npm test` (13 tests). | Regression safety for the data layer. |
 
-Verification (run before every release): `npm test`, `npx expo lint`, `npx expo export -p web`.
+Update (Nov 13, later): lint is now 0 errors and 0 warnings (run-once effects carry an explanatory `eslint-disable` comment); `Palette` gained 12 more shared colors (about 89 one-off hex values remain); dead helpers were removed; Copilot plan-request detection moved to `Components/utils/copilotIntent.js` and is tested.
+
+UI tests: Jest + Testing Library are set up (`jest-expo`, `@testing-library/react-native`). UI test files live in `__screen_tests__/` folders (never inside `app/`, which Expo Router treats as routes). Current coverage: EmptyState, ScreenHeader, Touchable and the Help Center screen. Add a screen test by mocking `expo-router`, safe-area and wrapping in `CreateTripContext.Provider` (see `__screen_tests__/HelpCenter.test.jsx`).
+
+Verification (run before every release): `npm test` (logic, 16 tests), `npm run test:ui` (UI, 7 tests), `npx expo lint`, `npx expo export -p web`.
 
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
