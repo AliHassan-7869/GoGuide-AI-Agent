@@ -161,8 +161,8 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.card}>
-            <Text style={styles.title}>Welcome Back 👋</Text>
-            <Text style={styles.subtitle}>Sign in to continue your journey</Text>
+            <Text style={styles.title}>Sign In</Text>
+            <Text style={styles.subtitle}>Sign in to plan, save and sync your trips</Text>
 
             {/* Prominent Error Banner */}
             {errorMessage ? (

@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../Configs/FirebaseConfig";
 
@@ -23,6 +23,9 @@ export default function ReviewTrip() {
   const [isDeepPlan, setIsDeepPlan] = useState(false);
   const router = useRouter();
   const theme = useTheme();
+  // Narrow phones, or phones with large system text, get a stacked layout so nothing is squeezed or cut off
+  const { width: screenWidth, fontScale } = useWindowDimensions();
+  const compact = screenWidth / Math.min(fontScale || 1, 1.3) < 380;
 
   const [weather, setWeather] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -193,6 +196,7 @@ export default function ReviewTrip() {
         <View
           style={[
             styles.boardingPassCard,
+            compact && { padding: 16 },
             {
               backgroundColor: theme.isDark ? Palette.slate800 : Palette.white,
               borderColor: theme.isDark ? "rgba(10, 126, 164, 0.25)" : Palette.slate200,
@@ -234,8 +238,8 @@ export default function ReviewTrip() {
           </View>
 
           {/* Connected Route Visualization */}
-          <View style={styles.passRouteRow}>
-            <View style={{ flex: 1 }}>
+          <View style={[styles.passRouteRow, compact && styles.passRouteRowCompact]}>
+            <View style={compact ? styles.fullWidthCol : { flex: 1 }}>
               <View style={styles.editRow}>
                 <Text style={styles.passCityTag}>ORIGIN</Text>
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit" onPress={() => router.push("/create-trip/search-place")}>
@@ -247,7 +251,7 @@ export default function ReviewTrip() {
                   styles.passCityValue,
                   { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
-                numberOfLines={1}
+                numberOfLines={compact ? 2 : 1}
               >
                 {originCity}
               </Text>
@@ -256,13 +260,14 @@ export default function ReviewTrip() {
             <View
               style={[
                 styles.planeIconContainer,
+                compact && { alignSelf: "center", marginVertical: 10 },
                 { backgroundColor: theme.isDark ? Palette.slate900 : Palette.slate100 },
               ]}
             >
               <Text style={{ fontSize: 20 }}>✈️</Text>
             </View>
 
-            <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <View style={compact ? styles.fullWidthCol : { flex: 1, alignItems: "flex-end" }}>
               <View style={styles.editRow}>
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit"
                   onPress={() => router.push("/create-trip/search-place")}
@@ -275,9 +280,9 @@ export default function ReviewTrip() {
               <Text
                 style={[
                   styles.passCityValue,
-                  { color: theme.isDark ? Palette.slate50 : Palette.slate900, textAlign: "right" },
+                  { color: theme.isDark ? Palette.slate50 : Palette.slate900, textAlign: compact ? "left" : "right" },
                 ]}
-                numberOfLines={1}
+                numberOfLines={compact ? 2 : 1}
               >
                 {destCity}
               </Text>
@@ -312,10 +317,10 @@ export default function ReviewTrip() {
           <View style={styles.ticketDottedLine} />
 
           {/* Quick Spec Matrix */}
-          <View style={styles.passMatrix}>
+          <View style={[styles.passMatrix, compact && styles.passMatrixCompact]}>
             {/* Duration */}
             <TouchableOpacity
-              style={styles.matrixItem}
+              style={[styles.matrixItem, compact && styles.matrixItemCompact]}
               onPress={() => router.push("/create-trip/select-dates")}
               activeOpacity={0.7}
             >
@@ -338,7 +343,7 @@ export default function ReviewTrip() {
 
             {/* Travelers */}
             <TouchableOpacity
-              style={styles.matrixItem}
+              style={[styles.matrixItem, compact && styles.matrixItemCompact]}
               onPress={() => router.push("/create-trip/select-budget")}
               activeOpacity={0.7}
             >
@@ -362,7 +367,7 @@ export default function ReviewTrip() {
 
             {/* Vibes & Activities */}
             <TouchableOpacity
-              style={styles.matrixItem}
+              style={[styles.matrixItem, compact && styles.matrixItemCompact]}
               onPress={() => router.push("/create-trip/interest-page")}
               activeOpacity={0.7}
             >
@@ -386,11 +391,12 @@ export default function ReviewTrip() {
           <View
             style={[
               styles.budgetEstimateBox,
+              compact && { marginHorizontal: 0 },
               { backgroundColor: theme.isDark ? Palette.slate900 : Palette.slate50, borderColor: theme.border },
             ]}
           >
             <View style={styles.budgetEstimateHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
                 <Text style={{ fontSize: 16, marginRight: 6 }}>💰</Text>
                 <Text
                   style={[
@@ -434,7 +440,7 @@ export default function ReviewTrip() {
                   },
                 ]}
               >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
                   <Text style={{ fontSize: 13, marginRight: 5 }}>🏠</Text>
                   <Text
                     style={[
@@ -669,6 +675,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
+    flexWrap: "wrap",
+    gap: 8,
   },
   passLabel: {
     fontSize: 12,
@@ -686,11 +694,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
   },
   vipTagText: {
     color: Palette.brand,
     fontSize: 12,
     fontFamily: "Outfit-Bold",
+    flexShrink: 1,
   },
   passRouteRow: {
     flexDirection: "row",
@@ -708,6 +719,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     color: Palette.slate400,
     letterSpacing: 0.8,
+    flexShrink: 0,
   },
   passCityValue: {
     fontSize: 18,
@@ -733,6 +745,7 @@ const styles = StyleSheet.create({
   weatherText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",
+    flex: 1,
   },
   ticketDottedLine: {
     height: 1,
@@ -750,6 +763,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  passRouteRowCompact: { flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start" },
+  fullWidthCol: { alignSelf: "stretch" },
+  passMatrixCompact: { flexDirection: "column", gap: 12 },
+  matrixItemCompact: { flex: 0, alignItems: "flex-start", alignSelf: "stretch" },
   matrixHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -912,6 +929,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    flexWrap: "wrap",
+    gap: 6,
   },
   budgetEstimateTitle: {
     fontSize: 12,
@@ -935,6 +954,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "baseline",
     marginBottom: 6,
+    flexWrap: "wrap",
+    columnGap: 8,
   },
   currencyLabel: {
     fontSize: 13,
@@ -943,6 +964,7 @@ const styles = StyleSheet.create({
   currencyDestAmount: {
     fontSize: 18,
     fontFamily: "Outfit-Bold",
+    flexShrink: 0,
   },
   currencyHomeRow: {
     flexDirection: "row",
@@ -954,6 +976,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: 4,
+    flexWrap: "wrap",
+    columnGap: 8,
   },
   currencyHomeLabel: {
     fontSize: 12,
@@ -962,5 +986,6 @@ const styles = StyleSheet.create({
   currencyHomeAmount: {
     fontSize: 14,
     fontFamily: "Outfit-Bold",
+    flexShrink: 0,
   },
 });

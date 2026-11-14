@@ -710,7 +710,7 @@ export const styles = StyleSheet.create({
   },
   activityTitle: { fontSize: Typography.sizeBase, fontFamily: Typography.fontBold, marginBottom: Spacing.xs },
   activityDesc: { fontSize: Typography.sizeMd, fontFamily: Typography.fontRegular, lineHeight: 20 },
-  activityMetaRow: { flexDirection: "row", alignItems: "center", marginTop: Spacing.sm },
+  activityMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: Spacing.sm },
   compactMetaPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -718,8 +718,10 @@ export const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: Radius.sm,
     gap: Spacing.xs,
+    flexShrink: 1,
+    maxWidth: "100%",
   },
-  compactMetaPillText: { color: Colors.PRIMARY, fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium },
+  compactMetaPillText: { color: Colors.PRIMARY, fontSize: Typography.sizeSm, fontFamily: Typography.fontMedium, flexShrink: 1 },
   activityBottomActions: {
     flexDirection: "row",
     alignItems: "center",

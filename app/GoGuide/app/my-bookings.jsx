@@ -412,7 +412,7 @@ export default function MyBookings() {
           <View style={[styles.passModalBox, { backgroundColor: theme.card }]}>
             {/* Modal Header */}
             <View style={styles.passModalHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
                 <Text style={[styles.passModalTitle, { color: theme.text }]}>
                   {selectedPass?.type === "Flights" ? "Flight Plan Summary" : "Plan Summary"}
                 </Text>
@@ -434,7 +434,7 @@ export default function MyBookings() {
                 {selectedPass?.title}
               </Text>
               <Text style={[styles.passGuestName, { color: theme.subtext }]}>
-                Traveler: {userData?.name || "GoGuide Traveler"}
+                Prepared for: {userData?.name || "GoGuide Traveler"}
               </Text>
 
               {/* QR Code */}

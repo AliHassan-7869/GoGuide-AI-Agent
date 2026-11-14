@@ -13,7 +13,8 @@
     "lint": "npx expo lint",
     "test": "node --test Components/utils/__tests__/*.test.js",
     "test:ui": "jest --forceExit",
-    "test:e2e": "node e2e/smoke.mjs"
+    "test:e2e": "node e2e/smoke.mjs",
+    "test:overflow": "node e2e/overflow.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

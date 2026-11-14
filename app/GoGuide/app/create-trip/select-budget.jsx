@@ -879,6 +879,7 @@ const styles = StyleSheet.create({
   },
   quickCurrencyRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 12,
   },

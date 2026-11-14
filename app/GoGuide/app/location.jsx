@@ -270,7 +270,7 @@ export default function LocationPage() {
                 borderBottomColor: theme.border,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0, marginRight: 8 }}>
                 <Ionicons name="map" size={16} color={Colors.PRIMARY} style={{ marginRight: 6 }} />
                 <Text style={{ fontSize: 13, fontFamily: "Outfit-Bold", color: theme.text }}>
                   Live Google Map • {activeLocation.name.split(",")[0]}
@@ -283,6 +283,7 @@ export default function LocationPage() {
                   )}`;
                   openExternalUrl(url);
                 }}
+                style={{ flexShrink: 0 }}
               >
                 <Text style={{ fontSize: 12, fontFamily: "Outfit-Bold", color: Colors.PRIMARY }}>
                   Open Full Map ↗
