@@ -13,6 +13,8 @@ import ExpenseTrackerModal from "../Components/MyTrips/ExpenseTrackerModal";
 import { Colors } from "../Components/constants/constants";
 import { styles } from "../Components/MyTrips/trip.styles";
 import { Spacing, useTheme, Palette } from "../Components/constants/theme";
+import VerifiedTag from "../Components/ui/VerifiedTag";
+import { usePlaceVerification } from "../hooks/usePlaceVerification";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
 import { buildFallbackDestinationEssentials, fetchDestinationEssentials } from "../Configs/AiModel";
@@ -140,6 +142,7 @@ export default function SharedTripView() {
   const dayBarWidthRef = useRef(0);
   const dayPositions = useRef({});
   const [dayContentFade] = useState(() => new Animated.Value(1));
+  const isPlaceVerified = usePlaceVerification(tripPlan);
 
   // Reset day filter / expanded cards when the destination changes (render-time derived state).
   const activeDest = tripPlan?.destination || null;
@@ -515,7 +518,7 @@ export default function SharedTripView() {
     try {
       await addHotelBooking(hotel, destination, tripPlan, auth.currentUser);
       setBookedHotels((prev) => ({ ...prev, [hotel.name]: true }));
-      const msg = `${hotel.name} has been added to My Bookings! View your confirmation pass under Profile -> My Bookings.`;
+      const msg = `${hotel.name} has been saved to My Bookings as a plan. View it under Profile -> My Bookings.`;
       if (Platform.OS === "web" && typeof window !== "undefined") {
         window.alert(msg);
       } else {
@@ -534,7 +537,7 @@ export default function SharedTripView() {
       const dest = tripPlan?.destination || "Destination";
       await addActivityBooking(activity, dayNumber, dest, tripPlan, auth.currentUser);
       setBookedActivities((prev) => ({ ...prev, [activity.placeName]: true }));
-      const msg = `"${activity.placeName}" has been added to My Bookings! View your confirmation pass under Profile -> My Bookings.`;
+      const msg = `"${activity.placeName}" has been saved to My Bookings as a plan. View it under Profile -> My Bookings.`;
       if (Platform.OS === "web" && typeof window !== "undefined") {
         window.alert(msg);
       } else {
@@ -1322,6 +1325,7 @@ export default function SharedTripView() {
                       </View>
 
                       <Text style={styles.actTitle}>{act.placeName}</Text>
+                      {isPlaceVerified(act.placeName) ? <VerifiedTag /> : null}
                       <Text style={styles.actDetails}>{act.details || act.placeDetails}</Text>
 
                       <View style={styles.actBottomRow}>

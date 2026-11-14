@@ -14,6 +14,8 @@ import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
 import { styles } from "../../Components/MyTrips/mytrip.styles";
 import { Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
+import VerifiedTag from "../../Components/ui/VerifiedTag";
+import { usePlaceVerification } from "../../hooks/usePlaceVerification";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Ionicons } from "@expo/vector-icons";
 import WeatherCard from "../../Components/MyTrips/WeatherCard";
@@ -73,6 +75,7 @@ export default function MyTrip() {
   const { tripData, setTripData, preferences } = useContext(CreateTripContext);
   const theme = useTheme();
   const plan = useMemo(() => normalizeTrip(tripData?.aiTripPlan || tripData), [tripData]);
+  const isPlaceVerified = usePlaceVerification(plan);
   const rawDaysList = useMemo(
     () => (Array.isArray(plan?.itinerary) ? plan.itinerary : []),
     [plan]
@@ -2198,6 +2201,7 @@ export default function MyTrip() {
                               ]}>
                                 {act.placeName}
                               </Text>
+                              {isPlaceVerified(act.placeName) ? <VerifiedTag /> : null}
 
                               {/* 2-line Description */}
                               <Text style={[styles.activityDesc, { color: theme.subtext }]} numberOfLines={2}>

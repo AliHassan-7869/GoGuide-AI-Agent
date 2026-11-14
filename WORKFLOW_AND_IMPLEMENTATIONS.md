@@ -462,6 +462,8 @@ Verification (run before every release): `npm test` (logic, 16 tests), `npm run 
 
 Live-site QA fixes (Nov 14, 2026): signed-out/guest profile no longer shows a fake `user@example.com` identity (guest state has an empty email; the profile offers "Sign in to save your trips" instead of Sign Out); anonymous AI guests no longer try to create a Firestore profile document; two dead Unsplash image links in `Destinations.js` replaced; page-specific browser tab titles via `Components/utils/pageTitles.js`; Discover date range and Copilot message time now render after hydration. Known and left alone: a React hydration warning (#418) on the four tab pages (structural, no visible effect), and Select Dates defaults that are computed from the build-day clock.
 
+Place verification (Nov 14, 2026): `Components/utils/PlaceVerifier.js` checks up to 8 stops per AI-generated trip against OpenStreetMap (Nominatim) in the background (`hooks/usePlaceVerification.js`), caches every result on the device (30 days found, 3 days not found; failures are never cached), and shows a small "Verified on map" tag (`Components/ui/VerifiedTag.jsx`) on stops that were found. Curated plans are pre-verified and tagged without any network call. A missing tag means "not found on OpenStreetMap", not "fake"; opening hours and prices are not checked. Requests are spaced about 1.1 seconds apart to respect Nominatim's usage policy; if traffic grows, move this behind the backend with a shared cache.
+
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
 All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):

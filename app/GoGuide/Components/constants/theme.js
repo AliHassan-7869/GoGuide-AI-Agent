@@ -6,6 +6,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 // Centralized theme tokens for colors, spacing, radius, and typography
 // Fixed (non-theme-dependent) palette: status colors, overlays and neutrals used across screens
 export const Palette = {
+  successDark: "#047857",
   slate100: "#F1F5F9",
   slate600: "#475569",
   gray100: "#F3F4F6",
