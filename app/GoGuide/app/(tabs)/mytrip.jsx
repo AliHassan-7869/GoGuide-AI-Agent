@@ -15,6 +15,7 @@ import { Colors } from "../../Components/constants/constants";
 import { styles } from "../../Components/MyTrips/mytrip.styles";
 import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
 import VerifiedTag from "../../Components/ui/VerifiedTag";
+import FlightLegCard from "../../Components/MyTrips/FlightLegCard";
 import { usePlaceVerification } from "../../hooks/usePlaceVerification";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -2464,47 +2465,33 @@ export default function MyTrip() {
                 </View>
               </View>
 
-              {/* Outbound Flight Block (Going • Day 1) */}
-              <View style={[styles.flightBlock, { backgroundColor: theme.isDark ? "#1E2738" : Palette.slate50, borderLeftColor: Colors.PRIMARY }]}>
-                <View style={styles.flightBlockHeader}>
-                  <Text style={[styles.flightBlockType, { color: Colors.PRIMARY }]}>
-                    🛫 GOING • DAY 1 ({flightInfo.departureDate})
-                  </Text>
-                  <Text style={[styles.flightCodeBadge, { color: theme.subtext }]}>
-                    Flight {flightInfo.outboundFlightNo} • {flightInfo.duration}
-                  </Text>
-                </View>
-                <Text style={[styles.flightRouteTitle, { color: theme.text }]}>
-                  {flightInfo.origin} ({flightInfo.originIata}) ✈️ {flightInfo.destination} ({flightInfo.destIata})
-                </Text>
-                <Text style={[styles.flightDetailLine, { color: theme.subtext }]}>
-                  {flightInfo.outboundDepTime} ──({flightInfo.stops})──► {flightInfo.outboundArrTime}
-                </Text>
-                <Text style={[styles.flightAirportLine, { color: theme.subtext }]}>
-                  Departing: {flightInfo.originAirport}
-                </Text>
-              </View>
-
-              {/* Return Flight Block (Returning • Day N) */}
-              <View style={[styles.flightBlock, { backgroundColor: theme.isDark ? "#1E2738" : Palette.slate50, borderLeftColor: Palette.success }]}>
-                <View style={styles.flightBlockHeader}>
-                  <Text style={[styles.flightBlockType, { color: Palette.success }]}>
-                    🛬 RETURNING • DAY {numDays} ({flightInfo.returnDate})
-                  </Text>
-                  <Text style={[styles.flightCodeBadge, { color: theme.subtext }]}>
-                    Flight {flightInfo.returnFlightNo} • {flightInfo.duration}
-                  </Text>
-                </View>
-                <Text style={[styles.flightRouteTitle, { color: theme.text }]}>
-                  {flightInfo.destination} ({flightInfo.destIata}) ✈️ {flightInfo.origin} ({flightInfo.originIata})
-                </Text>
-                <Text style={[styles.flightDetailLine, { color: theme.subtext }]}>
-                  {flightInfo.returnDepTime} ──({flightInfo.stops})──► {flightInfo.returnArrTime}
-                </Text>
-                <Text style={[styles.flightAirportLine, { color: theme.subtext }]}>
-                  Baggage included: 🧳 {flightInfo.baggage}
-                </Text>
-              </View>
+              {/* Outbound + Return legs (shared wrap-safe card) */}
+              <FlightLegCard
+                label={`🛫 GOING • DAY 1 (${flightInfo.departureDate})`}
+                flightCode={`Flight ${flightInfo.outboundFlightNo} • ${flightInfo.duration}`}
+                route={`${flightInfo.origin} (${flightInfo.originIata}) ✈️ ${flightInfo.destination} (${flightInfo.destIata})`}
+                depTime={flightInfo.outboundDepTime}
+                arrTime={flightInfo.outboundArrTime}
+                stops={flightInfo.stops}
+                footer={`Departing: ${flightInfo.originAirport}`}
+                accent={Colors.PRIMARY}
+                backgroundColor={theme.isDark ? Palette.slate800 : Palette.slate50}
+                titleColor={theme.text}
+                subColor={theme.subtext}
+              />
+              <FlightLegCard
+                label={`🛬 RETURNING • DAY ${numDays} (${flightInfo.returnDate})`}
+                flightCode={`Flight ${flightInfo.returnFlightNo} • ${flightInfo.duration}`}
+                route={`${flightInfo.destination} (${flightInfo.destIata}) ✈️ ${flightInfo.origin} (${flightInfo.originIata})`}
+                depTime={flightInfo.returnDepTime}
+                arrTime={flightInfo.returnArrTime}
+                stops={flightInfo.stops}
+                footer={`Baggage included: 🧳 ${flightInfo.baggage}`}
+                accent={Palette.success}
+                backgroundColor={theme.isDark ? Palette.slate800 : Palette.slate50}
+                titleColor={theme.text}
+                subColor={theme.subtext}
+              />
 
               {/* Live Price Slot (Ready for Part 4 live fare sync) */}
               <View style={styles.livePriceSlot}>
@@ -2514,8 +2501,8 @@ export default function MyTrip() {
 
               {/* Price & Booking Callout */}
               <View style={styles.flightPriceCallout}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.priceTag}>Est. Round-Trip: {flightPrice}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                  <Text style={[styles.priceTag, { flexShrink: 1 }]}>Est. Round-Trip: {flightPrice}</Text>
                   <View style={styles.estimatedBadge}>
                     <Text style={styles.estimatedBadgeText}>Estimated</Text>
                   </View>

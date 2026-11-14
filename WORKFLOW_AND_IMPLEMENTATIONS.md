@@ -472,6 +472,8 @@ Reliability pass (Nov 14, 2026):
 - Tests: `npm run test:e2e` (Playwright smoke test against any deployment: `BASE_URL=https://your-site npm run test:e2e`; covers page titles, guest profile, curated planning with verified tags, reload and resume, and offline planning). `npm run test:ui` now includes My Trip screen tests.
 - Known limits: (1) the React hydration warning (#418) on the four tab pages comes from the tab navigator's static rendering (it persists with all tab options removed) and has no visible effect; (2) the website has no service worker, so a full page reload with no network cannot work (a native app is unaffected); offline use works once the app has loaded; (3) Render's free tier sleeps when idle, so an always-on instance or an uptime monitor is the remaining step for 9.5 reliability.
 
+Android flight text fix (Nov 14, 2026): the Flights section put two long texts side by side in one row (the "GOING • DAY 1 (date)" label and the "Flight XX • duration" code), and times on one long "09:15 AM ──(stops)──► 02:35 PM" line. Android does not shrink such rows the way browsers do, so text ran outside the card. Both screens now use `Components/MyTrips/FlightLegCard.jsx`: every text has its own full-width line, and the times sit in a row with a flexible middle column for the stops text. Section title rows on the trip screen also let long text shrink. Rule of thumb for new layouts: never put two variable-length Texts side by side without `flexShrink: 1` (or `flex: 1`) on them.
+
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
 All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):
