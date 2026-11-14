@@ -24,6 +24,8 @@ export default function Profile() {
   const { setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // Guests (signed out, or anonymous AI-only sessions) have no email; they get a Sign In prompt instead of Sign Out.
+  const isGuest = !userData?.email && !auth.currentUser?.email;
 
   const [stats, setStats] = useState({
     trips: 0,
@@ -732,7 +734,23 @@ export default function Profile() {
           {settingsItems.map((item, idx) => renderMenuItem(item, idx === settingsItems.length - 1))}
         </View>
 
-        {/* Section 4: Sign Out */}
+        {/* Section 4: Sign In (guests) / Sign Out (signed-in users) */}
+        {isGuest ? (
+          <View style={[styles.groupCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}>
+            <TouchableOpacity
+              style={styles.signOutRow}
+              onPress={() => router.push("/auth/sign-in")}
+              accessibilityRole="button"
+              accessibilityLabel="Sign in or create an account to save your trips"
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: "rgba(10, 126, 164, 0.12)", borderColor: "rgba(10, 126, 164, 0.3)" }]}>
+                <Ionicons name="log-in-outline" size={20} color={Colors.PRIMARY} />
+              </View>
+              <Text style={[styles.signOutText, { color: Colors.PRIMARY }]}>Sign in to save your trips</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
         <View style={[styles.groupCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}>
           <TouchableOpacity
             style={styles.signOutRow}
@@ -755,6 +773,7 @@ export default function Profile() {
             <Text style={[styles.signOutText, { color: theme.isDark ? Palette.dangerLight : Palette.dangerDark }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
+        )}
 
         {/* Footer info */}
         <View style={styles.footerWrap}>

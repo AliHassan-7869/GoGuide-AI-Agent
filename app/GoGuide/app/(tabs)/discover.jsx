@@ -24,7 +24,7 @@ import { TouchableOpacity } from "../../Components/ui/Touchable";
 import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
 import { Skeleton } from "../../Components/ui/Skeleton";
-import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, useHydrated, Palette } from "../../Components/constants/theme";
 
 // Fixed overlay colours for text on photos (always white on a dark scrim, independent of theme)
 const ON_IMAGE = Palette.white;
@@ -173,6 +173,8 @@ export default function Discover() {
   const insets = useSafeAreaInsets();
   const { preferences, setTripData } = useContext(CreateTripContext);
   const theme = useTheme();
+  // The date range depends on today's date; show it only after hydration (the static page is built on another day).
+  const hydrated = useHydrated();
   const isDark = theme.isDark;
   const accent = Colors.PRIMARY || theme.primary;
 
@@ -876,9 +878,9 @@ export default function Discover() {
             {/* Departure date: one selected chip, range derived from start + duration */}
             <View style={[styles.innerPanel, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.65)", borderColor: accent + "40" }]}>
               <Text style={[styles.panelLabel, { color: themeStyles.subTextColor }]} maxFontSizeMultiplier={1.3}>Departure date</Text>
-              <View style={styles.rangeRow} accessibilityLabel={`Trip dates ${rangeLabel}`}>
+              <View style={styles.rangeRow} accessibilityLabel={hydrated ? `Trip dates ${rangeLabel}` : "Trip dates"}>
                 <Ionicons name="calendar-outline" size={16} color={accent} />
-                <Text style={[styles.rangeText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>{rangeLabel}</Text>
+                <Text style={[styles.rangeText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>{hydrated ? rangeLabel : " "}</Text>
               </View>
 
               <View style={styles.chipWrap}>

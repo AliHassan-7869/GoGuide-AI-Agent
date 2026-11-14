@@ -1,5 +1,6 @@
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
+import { useEffect } from "react";
 import { View, Platform, StyleSheet, useWindowDimensions, LogBox } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -8,6 +9,7 @@ import { CreateTripProvider } from "../context/CreateTripContext";
 import { ErrorBoundary } from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
 import { installWebAlert } from "../Components/utils/webAlert";
+import { titleForPath } from "../Components/utils/pageTitles";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 LogBox.ignoreAllLogs(true);
@@ -18,6 +20,12 @@ installWebAlert();
 function AppContent() {
   const { width } = useWindowDimensions();
   const theme = useTheme();
+  const pathname = usePathname();
+
+  // Web only: a page-specific browser tab title (set after mount, so it never affects hydration)
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") document.title = titleForPath(pathname);
+  }, [pathname]);
 
   const isDesktopWeb = Platform.OS === "web" && width > 520;
 

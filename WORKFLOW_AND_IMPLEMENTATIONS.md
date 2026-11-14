@@ -460,6 +460,8 @@ UI tests: Jest + Testing Library are set up (`jest-expo`, `@testing-library/reac
 
 Verification (run before every release): `npm test` (logic, 16 tests), `npm run test:ui` (UI, 7 tests), `npx expo lint`, `npx expo export -p web`.
 
+Live-site QA fixes (Nov 14, 2026): signed-out/guest profile no longer shows a fake `user@example.com` identity (guest state has an empty email; the profile offers "Sign in to save your trips" instead of Sign Out); anonymous AI guests no longer try to create a Firestore profile document; two dead Unsplash image links in `Destinations.js` replaced; page-specific browser tab titles via `Components/utils/pageTitles.js`; Discover date range and Copilot message time now render after hydration. Known and left alone: a React hydration warning (#418) on the four tab pages (structural, no visible effect), and Select Dates defaults that are computed from the build-day clock.
+
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
 All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):

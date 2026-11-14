@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
 import { Colors } from "../../Components/constants/constants";
-import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, useHydrated, Palette } from "../../Components/constants/theme";
 import FadeInView from "../../Components/ui/FadeInView";
 import TypingIndicator from "../../Components/ui/TypingIndicator";
 import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
@@ -119,6 +119,8 @@ function FormattedMarkdownText({ text, isAi, theme }) {
 export default function AiAssistant() {
   const router = useRouter();
   const theme = useTheme();
+  // Times come from the device clock; show them only after hydration so the static page and the browser agree.
+  const hydrated = useHydrated();
   const insets = useSafeAreaInsets();
   const { prompt } = useLocalSearchParams();
   const { tripData, userData } = useContext(CreateTripContext);
@@ -388,7 +390,7 @@ export default function AiAssistant() {
               { color: isAi ? theme.subtext : "rgba(255,255,255,0.8)", textAlign: isAi ? "left" : "right" },
             ]}
           >
-            {item.time}
+            {hydrated ? item.time : ""}
           </Text>
         </View>
       </FadeInView>

@@ -6,15 +6,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const CreateTripContext = createContext(null);
 
+const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+// Shown when nobody (or only an anonymous guest) is signed in. No fake email: screens treat an empty email as "guest".
+const GUEST_USER = { name: "Traveler", email: "", avatar: DEFAULT_AVATAR, userLocation: null };
+
 export const CreateTripProvider = ({ children }) => {
   const [tripData, setTripData] = useState({});
   const [uid, setUid] = useState(null);
-  const [userData, setUserData] = useState({
-    name: "Traveler",
-    email: "user@example.com",
-    avatar: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-    userLocation: null,
-  });
+  const [userData, setUserData] = useState(GUEST_USER);
 
   const [preferences, setPreferences] = useState({
     notifications: true,
@@ -46,7 +45,11 @@ export const CreateTripProvider = ({ children }) => {
   // Load user profile from Firestore when auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && user.isAnonymous) {
+        // Anonymous guests (used for AI access) have no profile document; keep them local-only.
+        setUid(user.uid);
+        setUserData(GUEST_USER);
+      } else if (user) {
         setUid(user.uid);
         try {
           const userRef = doc(db, "users", user.uid);
@@ -57,8 +60,8 @@ export const CreateTripProvider = ({ children }) => {
             // First time login — create the user doc in Firestore
             const initialData = {
               name: user.displayName || "Traveler",
-              email: user.email || "user@example.com",
-              avatar: user.photoURL || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+              email: user.email || "",
+              avatar: user.photoURL || DEFAULT_AVATAR,
             };
             await setDoc(userRef, initialData);
             setUserData(initialData);
@@ -68,11 +71,7 @@ export const CreateTripProvider = ({ children }) => {
         }
       } else {
         setUid(null);
-        setUserData({
-          name: "Traveler",
-          email: "user@example.com",
-          avatar: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-        });
+        setUserData(GUEST_USER);
         setTripData({});
       }
     });

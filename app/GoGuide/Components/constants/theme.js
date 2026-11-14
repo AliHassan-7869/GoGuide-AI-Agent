@@ -128,7 +128,7 @@ const noopSubscribe = () => () => {};
  * styles (it does not patch style mismatches), so we report "light" until hydration is done,
  * then the real scheme, which triggers a proper re-render. Native always gets true at once.
  */
-function useHydrated() {
+export function useHydrated() {
   return useSyncExternalStore(noopSubscribe, () => true, () => false);
 }
 
