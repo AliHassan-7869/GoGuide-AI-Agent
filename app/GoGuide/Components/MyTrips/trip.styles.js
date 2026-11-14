@@ -207,16 +207,20 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
   sectionTitle: {
     color: Palette.slate50,
     fontSize: 18,
     fontFamily: "Outfit-Bold",
+    flexShrink: 1,
   },
   sectionCount: {
     color: Palette.slate400,
     fontSize: 12,
     fontFamily: "Outfit-Regular",
+    flexShrink: 1,
+    textAlign: "right",
   },
   hotelCard: {
     width: 255,

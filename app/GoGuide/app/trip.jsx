@@ -14,6 +14,7 @@ import { Colors } from "../Components/constants/constants";
 import { styles } from "../Components/MyTrips/trip.styles";
 import { Spacing, useTheme, Palette } from "../Components/constants/theme";
 import VerifiedTag from "../Components/ui/VerifiedTag";
+import FlightLegCard from "../Components/MyTrips/FlightLegCard";
 import { usePlaceVerification } from "../hooks/usePlaceVerification";
 import { getDestinationImage } from "../Components/constants/Destinations";
 import { downloadItineraryPDF } from "../Components/utils/PdfDownloadService";
@@ -1060,56 +1061,35 @@ export default function SharedTripView() {
                   borderColor: Palette.slate700,
                 }}
               >
-                <View
-                  style={{
-                    backgroundColor: Palette.slate900,
-                    borderRadius: 12,
-                    padding: 12,
-                    borderLeftWidth: 3,
-                    borderLeftColor: Palette.sky,
-                  }}
-                >
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: Palette.skyLight }}>
-                      🛫 GOING • DAY 1 ({flightInfo.departureDate})
-                    </Text>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: Palette.slate400 }}>
-                      {flightInfo.outboundFlightNo} • {flightInfo.duration}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: Palette.slate50, marginTop: 4 }}>
-                    {flightInfo.origin} ({flightInfo.originIata}) ✈️ {flightInfo.destination} ({flightInfo.destIata})
-                  </Text>
-                  <Text style={{ fontSize: 12, color: Palette.slate400, marginTop: 2 }}>
-                    {flightInfo.outboundDepTime} ──({flightInfo.stops})──► {flightInfo.outboundArrTime} • {flightInfo.originAirport}
-                  </Text>
-                </View>
+                <FlightLegCard
+                  label={`🛫 GOING • DAY 1 (${flightInfo.departureDate})`}
+                  flightCode={`${flightInfo.outboundFlightNo} • ${flightInfo.duration}`}
+                  route={`${flightInfo.origin} (${flightInfo.originIata}) ✈️ ${flightInfo.destination} (${flightInfo.destIata})`}
+                  depTime={flightInfo.outboundDepTime}
+                  arrTime={flightInfo.outboundArrTime}
+                  stops={flightInfo.stops}
+                  footer={flightInfo.originAirport}
+                  accent={Palette.sky}
+                  labelColor={Palette.skyLight}
+                  backgroundColor={Palette.slate900}
+                  titleColor={Palette.slate50}
+                  subColor={Palette.slate400}
+                />
 
-                <View
-                  style={{
-                    backgroundColor: Palette.slate900,
-                    borderRadius: 12,
-                    padding: 12,
-                    marginTop: 8,
-                    borderLeftWidth: 3,
-                    borderLeftColor: Palette.success,
-                  }}
-                >
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: Palette.successLight }}>
-                      🛬 RETURNING • DAY {numDays} ({flightInfo.returnDate})
-                    </Text>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: Palette.slate400 }}>
-                      {flightInfo.returnFlightNo} • {flightInfo.duration}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: Palette.slate50, marginTop: 4 }}>
-                    {flightInfo.destination} ({flightInfo.destIata}) ✈️ {flightInfo.origin} ({flightInfo.originIata})
-                  </Text>
-                  <Text style={{ fontSize: 12, color: Palette.slate400, marginTop: 2 }}>
-                    {flightInfo.returnDepTime} ──({flightInfo.stops})──► {flightInfo.returnArrTime} • 🧳 {flightInfo.baggage}
-                  </Text>
-                </View>
+                <FlightLegCard
+                  label={`🛬 RETURNING • DAY ${numDays} (${flightInfo.returnDate})`}
+                  flightCode={`${flightInfo.returnFlightNo} • ${flightInfo.duration}`}
+                  route={`${flightInfo.destination} (${flightInfo.destIata}) ✈️ ${flightInfo.origin} (${flightInfo.originIata})`}
+                  depTime={flightInfo.returnDepTime}
+                  arrTime={flightInfo.returnArrTime}
+                  stops={flightInfo.stops}
+                  footer={`🧳 ${flightInfo.baggage}`}
+                  accent={Palette.success}
+                  labelColor={Palette.successLight}
+                  backgroundColor={Palette.slate900}
+                  titleColor={Palette.slate50}
+                  subColor={Palette.slate400}
+                />
 
                 <View
                   style={{
