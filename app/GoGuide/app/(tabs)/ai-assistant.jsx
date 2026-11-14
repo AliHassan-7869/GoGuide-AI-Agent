@@ -278,7 +278,7 @@ export default function AiAssistant() {
       const errorMsg = {
         id: "err_" + Date.now(),
         sender: "ai",
-        text: "⚠️ Sorry, I encountered a temporary connection glitch. Please try asking again!",
+        text: "⚠️ I couldn't reach the server just now. Please check your connection and send your message again.",
         time: nowTime(),
       };
       setMessages([...updatedWithUser, errorMsg]);

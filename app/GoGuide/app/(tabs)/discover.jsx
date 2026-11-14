@@ -589,21 +589,29 @@ export default function Discover() {
       const returnDateStr = fmtDate(endObj);
 
       console.log("[AI-Copilot] Generating instant trip for:", cleanDest, "from:", cleanOrigin);
-      const result = await generateTripWithAgent({
-        destination: cleanDest,
-        days: days,
-        budget: budget,
-        interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
-      });
-
-      const responseText = await result.response.text();
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
+      const { buildCuratedPlan } = require("../../Components/utils/CuratedPlans");
 
       let parsedData = null;
-      try {
-        parsedData = robustParseJson(responseText);
-      } catch (parseErr) {
-        console.warn("[Discover] Robust parse note:", parseErr?.message);
+      // Verified itinerary bundled in the app (same data the backend serves for these cities):
+      // instant, free, and works with no network. Only the other cities need the AI.
+      const curated = buildCuratedPlan(cleanDest, days, budget);
+      if (curated) {
+        parsedData = curated;
+      } else {
+        const result = await generateTripWithAgent({
+          destination: cleanDest,
+          days: days,
+          budget: budget,
+          interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
+        });
+
+        const responseText = await result.response.text();
+        try {
+          parsedData = robustParseJson(responseText);
+        } catch (parseErr) {
+          console.warn("[Discover] Robust parse note:", parseErr?.message);
+        }
       }
 
       let completePlan = parsedData ? (normalizeTrip(parsedData) || parsedData.trip || parsedData) : null;

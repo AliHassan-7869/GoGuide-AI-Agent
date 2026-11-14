@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -43,8 +43,10 @@ export const CreateTripProvider = ({ children }) => {
   };
 
   // Load user profile from Firestore when auth state changes
+  const hadUserRef = useRef(false);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) hadUserRef.current = true;
       if (user && user.isAnonymous) {
         // Anonymous guests (used for AI access) have no profile document; keep them local-only.
         setUid(user.uid);
@@ -72,7 +74,12 @@ export const CreateTripProvider = ({ children }) => {
       } else {
         setUid(null);
         setUserData(GUEST_USER);
-        setTripData({});
+        // Clear the trip only on a real sign-out. The first "nobody signed in" event at app start must not
+        // wipe a trip that was just restored from storage (a guest reloading the page would lose their plan).
+        if (hadUserRef.current) {
+          hadUserRef.current = false;
+          setTripData({});
+        }
       }
     });
     return () => unsubscribe();

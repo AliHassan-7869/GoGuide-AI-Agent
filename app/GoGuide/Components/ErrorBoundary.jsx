@@ -2,8 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, StatusBar, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "../Configs/FirebaseConfig";
+import { reportError } from "./utils/errorTelemetry";
 
 import { TouchableOpacity } from "./ui/Touchable";
 import { Palette } from "./constants/theme";
@@ -27,18 +26,8 @@ export class ErrorBoundary extends React.Component {
     this.setState({ errorInfo });
 
     // Production Telemetry: Log to Firestore AppErrors collection
-    try {
-      const errorReport = {
-        message: String(error?.message || error || "Unknown error").slice(0, 900),
-        stack: String(error?.stack || "").slice(0, 1500),
-        componentStack: String(errorInfo?.componentStack || "").slice(0, 1500),
-        platform: Platform.OS,
-        timestamp: new Date().toISOString(),
-      };
-      addDoc(collection(db, "AppErrors"), errorReport).catch(() => {});
-    } catch {
-      // Non-blocking telemetry
-    }
+    // (shared reporter: trimmed to the Firestore rules, de-duplicated and capped per session)
+    reportError(error, { componentStack: errorInfo?.componentStack });
   }
 
   handleReset = () => {

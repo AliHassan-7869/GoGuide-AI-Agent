@@ -13,7 +13,7 @@ import { collection, query, where, getDocs, orderBy, limit, addDoc, deleteDoc, d
 import * as Haptics from "expo-haptics";
 import { Colors } from "../../Components/constants/constants";
 import { styles } from "../../Components/MyTrips/mytrip.styles";
-import { Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
+import { Radius, Spacing, Typography, useTheme, Palette } from "../../Components/constants/theme";
 import VerifiedTag from "../../Components/ui/VerifiedTag";
 import { usePlaceVerification } from "../../hooks/usePlaceVerification";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -1227,6 +1227,39 @@ export default function MyTrip() {
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: safeTopPadding }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
+          {/* A trip restored from storage (reload / app restart) can be resumed instead of being hidden behind the hub */}
+          {plan && Array.isArray(plan.itinerary) && plan.itinerary.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setShowHubView(false)}
+              accessibilityRole="button"
+              accessibilityLabel={`Continue your plan to ${plan.destination || "your trip"}`}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                minHeight: 56,
+                marginHorizontal: Spacing.lg,
+                marginTop: Spacing.lg,
+                paddingHorizontal: Spacing.lg,
+                paddingVertical: Spacing.md,
+                borderRadius: Radius.card,
+                borderWidth: 1,
+                borderColor: Colors.PRIMARY,
+                backgroundColor: theme.card,
+              }}
+            >
+              <Ionicons name="play-circle" size={28} color={Colors.PRIMARY} />
+              <View style={{ flex: 1, marginLeft: Spacing.md }}>
+                <Text style={{ color: theme.text, fontSize: Typography.sizeMd, fontFamily: Typography.fontBold }} maxFontSizeMultiplier={1.3}>
+                  Continue your plan
+                </Text>
+                <Text style={{ color: theme.subtext, fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular }} maxFontSizeMultiplier={1.3} numberOfLines={1}>
+                  {plan.destination || "Your trip"} · {plan.itinerary.length} {plan.itinerary.length === 1 ? "day" : "days"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.subtext} />
+            </TouchableOpacity>
+          ) : null}
           <StartNewTripCard 
             userTrips={userTripsList} 
             onSelectTrip={(selectedTrip) => {

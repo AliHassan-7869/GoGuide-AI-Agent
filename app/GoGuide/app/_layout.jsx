@@ -10,17 +10,25 @@ import { ErrorBoundary } from "../Components/ErrorBoundary";
 import { installAndroidTextDefaults } from "../Components/utils/androidTextDefaults";
 import { installWebAlert } from "../Components/utils/webAlert";
 import { titleForPath } from "../Components/utils/pageTitles";
+import { installErrorTelemetry } from "../Components/utils/errorTelemetry";
+import { warmUpBackend } from "../Configs/AiModel";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 LogBox.ignoreAllLogs(true);
 
 installAndroidTextDefaults();
 installWebAlert();
+installErrorTelemetry();
 
 function AppContent() {
   const { width } = useWindowDimensions();
   const theme = useTheme();
   const pathname = usePathname();
+
+  // Wake the backend early (free hosting sleeps when idle) so the first AI request is fast.
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
 
   // Web only: a page-specific browser tab title (set after mount, so it never affects hydration)
   useEffect(() => {

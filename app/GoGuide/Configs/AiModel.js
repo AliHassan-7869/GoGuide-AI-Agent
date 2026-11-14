@@ -40,7 +40,7 @@ async function ensureUserAuth() {
 }
 
 // Calls the backend with the signed-in user's Firebase ID token.
-async function callBackend(path, body = null, method = "POST") {
+async function callBackend(path, body = null, method = "POST", timeoutMs = REQUEST_TIMEOUT_MS) {
   if (!API_URL) {
     throw new Error("Backend URL is not configured");
   }
@@ -55,7 +55,7 @@ async function callBackend(path, body = null, method = "POST") {
   const idToken = await user.getIdToken();
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let response;
   try {
@@ -120,9 +120,20 @@ const asResult = (text) => ({
   },
 });
 
+// Wakes the backend early (the free Render tier sleeps when idle) so the first real request is fast.
+// Sends no user data; failures are ignored.
+export const warmUpBackend = () => {
+  if (!API_URL || typeof fetch !== "function") return;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  fetch(`${API_URL}/health`, { method: "GET", signal: controller.signal })
+    .catch(() => {})
+    .finally(() => clearTimeout(timer));
+};
+
 // Interests + transport options for a destination (server-side prompt)
 export const fetchDestinationInterests = async (destination) => {
-  const data = await callBackend("/destination/interests", { destination: String(destination || "").slice(0, 100) });
+  const data = await callBackend("/destination/interests", { destination: String(destination || "").slice(0, 100) }, "POST", 30000);
   return { interests: data.interests || [], transports: data.transports || [] };
 };
 
@@ -165,29 +176,34 @@ export const askTravelAssistant = async (userMessage, chatHistory = [], activeTr
       }
     : null;
 
-  try {
-    const data = await callBackend("/chat", {
-      message: String(userMessage).slice(0, 2000),
-      history: history.slice(-6).map((msg) => ({
-        sender: msg.sender === "user" ? "user" : "ai",
-        text: String(msg.text || "").slice(0, 4000),
-      })),
-      trip,
-    });
-    if (data.reply) return data.reply;
-  } catch (e) {
-    console.warn("[Copilot] Backend error:", e.message);
-  }
-
-  // Graceful fallback response
-  return "I'm your GoGuide AI Copilot! Pack comfortable walking shoes, keep your passport handy, and don't forget to try the local street food! How else can I help customize your journey?";
+  // One retry for temporary failures. If it still fails we throw, so the screen shows an honest
+  // error instead of a canned tip that looks like a real AI answer.
+  const data = await withRetry(
+    () =>
+      callBackend(
+        "/chat",
+        {
+          message: String(userMessage).slice(0, 2000),
+          history: history.slice(-6).map((msg) => ({
+            sender: msg.sender === "user" ? "user" : "ai",
+            text: String(msg.text || "").slice(0, 4000),
+          })),
+          trip,
+        },
+        "POST",
+        45000
+      ),
+    [2500]
+  );
+  if (!data?.reply) throw new Error("Empty reply from the assistant");
+  return data.reply;
 };
 
 // Destination-aware Live AI Safety Alerts
 export const fetchDestinationSafety = async (destination) => {
   const dest = String(destination || "popular international tourist spots").slice(0, 100);
   try {
-    const data = await callBackend("/destination/safety", { destination: dest });
+    const data = await callBackend("/destination/safety", { destination: dest }, "POST", 30000);
     return Array.isArray(data.alerts) && data.alerts.length ? data.alerts : null;
   } catch (e) {
     console.warn("[Safety AI] Backend error:", e.message);
