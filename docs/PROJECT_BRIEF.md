@@ -29,7 +29,8 @@ GoGuide AI is a premium, AI-powered travel planning companion and real-time co-p
 - Token file: `app/GoGuide/Components/constants/theme.js` (colors, spacing 4/8/12/16/24, radii, type scale, shadows).
 - Brand accent = Teal `#0A7EA4`. Purple `#8B5CF6` reserved only for AI-sparkle accents.
 - Follow system theme on ALL screens (`useTheme()` with `useColorScheme()` fallback). Theme-aware status bar.
-- Min text sizes: 12px labels / 14px body / 16+ titles. Touch targets >= 44px (48dp Android). Contrast >= 4.5:1.
+- Min text sizes: 12px labels / 14px body / 16+ titles. Touch targets >= 48px × 48px (or 44px with hitSlop to >= 48px). Contrast >= 4.5:1.
+- Responsive design: density-independent units (dp/pt) on mobile, relative units (rem, %, vw/vh) on web; breakpoints <600px (mobile), 600–1023px (tablet), 1024px+ (desktop maxWidth 1200). Avoid fixed heights on text containers.
 - 16px gutters. Horizontal carousels edge-to-edge (`paddingHorizontal: 16`, no clipping wrapper), peek of next card, snap.
 - Scroll view bottom padding = tab bar height + safe-area inset + 16. Respect top safe area.
 - Shared header: back arrow (accent) + title (accent) + grey subtitle + divider (Reference: `safety-alerts.jsx` and `my-bookings.jsx`).

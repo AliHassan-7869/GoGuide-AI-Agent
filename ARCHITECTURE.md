@@ -211,6 +211,36 @@ All incoming and cached trip plans pass through `normalizeTrip(raw)`:
 
 ---
 
+### 3.5 Cross-Platform Responsive Design & Scaling Standards
+
+GoGuide UI components, screens, and layouts strictly adhere to cross-platform mobile and web responsiveness standards:
+
+#### 1. Unit Selection & Density Independence
+- **No Physical Pixels:** Layouts never hard-code raw physical pixels (e.g. `width={400}`) for structural bounds, containers, or gutters.
+- **React Native / Expo:** Use density-independent units (`dp` / `pt`) through `StyleSheet`, `Flexbox`, and percentage dimensions. Text sizing leverages scalable units (`sp` / theme typography tokens).
+- **Web / Next.js:** Rely on relative units (`rem`, `%`, `vw`/`vh`, CSS Grid, Flexbox) rather than absolute pixel bounds.
+
+#### 2. Cross-Platform Viewports & Safe Area Handling
+- **Edge-to-Edge Safe Areas:** Container screens incorporate `react-native-safe-area-context` (`SafeAreaView` or `useSafeAreaInsets`) to accommodate notches, Dynamic Islands, and navigation gesture bars without double-padding.
+- **Top Safe Area Architecture:** Top headers apply `paddingTop: Math.max(insets.top, 0) + 4` inside the header itself so the header surface background extends seamlessly behind the status bar.
+- **Scroll Bottom Clearance:** Primary tab and scroll views enforce `paddingBottom: insets.bottom + 84` to prevent bottom tab bars and floating action buttons from clipping content.
+- **Keyboard Docking:** Interactive chat and form screens leverage `KeyboardAvoidingView` (`behavior={Platform.OS === 'ios' ? 'padding' : undefined}`) with `interactive-widget=resizes-content` on web to guarantee 0px dead space docking.
+
+#### 3. Responsive Breakpoints & Multi-Column Adaptability
+Fluid flexbox layouts (`flex: 1`, `flexWrap`, `justifyContent`, `alignItems`) gracefully adapt across three distinct viewport tiers:
+- **Mobile / Compact (< 600px):** Single-column layout, bottom tab bar navigation, full-width cards with 16px horizontal gutters.
+- **Tablet / Medium (600px – 1023px):** Adaptive 2-column grids, split-pane itineraries, expanded side gutters.
+- **Desktop / Expanded (1024px+):** Centered application container with constrained `maxWidth: 1200px` (or `960px` for reading views) and persistent horizontal gutters to prevent ultra-wide visual distortion.
+
+#### 4. Touch Targets & Accessibility
+- **Minimum Touch Target:** Interactive elements (buttons, icons, chips, list items) strictly maintain a minimum touch target size of `48px × 48px` (or 44px with `hitSlop` extending the bounding box to `>= 48px`) to prevent misclicks on touch screens.
+- **Natural Text Wrapping:** Text containers avoid fixed heights (`height: 48`); labels and descriptions wrap naturally (`flexShrink: 1`) and support device accessibility font scaling (`maxFontSizeMultiplier={1.3}`).
+
+#### 5. Defensive Layout Resilience
+- All layouts are defensively structured against extreme aspect ratios (ultra-tall 21:9 phones, compact 360px screens, 4:3 tablets, and ultra-wide desktop monitors). Modal bottom sheets constrain `maxHeight: '90%'` and wrap body copy in internal scroll views.
+
+---
+
 ## 4. Backend API (`app.py`)
 
 ### 4.1 Endpoints

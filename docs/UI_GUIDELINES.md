@@ -65,27 +65,38 @@ Always reuse existing components rather than inventing duplicate markup:
 ---
 
 ## 3. Layout, Container & Carousel Rules
-1. **16px Screen Gutters:** Outer scroll views use `paddingHorizontal: 16` (or `Spacing.gutter`).
-2. **Edge-to-Edge Carousels:** Horizontal carousels must never be clipped by parent padding. Place `paddingHorizontal: 16` directly in `contentContainerStyle`, keep parent `overflow: 'visible'`, and show peek of next card with snap alignment.
-3. **Bottom Padding Rule:** All main scrollable screens must have bottom padding equal to:
+1. **Responsive Layouts & Breakpoints:**
+   - **Mobile / Compact (< 600px):** Single-column fluid flexbox layout (`flex: 1`), docked bottom navigation, full-bleed cards with standard gutters.
+   - **Tablet / Medium (600px – 1023px):** Adaptive multi-pane or split views, 2-column card grids, expanded side margins.
+   - **Desktop / Expanded (1024px+):** Centered main application container with bounded `maxWidth: 1200px` (or `960px` for focused reading views) and persistent horizontal gutters to prevent ultra-wide visual stretching.
+2. **Unit Selection & Density Independence:**
+   - **React Native / Expo:** Strictly use density-independent units (`dp` / `pt`) through `StyleSheet`, `Flexbox`, and percentage widths. Never write hardcoded physical pixels (e.g., `width: 400` or `margin: 320`) for structural parent containers.
+   - **Web / Next.js:** Rely on relative units (`rem`, `%`, `vw`/`vh`, Flexbox, and CSS Grid) rather than fixed pixel dimensions.
+3. **16px Screen Gutters:** Outer scroll views use `paddingHorizontal: 16` (or `Spacing.gutter`).
+4. **Edge-to-Edge Carousels:** Horizontal carousels must never be clipped by parent padding. Place `paddingHorizontal: 16` directly in `contentContainerStyle`, keep parent `overflow: 'visible'`, and show peek of next card with snap alignment.
+5. **Bottom Padding Rule:** All main scrollable screens must have bottom padding equal to:
    `paddingBottom: insets.bottom + 84` (to guarantee content is never cut off by the floating bottom tab bar or home indicator).
-4. **Top Safe Area Rule:** Top headers apply `paddingTop: Math.max(insets.top, 0) + 4` inside the header itself so the header surface background extends seamlessly behind the status bar. Never apply safe top padding to the outer root container.
-5. **Section Nav Dynamic Scroll Offset:**
+6. **Top Safe Area Rule:** Top headers apply `paddingTop: Math.max(insets.top, 0) + 4` inside the header itself so the header surface background extends seamlessly behind the status bar. Never apply safe top padding to the outer root container.
+7. **Section Nav Dynamic Scroll Offset:**
    - Scroll target offset = height of all sticky bars pinned at the top (header + sticky section nav + pinned chips) + safe area + consistent `12-16px` gap (standard `14px`). Never hardcode magic numbers (e.g. `-60` or `-140`).
    - On web, set `scrollMarginTop: dynamicOffset` on each section anchor container.
    - Re-evaluate target positions when collapsible cards, day tabs, or fetched data change heights.
    - Lock tab highlight during smooth scroll animation (`isTabScrollLocked`) to prevent flickering across intermediate tabs.
    - Add a bottom spacer (`Math.max(140, Math.round(height * 0.45))`) so the final section (Budget) can scroll all the way to its heading directly below the sticky bars.
-6. **Destination Essentials 2×2 Grid:**
+8. **Destination Essentials 2×2 Grid:**
    - Display cards in strict 2 rows × 2 columns: Row 1 `[Visa & Entry | Money & Tipping]`, Row 2 `[Emergency | Season]`.
    - Equal column widths (`flex: 1, minWidth: 0`), `12px` (`Spacing.md`) gap, cards in each row stretch to equal height.
    - Body text truncated to 3 lines with ellipsis + `"Read more"` / `"Show less"` expansion button.
-7. **Daily Schedule Day Tabs (Filter, Not Scroll):**
+9. **Daily Schedule Day Tabs (Filter, Not Scroll):**
    - Day chips act as filter tabs (`"All Days"`, `"Day 1" .. "Day N"`).
    - Tapping a day chip must NEVER scroll the page vertically.
    - Content directly below the chip row is replaced in-place with a subtle `180ms` crossfade (respecting `useReduceMotion`).
    - Selected chip auto-centers horizontally inside the chip row without clipping the last chip.
    - State persists across in-trip edits (Add Activity, Delete + Undo, Log Expense, Route Map, Done checkbox).
+10. **Defensive Layout Scaling & Extreme Aspect Ratios:**
+   - Protect layouts against ultra-tall (21:9) and compact (360px width) devices.
+   - Text containers must NEVER have fixed heights (`height: 48`); allow text to wrap dynamically (`flexShrink: 1`) and scale with OS accessibility font settings (`maxFontSizeMultiplier={1.3}`).
+   - Modal bottom sheets must constrain their maximum height (`maxHeight: '90%'`) and wrap content in internal `ScrollView`s.
 
 ---
 
@@ -106,7 +117,7 @@ Always reuse existing components rather than inventing duplicate markup:
    - Viewport meta tag must include `interactive-widget=resizes-content` in `+html.jsx` so mobile browser virtual keyboards resize the visual viewport cleanly.
    - Listen to `window.visualViewport` on web to auto-scroll chat lists to bottom on mobile focus.
 5. **Scroll View Configuration:** All form and chat lists must set `keyboardShouldPersistTaps="handled"` and `keyboardDismissMode="on-drag"`.
-6. **Touch Target Standard:** All interactable controls, buttons, and clear icons must have a minimum touch target of `44px × 44px` (add `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}` where needed).
+6. **Touch Target Standard:** All interactable controls, buttons, and clear icons must have a minimum touch target of `48px × 48px` (or 44px with `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}` expanding the hit area to >= 48px).
 
 ---
 
@@ -126,7 +137,8 @@ Always reuse existing components rather than inventing duplicate markup:
 ## 6. Pre-Commit Quality Checklist
 Before completing any UI or data refactoring task, verify:
 - [ ] No hardcoded one-off colors (use `theme.bg`, `theme.card`, `theme.border`, `theme.text`, `theme.primary`).
-- [ ] No text under 12px; touch targets >= 44px.
+- [ ] No text under 12px; touch targets >= 48px (or 44px with hitSlop to >= 48px).
+- [ ] No hardcoded physical pixels on layout bounds; use dp/pt, rem, % and responsive breakpoints.
 - [ ] Header uses `<ScreenHeader>` with teal `#0A7EA4` title & back arrow.
 - [ ] Bottom padding allows complete clearance of bottom tab bar.
 - [ ] Keyboard docks flush with zero gap on iOS/Android.
