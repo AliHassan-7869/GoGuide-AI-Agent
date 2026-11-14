@@ -446,7 +446,7 @@ export default function Profile() {
     {
       id: "bookings",
       title: "My Bookings",
-      subtitle: "Digital passes, vouchers & QR codes",
+      subtitle: "Saved flights, stays & activities",
       icon: "ticket-outline",
       route: "/my-bookings",
       badge: stats.bookings > 0 ? `${stats.bookings}` : null,

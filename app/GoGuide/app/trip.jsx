@@ -1007,7 +1007,7 @@ export default function SharedTripView() {
                         style={{ marginRight: 4 }}
                       />
                       <Text style={styles.hotelBookBtnText}>
-                        {bookedHotels[hotel.name] ? "Reserved in Bookings ✅" : "Reserve / Add to Bookings"}
+                        {bookedHotels[hotel.name] ? "Saved in Bookings ✅" : "Save to Bookings"}
                       </Text>
                     </TouchableOpacity>
 
@@ -1357,7 +1357,7 @@ export default function SharedTripView() {
                               style={{ marginRight: 3 }}
                             />
                             <Text style={styles.actBookBtnText}>
-                              {bookedActivities[act.placeName] ? "Booked ✅" : "Add to Bookings"}
+                              {bookedActivities[act.placeName] ? "Saved ✅" : "Save to Bookings"}
                             </Text>
                           </TouchableOpacity>
                         </View>

@@ -8,7 +8,7 @@ import { directionsUrl } from "../Components/utils/mapsLinks";
 import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import { Alert, Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../Components/constants/constants";
-import { useTheme, Palette } from "../Components/constants/theme";
+import { Typography, useTheme, Palette } from "../Components/constants/theme";
 import ScreenHeader from "../Components/ui/ScreenHeader";
 import { SkeletonCard } from "../Components/ui/Skeleton";
 import { auth, db } from "../Configs/FirebaseConfig";
@@ -117,9 +117,16 @@ export default function MyBookings() {
       {/* Header matching golden reference */}
       <ScreenHeader
         title="My Bookings"
-        subtitle="Digital boarding passes, hotel vouchers & tickets"
+        subtitle="Your planned flights, stays & activities"
         onBack={() => goBack(router)}
       />
+
+      <Text
+        style={{ color: theme.subtext, fontSize: Typography.sizeSm, fontFamily: Typography.fontRegular, paddingHorizontal: 16, paddingTop: 8 }}
+        maxFontSizeMultiplier={1.3}
+      >
+        These are your trip plans, not confirmed bookings. Prices and times are estimates, so check availability with each provider.
+      </Text>
 
       {/* Status Segmented Tabs */}
       <View style={[styles.tabBarWrap, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
@@ -407,10 +414,10 @@ export default function MyBookings() {
             <View style={styles.passModalHeader}>
               <View>
                 <Text style={[styles.passModalTitle, { color: theme.text }]}>
-                  {selectedPass?.type === "Flights" ? "Digital Boarding Pass" : "Check-in Voucher"}
+                  {selectedPass?.type === "Flights" ? "Flight Plan Summary" : "Plan Summary"}
                 </Text>
                 <Text style={[styles.passModalSub, { color: theme.subtext }]}>
-                  Present this QR code at reception or terminal
+                  Planning reference only. This is not an official ticket or voucher.
                 </Text>
               </View>
               <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close"
@@ -427,7 +434,7 @@ export default function MyBookings() {
                 {selectedPass?.title}
               </Text>
               <Text style={[styles.passGuestName, { color: theme.subtext }]}>
-                Guest: {userData?.name || "Confirmed Traveler"}
+                Traveler: {userData?.name || "GoGuide Traveler"}
               </Text>
 
               {/* QR Code */}
@@ -441,7 +448,7 @@ export default function MyBookings() {
               </View>
 
               <Text style={[styles.passRefText, { color: activeAccent }]}>
-                CONFIRMATION #{selectedPass?.bookingRef}
+                PLAN REF #{selectedPass?.bookingRef}
               </Text>
               <Text style={[styles.passDatesText, { color: theme.subtext }]}>
                 Valid: {selectedPass?.checkIn}
