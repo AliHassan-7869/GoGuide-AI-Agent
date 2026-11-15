@@ -12,6 +12,7 @@ import FadeInView from "../../Components/ui/FadeInView";
 import TypingIndicator from "../../Components/ui/TypingIndicator";
 import { selectHaptic, tapHaptic } from "../../Components/utils/haptics";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
+import { useKeyboardOverlap } from "../../hooks/useKeyboardOverlap";
 import { isPlanRequest } from "../../Components/utils/copilotIntent";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
@@ -128,6 +129,18 @@ export default function AiAssistant() {
   const handledPromptRef = useRef(null);
 
   const [, setIsKeyboardVisible] = useState(false);
+
+  // Android: the keyboard can sit on top of the chat bar (edge-to-edge screens do not resize), so lift the bar
+  // by exactly the covered part. iOS and web keep their own handling.
+  const keyboardAreaRef = useRef(null);
+  const { overlap: keyboardOverlap, onLayout: onKeyboardAreaLayout } = useKeyboardOverlap(keyboardAreaRef);
+  useEffect(() => {
+    if (keyboardOverlap > 0) {
+      const t = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 60);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [keyboardOverlap]);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [chipsHeight, setChipsHeight] = useState(0);
 
@@ -516,6 +529,7 @@ export default function AiAssistant() {
       ) : null}
 
       {/* Chat Thread with Pinned Keyboard Avoiding View (WhatsApp-style Flush Docking) */}
+      <View ref={keyboardAreaRef} onLayout={onKeyboardAreaLayout} collapsable={false} style={{ flex: 1, paddingBottom: keyboardOverlap }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -577,6 +591,7 @@ export default function AiAssistant() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

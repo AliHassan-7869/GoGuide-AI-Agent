@@ -488,6 +488,8 @@ Profile extras (Nov 15, 2026):
 - Share GoGuide: opens the phone's share sheet with `APP_SHARE_URL` (`Components/constants/appLinks.js`). Set `EXPO_PUBLIC_APP_URL` to your Play Store / App Store link when the apps are published; until then it shares the website.
 - Bug fixed on the way: the profile's "places" number invented a value when there were no favourites (trip destinations, or trips x 2). The Favourites badge now shows real favourites only; the end-to-end test guards it.
 
+Copilot keyboard fix (Nov 15, 2026): on Android the keyboard opened on top of the chat bar (the typed text only showed after closing the keyboard). Cause: the app is edge-to-edge (Expo SDK 58), so `softwareKeyboardLayoutMode: "resize"` no longer shrinks the window, and the Android branch of `KeyboardAvoidingView` was empty. Fix: `hooks/useKeyboardOverlap.js` measures how much of the chat area the keyboard really covers (`Components/utils/keyboardOverlap.js`, unit-tested) and adds exactly that as bottom padding, so the bar sits flush on the keyboard with no gap and no double spacing, whether or not the phone resized the window. On mobile web it uses the browser's visual viewport the same way (iPhone Safari does not resize the page; Chrome's `interactive-widget=resizes-content` already does, so nothing is added there; pinch-zoom is ignored). iOS keeps `KeyboardAvoidingView`. Applies to the Copilot screen only; use the same hook for any other screen with a bottom input bar. Needs a real-device check on Android and iPhone after the next build.
+
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
 All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):
