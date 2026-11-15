@@ -51,6 +51,11 @@ const LONG_BOOKINGS = [
   { id: "bk_2_hotel", type: "Hotels", status: "Upcoming", bookingRef: "GG-H90412", title: "The Ritz-Carlton Grand Boutique Hotel & Residences", subtitle: "150 Piccadilly, St. James's, London W1J 9BR, United Kingdom", checkIn: "Dec 20, 2026 • 03:00 PM", checkOut: "Dec 31, 2026 • 11:00 AM", details: "Family with Young Children • 1 Deluxe Room • Planned stay (not booked yet)", price: "$420/night", image: "", destination: "London, United Kingdom", createdAt: now },
 ];
 
+const LONG_FAVORITES = [
+  { id: "f1", name: "Rio de Janeiro Galeao International Airport Area, Brazil", title: "Rio de Janeiro Galeao International Airport Area, Brazil", image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=800", category: "Hotel • Luxury Beachfront Resort & Spa", rating: "4.9" },
+  { id: "f2", name: "Broken Image Place", title: "Broken Image Place", image: "not-a-link", category: "Moderate", rating: 4.2 },
+];
+
 const PLAIN_PAGES = ["/discover", "/profile", "/ai-assistant", "/help-center", "/preferences", "/edit-profile", "/safety-alerts", "/packing-checklist", "/favourites", "/my-trips", "/explore", "/location", "/auth/sign-in", "/auth/sign-up", "/privacy-policy", "/terms-of-service", "/create-trip/search-place", "/create-trip/select-dates", "/create-trip/select-budget", "/create-trip/interest-page"];
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
@@ -83,6 +88,13 @@ for (const w of WIDTHS) {
     record("my bookings list", w, await page.evaluate(auditFn));
     await page.getByLabel("Open digital pass").first().click(); await settle(page, 1200);
     record("my bookings pass popup", w, await page.evaluate(auditFn)); await ctx.close();
+  }
+
+  // 2b) Favourites with long names and a broken image
+  {
+    const { ctx, page } = await newPage({ fn: (l) => localStorage.setItem("@goguide_favorites", JSON.stringify(l)), arg: LONG_FAVORITES });
+    await page.goto(`${BASE}/favourites`, { waitUntil: "domcontentloaded" }); await settle(page, 3500);
+    record("favourites page", w, await page.evaluate(auditFn)); await ctx.close();
   }
 
   // 3) A planned trip with a long origin: every section of the trip page

@@ -25,6 +25,20 @@ import { selectHaptic, tapHaptic } from "../Components/utils/haptics";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { goBack } from "../Components/utils/navigation";
+import { FALLBACK_FAVORITE_IMAGE, cleanFavorites, prettyLabel, safeImageUri } from "../Components/utils/favoritesNormalize";
+
+/** Destination photo that falls back to a default picture if the link is dead, so a card is never blank. */
+function FavoriteImage({ uri, label }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <Image
+      source={{ uri: failed ? FALLBACK_FAVORITE_IMAGE : safeImageUri(uri) }}
+      style={styles.cardImage}
+      accessibilityLabel={label}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 export default function Favourites() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -50,7 +64,7 @@ export default function Favourites() {
     (async () => {
       try {
         const places = await getFavoritePlaces();
-        if (isMounted) setFavorites(places);
+        if (isMounted) setFavorites(cleanFavorites(places));
       } catch (_e) {
         if (isMounted) setError(true);
       } finally {
@@ -59,7 +73,7 @@ export default function Favourites() {
     })();
 
     const unsubscribe = subscribeToFavorites((updated) => {
-      if (isMounted) setFavorites(updated);
+      if (isMounted) setFavorites(cleanFavorites(updated));
     });
 
     return () => {
@@ -73,7 +87,7 @@ export default function Favourites() {
     try {
       await toggleFavoritePlace(place);
       const updated = await getFavoritePlaces();
-      setFavorites(updated);
+      setFavorites(cleanFavorites(updated));
     } catch (e) {
       console.warn("Could not remove favorite:", e);
     }
@@ -110,7 +124,7 @@ export default function Favourites() {
       forests: "Forest",
       camping: "Camping",
     };
-    return map[cleaned] || (cleaned.charAt(0).toUpperCase() + cleaned.slice(1));
+    return map[cleaned] || prettyLabel(cat);
   };
 
   return (
@@ -160,13 +174,11 @@ export default function Favourites() {
             const title = place.name || place.title || "Scenic Escape";
             const categoryLabel = formatCategory(place.category);
             const rating = place.rating || "4.8";
-            const imageUri =
-              place.image ||
-              "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop";
+            const imageUri = place.image;
 
             return (
               <FadeInView
-                key={place.id || `fav_${idx}`}
+                key={`${place.id || "fav"}_${idx}`}
                 index={idx}
                 style={[
                   styles.card,
@@ -177,7 +189,7 @@ export default function Favourites() {
                 ]}
               >
                 <View style={styles.cardHero}>
-                  <Image source={{ uri: imageUri }} style={styles.cardImage} accessibilityLabel={title} />
+                  <FavoriteImage uri={imageUri} label={title} />
                   <View style={styles.cardImageOverlay} />
 
                   <View style={styles.heroTopBadges}>
@@ -261,6 +273,7 @@ const styles = StyleSheet.create({
   },
   cardHero: {
     minHeight: 150,
+    backgroundColor: Palette.slate800, // dark base: white title text stays readable even if the photo cannot load
     position: "relative",
     justifyContent: "space-between",
     padding: 12,

@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { collection, doc, getDocs, query, setDoc, where, deleteDoc } from "firebase/firestore";
+import { cleanFavorites, safeImageUri } from "./favoritesNormalize";
 
 const STORAGE_KEY = "@goguide_favorites";
 const listeners = new Set();
@@ -26,7 +27,8 @@ const notifyListeners = (favorites) => {
 export async function getFavoritePlaces() {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const localFavorites = raw ? JSON.parse(raw) : [];
+    // Cleaned on every read: bad images, odd values and duplicates can never reach the screen
+    const localFavorites = cleanFavorites(raw ? JSON.parse(raw) : []);
 
     const user = auth.currentUser;
     if (user?.email) {
@@ -49,13 +51,8 @@ async function syncFromFirebase(email, localFavorites) {
       const remoteList = [];
       snap.forEach((d) => remoteList.push({ id: d.id, ...d.data() }));
 
-      // Merge by place name / id
-      const mergedMap = new Map();
-      [...localFavorites, ...remoteList].forEach((p) => {
-        const key = p.id || p.name || p.title;
-        if (key) mergedMap.set(String(key), p);
-      });
-      const merged = Array.from(mergedMap.values());
+      // Merge by place name (local entries first), dropping duplicates and unusable entries
+      const merged = cleanFavorites([...localFavorites, ...remoteList]);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       notifyListeners(merged);
     }
@@ -110,6 +107,7 @@ export async function toggleFavoritePlace(place) {
 
     let isNowFav = false;
     let updated = [];
+    let addedItem = null;
 
     if (existingIndex >= 0) {
       // Remove
@@ -122,17 +120,14 @@ export async function toggleFavoritePlace(place) {
         name: place.name || place.title || "Scenic Place",
         title: place.title || place.name || "Scenic Place",
         description: place.desc || place.description || "Top rated destination to explore",
-        image:
-          place.image ||
-          place.img ||
-          place.photoRef ||
-          "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop",
-        category: place.category || place.tag || "Must Visit",
-        rating: place.rating || "4.8",
+        image: safeImageUri(place.image || place.img || place.photoRef),
+        category: typeof (place.category || place.tag) === "string" ? place.category || place.tag : "Must Visit",
+        rating: typeof place.rating === "string" || typeof place.rating === "number" ? place.rating : "4.8",
         addedAt: new Date().toISOString(),
       };
       updated = [itemToAdd, ...favorites];
       isNowFav = true;
+      addedItem = itemToAdd;
     }
 
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -146,7 +141,7 @@ export async function toggleFavoritePlace(place) {
         setDoc(doc(db, "UserFavorites", docId), {
           userEmail: user.email,
           placeKey,
-          ...place,
+          ...addedItem, // the cleaned item (the raw `place` can hold undefined values, which Firestore rejects)
           updatedAt: new Date().toISOString(),
         }).catch(() => {});
       } else {
