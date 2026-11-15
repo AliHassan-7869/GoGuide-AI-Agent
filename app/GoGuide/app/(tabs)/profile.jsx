@@ -34,7 +34,7 @@ export default function Profile() {
   });
 
   const [savedTripsList, setSavedTripsList] = useState([]);
-  const [favoritePlacesList, setFavoritePlacesList] = useState([]);
+  const [, setFavoritePlacesList] = useState([]);
   const [showSavedTripsModal, setShowSavedTripsModal] = useState(false);
   const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
 
@@ -436,22 +436,6 @@ export default function Profile() {
   // Menu Groups
   const travelHubItems = [
     {
-      id: "favorites",
-      title: "Favourites",
-      subtitle: "Liked attractions, beaches & spots",
-      icon: "heart-outline",
-      badge: favoritePlacesList.length > 0 ? `${favoritePlacesList.length}` : null,
-      route: "/favourites",
-    },
-    {
-      id: "bookings",
-      title: "My Bookings",
-      subtitle: "Saved flights, stays & activities",
-      icon: "ticket-outline",
-      route: "/my-bookings",
-      badge: stats.bookings > 0 ? `${stats.bookings}` : null,
-    },
-    {
       id: "packing",
       title: "Smart Packing Checklist",
       subtitle: "AI generated luggage & gear list",
@@ -635,7 +619,29 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Travel Quick Action Bar: Trips, Favourites, Bookings (Icon Symbols + Name Only, No Numbers) */}
+        {/* Guests: sign in is the first thing to see, because it is what unlocks saving and syncing */}
+        {isGuest ? (
+          <TouchableOpacity
+            style={[styles.guestCard, { backgroundColor: theme.card, borderColor: Colors.PRIMARY }]}
+            onPress={() => router.push("/auth/sign-in")}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in or create an account to save your trips"
+            activeOpacity={0.8}
+          >
+            <View style={[styles.menuIconContainer, { backgroundColor: "rgba(10, 126, 164, 0.12)", borderColor: "rgba(10, 126, 164, 0.3)" }]}>
+              <Ionicons name="log-in-outline" size={20} color={Colors.PRIMARY} />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={[styles.menuTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Sign in to save your trips</Text>
+              <Text style={[styles.menuSubtitle, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>
+                Keep trips, favourites and bookings safe across devices
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
+          </TouchableOpacity>
+        ) : null}
+
+        {/* Travel Quick Action Bar: Trips, Favourites, Bookings (icon + name + count badge) */}
         <View style={[styles.statsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <TouchableOpacity
             style={styles.statCol}
@@ -644,11 +650,18 @@ export default function Profile() {
               router.push("/my-trips");
             }}
             accessibilityRole="button"
-            accessibilityLabel="My Trips"
+            accessibilityLabel={stats.trips > 0 ? `My Trips, ${stats.trips}` : "My Trips"}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
-              <Ionicons name="airplane" size={22} color={Colors.PRIMARY} />
+            <View style={styles.statIconHolder}>
+              <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+                <Ionicons name="airplane" size={22} color={Colors.PRIMARY} />
+              </View>
+              {stats.trips > 0 ? (
+                <View style={styles.statCountBadge} accessible={false}>
+                  <Text style={styles.statCountText} maxFontSizeMultiplier={1.2}>{stats.trips > 99 ? "99+" : stats.trips}</Text>
+                </View>
+              ) : null}
             </View>
             <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Trips</Text>
           </TouchableOpacity>
@@ -662,11 +675,18 @@ export default function Profile() {
               router.push("/favourites");
             }}
             accessibilityRole="button"
-            accessibilityLabel="Favourites"
+            accessibilityLabel={stats.places > 0 ? `Favourites, ${stats.places}` : "Favourites"}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
-              <Ionicons name="heart" size={22} color={Colors.PRIMARY} />
+            <View style={styles.statIconHolder}>
+              <View style={[styles.statIconWrap, { backgroundColor: "rgba(10, 126, 164, 0.12)" }]}>
+                <Ionicons name="heart" size={22} color={Colors.PRIMARY} />
+              </View>
+              {stats.places > 0 ? (
+                <View style={styles.statCountBadge} accessible={false}>
+                  <Text style={styles.statCountText} maxFontSizeMultiplier={1.2}>{stats.places > 99 ? "99+" : stats.places}</Text>
+                </View>
+              ) : null}
             </View>
             <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Favourites</Text>
           </TouchableOpacity>
@@ -677,11 +697,18 @@ export default function Profile() {
             style={styles.statCol}
             onPress={() => handleNavigate("/my-bookings")}
             accessibilityRole="button"
-            accessibilityLabel="Bookings"
+            accessibilityLabel={stats.bookings > 0 ? `Bookings, ${stats.bookings}` : "Bookings"}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconWrap, { backgroundColor: "rgba(2, 132, 199, 0.12)" }]}>
-              <Ionicons name="ticket" size={22} color={Palette.skyDark} />
+            <View style={styles.statIconHolder}>
+              <View style={[styles.statIconWrap, { backgroundColor: "rgba(2, 132, 199, 0.12)" }]}>
+                <Ionicons name="ticket" size={22} color={Palette.skyDark} />
+              </View>
+              {stats.bookings > 0 ? (
+                <View style={styles.statCountBadge} accessible={false}>
+                  <Text style={styles.statCountText} maxFontSizeMultiplier={1.2}>{stats.bookings > 99 ? "99+" : stats.bookings}</Text>
+                </View>
+              ) : null}
             </View>
             <Text style={[styles.statLabel, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Bookings</Text>
           </TouchableOpacity>
@@ -735,22 +762,7 @@ export default function Profile() {
         </View>
 
         {/* Section 4: Sign In (guests) / Sign Out (signed-in users) */}
-        {isGuest ? (
-          <View style={[styles.groupCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}>
-            <TouchableOpacity
-              style={styles.signOutRow}
-              onPress={() => router.push("/auth/sign-in")}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in or create an account to save your trips"
-              activeOpacity={0.7}
-            >
-              <View style={[styles.menuIconContainer, { backgroundColor: "rgba(10, 126, 164, 0.12)", borderColor: "rgba(10, 126, 164, 0.3)" }]}>
-                <Ionicons name="log-in-outline" size={20} color={Colors.PRIMARY} />
-              </View>
-              <Text style={[styles.signOutText, { color: Colors.PRIMARY }]}>Sign in to save your trips</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
+        {isGuest ? null : (
         <View style={[styles.groupCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}>
           <TouchableOpacity
             style={styles.signOutRow}
@@ -1115,6 +1127,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  statIconHolder: {
+    width: 56,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    backgroundColor: Colors.PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statCountText: {
+    color: Palette.white,
+    fontSize: 12,
+    lineHeight: 14,
+    fontFamily: "Outfit-Bold",
+  },
+  guestCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 64,
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   statIconWrap: {
     width: 44,

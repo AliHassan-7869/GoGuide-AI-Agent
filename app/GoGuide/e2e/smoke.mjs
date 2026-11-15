@@ -53,6 +53,8 @@ await step("guest profile shows a sign-in prompt, not a fake identity", async ()
   expect(t.includes("Sign in to save your trips"), "sign-in prompt missing");
   expect(!t.includes("user@example.com"), "placeholder email is back");
   expect(!/Sign Out/.test(t), "guest sees Sign Out");
+  expect(!/My Bookings/.test(t), "Bookings is listed twice again (it belongs in the quick bar only)");
+  expect((t.match(/Favourites/g) || []).length === 1, "Favourites is listed more than once on the profile");
 });
 
 await step("plan a curated trip: itinerary appears with 'Verified on map' tags", async () => {
