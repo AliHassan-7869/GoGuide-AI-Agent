@@ -56,7 +56,7 @@ const LONG_FAVORITES = [
   { id: "f2", name: "Broken Image Place", title: "Broken Image Place", image: "not-a-link", category: "Moderate", rating: 4.2 },
 ];
 
-const PLAIN_PAGES = ["/discover", "/profile", "/ai-assistant", "/help-center", "/preferences", "/edit-profile", "/safety-alerts", "/packing-checklist", "/favourites", "/my-trips", "/explore", "/location", "/auth/sign-in", "/auth/sign-up", "/privacy-policy", "/terms-of-service", "/create-trip/search-place", "/create-trip/select-dates", "/create-trip/select-budget", "/create-trip/interest-page"];
+const PLAIN_PAGES = ["/discover", "/profile", "/ai-assistant", "/help-center", "/emergency-info", "/feedback", "/preferences", "/edit-profile", "/safety-alerts", "/packing-checklist", "/favourites", "/my-trips", "/explore", "/location", "/auth/sign-in", "/auth/sign-up", "/privacy-policy", "/terms-of-service", "/create-trip/search-place", "/create-trip/select-dates", "/create-trip/select-budget", "/create-trip/interest-page"];
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
 const failures = [];

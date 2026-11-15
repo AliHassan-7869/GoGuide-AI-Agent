@@ -69,6 +69,8 @@ function AppContent() {
         <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="preferences" options={{ headerShown: false }} />
         <Stack.Screen name="help-center" options={{ headerShown: false }} />
+        <Stack.Screen name="emergency-info" options={{ headerShown: false }} />
+        <Stack.Screen name="feedback" options={{ headerShown: false }} />
         <Stack.Screen name="my-bookings" options={{ headerShown: false }} />
         <Stack.Screen name="packing-checklist" options={{ headerShown: false }} />
         <Stack.Screen name="cities" options={{ headerShown: false }} />

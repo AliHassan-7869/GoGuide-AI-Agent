@@ -57,6 +57,24 @@ await step("guest profile shows a sign-in prompt, not a fake identity", async ()
   expect((t.match(/Favourites/g) || []).length === 1, "Favourites is listed more than once on the profile");
 });
 
+await step("profile badges show real counts only (3 trips, 0 favourites)", async () => {
+  const trips = ["Dubai", "Paris", "Rome"].map((d, i) => ({ id: `t${i}`, destination: d, aiTripPlan: { destination: d, itinerary: [{ day: 1, activities: [] }] }, createdAt: new Date().toISOString() }));
+  const c2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await c2.addInitScript((t) => localStorage.setItem("@goguide_user_trips", JSON.stringify(t)), trips);
+  const p2 = await c2.newPage();
+  try {
+    await p2.goto(`${BASE}/profile`, { waitUntil: "domcontentloaded" });
+    await p2.waitForTimeout(3500);
+    const labels = await p2.evaluate(() => [...document.querySelectorAll("[aria-label]")].map((e) => e.getAttribute("aria-label")));
+    expect(labels.includes("My Trips, 3"), `Trips badge wrong: ${labels.filter((l) => /Trips/.test(l)).join(" | ")}`);
+    expect(labels.includes("Favourites"), `Favourites shows an invented count: ${labels.filter((l) => /Favourites/.test(l)).join(" | ")}`);
+    const t = (await p2.evaluate(() => document.body.innerText)).replace(/\s+/g, " ");
+    expect(/2 more trips to Elite Globetrotter/.test(t), "tier progress text missing");
+  } finally {
+    await c2.close();
+  }
+});
+
 await step("plan a curated trip: itinerary appears with 'Verified on map' tags", async () => {
   await page.goto(`${BASE}/discover`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2500);

@@ -12,6 +12,8 @@ const TITLES = {
   "/preferences": "Preferences",
   "/edit-profile": "Account & Security",
   "/safety-alerts": "Safety Alerts",
+  "/emergency-info": "Emergency Info",
+  "/feedback": "Rate & Feedback",
   "/packing-checklist": "Packing Checklist",
   "/help-center": "Help & Support",
   "/privacy-policy": "Privacy Policy",

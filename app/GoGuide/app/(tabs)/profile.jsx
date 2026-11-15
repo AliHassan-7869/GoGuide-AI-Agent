@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, View, Modal } from "react-native";
+import { Alert, Image, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, Modal } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
@@ -16,6 +16,8 @@ import { auth, db } from "../../Configs/FirebaseConfig";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { getDestinationImage } from "../../Components/constants/Destinations";
 import { getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
+import { getTierInfo, tierCaption } from "../../Components/utils/explorerTier";
+import { APP_SHARE_MESSAGE, APP_SHARE_URL } from "../../Components/constants/appLinks";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function Profile() {
@@ -149,7 +151,7 @@ export default function Profile() {
     setFavoritePlacesList(favPlaces);
     setStats({
       trips: totalTripsCount,
-      places: favPlaces.length > 0 ? favPlaces.length : (uniqueDestinations.size > 0 ? uniqueDestinations.size : (totalTripsCount > 0 ? totalTripsCount * 2 : 0)),
+      places: favPlaces.length, // real favourites only (the badge must never show an invented number)
       bookings: bookingsCount,
     });
   }, [userData?.email]);
@@ -374,6 +376,20 @@ export default function Profile() {
     }));
   };
 
+  const handleShareApp = async () => {
+    try {
+      await Share.share({ message: `${APP_SHARE_MESSAGE} ${APP_SHARE_URL}`, url: APP_SHARE_URL, title: "GoGuide AI" });
+    } catch {
+      // The browser may have no share sheet: copy the link instead
+      try {
+        if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(APP_SHARE_URL);
+          Alert.alert("Link copied", "Paste it in a message to invite a friend.");
+        }
+      } catch {}
+    }
+  };
+
   const handleSignOut = () => {
     triggerHaptic();
     const executeSignOut = async () => {
@@ -415,14 +431,14 @@ export default function Profile() {
   };
 
   // Determine explorer tier based on trip count
+  const tierInfo = getTierInfo(stats.trips);
   const getExplorerTier = () => {
-    if (stats.trips >= 5) {
-      return { title: "Elite Globetrotter", level: "Tier 3", icon: "diamond-outline", color: Palette.purple };
-    }
-    if (stats.trips >= 1) {
-      return { title: "Voyager Pro", level: "Tier 2", icon: "compass-outline", color: Palette.success };
-    }
-    return { title: "Novice Explorer", level: "Tier 1", icon: "sparkles-outline", color: Colors.PRIMARY };
+    const look = [
+      { icon: "sparkles-outline", color: Colors.PRIMARY },
+      { icon: "compass-outline", color: Palette.success },
+      { icon: "diamond-outline", color: Palette.purple },
+    ][tierInfo.index];
+    return { title: tierInfo.title, level: tierInfo.level, ...look };
   };
 
   const tier = getExplorerTier();
@@ -467,6 +483,13 @@ export default function Profile() {
       route: "/safety-alerts",
     },
     {
+      id: "emergency",
+      title: "My Emergency Info",
+      subtitle: "Your contacts, blood type & allergies (on this device)",
+      icon: "medkit-outline",
+      route: "/emergency-info",
+    },
+    {
       id: "location",
       title: "Saved Location",
       subtitle: "Home base & GPS coordinate setup",
@@ -489,6 +512,20 @@ export default function Profile() {
       subtitle: "Instant AI assistant & support tickets",
       icon: "help-circle-outline",
       route: "/help-center",
+    },
+    {
+      id: "feedback",
+      title: "Rate & Feedback",
+      subtitle: "Tell us what you love or what to fix",
+      icon: "star-outline",
+      route: "/feedback",
+    },
+    {
+      id: "share",
+      title: "Share GoGuide",
+      subtitle: "Invite friends to plan smarter trips",
+      icon: "share-social-outline",
+      onPress: handleShareApp,
     },
     {
       id: "privacy",
@@ -615,6 +652,16 @@ export default function Profile() {
             <Ionicons name={tier.icon} size={14} color={tier.color} />
             <Text style={[styles.tierText, { color: tier.color }]}>
               {tier.title} • {tier.level}
+            </Text>
+          </View>
+
+          {/* Progress to the next explorer tier */}
+          <View style={styles.tierProgressWrap} accessible accessibilityLabel={`${tierCaption(tierInfo)}`} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(tierInfo.progress * 100) }}>
+            <View style={[styles.tierTrack, { backgroundColor: theme.border }]}>
+              <View style={[styles.tierFill, { width: `${Math.round(tierInfo.progress * 100)}%`, backgroundColor: tier.color }]} />
+            </View>
+            <Text style={[styles.tierCaption, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>
+              {tierCaption(tierInfo)}
             </Text>
           </View>
         </View>
@@ -1104,6 +1151,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 4,
   },
+  tierProgressWrap: { alignSelf: "stretch", marginTop: 12, paddingHorizontal: 8 },
+  tierTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
+  tierFill: { height: 8, borderRadius: 4 },
+  tierCaption: { fontSize: 12, fontFamily: "Outfit-Medium", textAlign: "center", marginTop: 6 },
   tierText: {
     fontSize: 12,
     fontFamily: "Outfit-Medium",

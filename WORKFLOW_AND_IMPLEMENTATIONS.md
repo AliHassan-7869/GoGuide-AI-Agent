@@ -481,6 +481,13 @@ Favourites page fix (Nov 15, 2026): favourites are saved from many screens (dest
 
 Profile page cleanup (Nov 15, 2026): Favourites and My Bookings were listed twice (in the Trips / Favourites / Bookings quick bar and again in Travel Hub). They now live only in the quick bar, which shows a count badge on each icon (trips, favourites, bookings). Travel Hub keeps Smart Packing Checklist and Explore Destinations. Guests see a "Sign in to save your trips" card directly under the avatar (it used to be at the very bottom); signed-in users keep Sign Out at the bottom. Ideas not built yet: tier progress bar, emergency contacts and medical info, rate the app, share the app.
 
+Profile extras (Nov 15, 2026):
+- Tier progress bar under the explorer pill ("2 more trips to Elite Globetrotter"). Tier names and thresholds live in `Components/utils/explorerTier.js` (0, 1 and 5 trips) and are used for both the pill and the bar.
+- My Emergency Info (`app/emergency-info.jsx`, helper `Components/utils/emergencyInfo.js`): up to 3 emergency contacts with a Call button, blood type, allergies, medications, insurance and notes. Stored ONLY on the device (AsyncStorage key `@goguide_emergency_info`), never uploaded. It sits in the Personal & Safety group.
+- Rate & Feedback (`app/feedback.jsx`, helper `Components/utils/feedback.js`): 1 to 5 stars plus an optional comment, saved as a "Feedback" ticket in the existing `SupportTickets` collection (no rules change needed). Read them in Firebase console, Firestore, `SupportTickets`, category Feedback.
+- Share GoGuide: opens the phone's share sheet with `APP_SHARE_URL` (`Components/constants/appLinks.js`). Set `EXPO_PUBLIC_APP_URL` to your Play Store / App Store link when the apps are published; until then it shares the website.
+- Bug fixed on the way: the profile's "places" number invented a value when there were no favourites (trip destinations, or trips x 2). The Favourites badge now shows real favourites only; the end-to-end test guards it.
+
 ## 16. Pre-Release Checklist (Render, Firebase, Keys)
 
 All AI provider keys live on the backend only; the app holds none. Set these yourself (values are never stored in this repo):
