@@ -9,3 +9,5 @@ requests
 google-auth
 pydantic
 sentry-sdk[fastapi]
+gradio
+

@@ -1178,3 +1178,14 @@ def _start_keep_alive():
     if os.getenv("RENDER") or os.getenv("PORT"):
         t = threading.Thread(target=_render_keep_alive_daemon, daemon=True)
         t.start()
+
+# -------------------- GRADIO MOUNT FOR HUGGING FACE SPACES --------------------
+try:
+    import gradio as gr
+    with gr.Blocks(title="GoGuide AI Backend") as demo:
+        gr.Markdown("# 🚀 GoGuide AI Backend is Live on Hugging Face!")
+        gr.Markdown("✅ Multi-Agent LangGraph System Active (10 Agents).\n\nAPI Endpoints: `/plan`, `/chat`, `/health`, `/destination/*`")
+    app = gr.mount_gradio_app(app, demo, path="/")
+except Exception as _e:
+    logger.info("Gradio mount skipped or running in standard FastAPI mode: %s", _e)
+
