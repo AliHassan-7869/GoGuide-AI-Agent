@@ -86,8 +86,8 @@ export default function Favourites() {
     selectHaptic();
     try {
       await toggleFavoritePlace(place);
-      const updated = await getFavoritePlaces();
-      setFavorites(cleanFavorites(updated));
+      // The service already notified listeners with the new list; just make sure this card is gone.
+      setFavorites((prev) => prev.filter((f) => f.id !== place.id && f.name !== place.name));
     } catch (e) {
       console.warn("Could not remove favorite:", e);
     }

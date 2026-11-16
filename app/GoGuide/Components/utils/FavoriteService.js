@@ -145,7 +145,8 @@ export async function toggleFavoritePlace(place) {
           updatedAt: new Date().toISOString(),
         }).catch(() => {});
       } else {
-        deleteDoc(doc(db, "UserFavorites", docId)).catch(() => {});
+        // Awaited so a background sync can never bring the removed place back from Firebase
+        await deleteDoc(doc(db, "UserFavorites", docId)).catch(() => {});
       }
     }
 
