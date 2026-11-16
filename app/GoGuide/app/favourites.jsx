@@ -34,6 +34,7 @@ function FavoriteImage({ uri, label }) {
     <Image
       source={{ uri: failed ? FALLBACK_FAVORITE_IMAGE : safeImageUri(uri) }}
       style={styles.cardImage}
+      resizeMode="cover"
       accessibilityLabel={label}
       onError={() => setFailed(true)}
     />
@@ -272,7 +273,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardHero: {
-    minHeight: 150,
+    height: 190, // fixed: on Android a percentage-sized image inside an auto-height box falls back to the photo's full size
+    overflow: "hidden",
     backgroundColor: Palette.slate800, // dark base: white title text stays readable even if the photo cannot load
     position: "relative",
     justifyContent: "space-between",
@@ -280,8 +282,6 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
   },
   cardImageOverlay: {
     ...StyleSheet.absoluteFillObject,
