@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -107,7 +107,21 @@ export default function SelectBudget() {
 
   const handleContinue = () => {
     triggerHaptic();
-    if (!canContinue) return;
+    if (!selectedTraveler) {
+      Alert.alert(
+        "Traveler Required",
+        "Please select who is travelling (e.g. Solo, Couple, Family, or Friends) to proceed."
+      );
+      return;
+    }
+
+    if (!selectedBudget) {
+      Alert.alert(
+        "Budget Required",
+        "Please select a budget tier (Economy, Moderate, Luxury, or Custom) to proceed."
+      );
+      return;
+    }
 
     let finalBudgetString = selectedBudget;
     let numericCustom = null;
@@ -520,22 +534,30 @@ export default function SelectBudget() {
       >
         <TouchableOpacity
           onPress={handleContinue}
-          disabled={!canContinue}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !canContinue }}
           activeOpacity={0.85}
           style={[
             styles.continueBtn,
             {
               backgroundColor: canContinue ? activeAccent : theme.border,
-              opacity: canContinue ? 1 : 0.6,
+              opacity: canContinue ? 1 : 0.85,
             },
           ]}
         >
-          <Text style={styles.continueBtnText}>
+          <Text
+            style={[
+              styles.continueBtnText,
+              { color: canContinue ? Palette.white : theme.text },
+            ]}
+          >
             {canContinue ? "Continue to Review" : !selectedTraveler ? "Choose who's travelling" : "Choose a budget"}
           </Text>
-          <Ionicons name="arrow-forward" size={18} color={Palette.white} style={{ marginLeft: 8 }} />
+          <Ionicons
+            name="arrow-forward"
+            size={18}
+            color={canContinue ? Palette.white : theme.text}
+            style={{ marginLeft: 8 }}
+          />
         </TouchableOpacity>
       </View>
 

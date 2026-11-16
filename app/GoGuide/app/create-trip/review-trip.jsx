@@ -40,8 +40,51 @@ export default function ReviewTrip() {
     } catch {}
   };
 
+  const validateTripRequirements = () => {
+    const destName = tripData?.toLocation?.name?.trim();
+    if (!destName || destName.length < 2) {
+      Alert.alert(
+        "Destination Missing",
+        "Please select a destination city before building your itinerary.",
+        [
+          { text: "Select Destination", onPress: () => router.push("/create-trip/search-place") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return false;
+    }
+
+    if (!tripData?.startDate || !tripData?.endDate) {
+      Alert.alert(
+        "Dates Missing",
+        "Please select your travel dates before building your itinerary.",
+        [
+          { text: "Select Dates", onPress: () => router.push("/create-trip/select-dates") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return false;
+    }
+
+    if (!tripData?.budget) {
+      Alert.alert(
+        "Budget Missing",
+        "Please choose a budget tier before building your itinerary.",
+        [
+          { text: "Select Budget", onPress: () => router.push("/create-trip/select-budget") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleBuildTrip = async () => {
     triggerHaptic();
+
+    if (!validateTripRequirements()) return;
 
     if (!auth?.currentUser) {
       Alert.alert(
@@ -74,6 +117,7 @@ export default function ReviewTrip() {
   const canUseInstant = hasCuratedPlan(tripData?.toLocation?.name);
   const handleInstantPlan = () => {
     triggerHaptic();
+    if (!validateTripRequirements()) return;
     if (setTripData) {
       setTripData((prev) => ({ ...prev, isDeepPlan: false, useInstant: true }));
     }

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { doc, setDoc } from "firebase/firestore";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -710,35 +710,41 @@ export default function YourInterest() {
 
   const handleContinue = () => {
     triggerHaptic();
-    if (selectedPlaces.length > 0) {
-      const finalTransport = selectedTransport || transportList[0]?.id || "taxi";
-      const selectedInterestItems = placesList.filter((p) =>
-        selectedPlaces.includes(p.id)
+    if (!selectedPlaces || selectedPlaces.length === 0) {
+      Alert.alert(
+        "Interests Required",
+        "Please select at least 1 interest or activity you would like to experience on this trip to proceed."
       );
-      const selectedTransportItem =
-        transportList.find((t) => t.id === finalTransport) || transportList[0] || null;
-
-      const chosenCategories = Array.from(
-        new Set(selectedInterestItems.map((i) => i.category).filter(Boolean))
-      );
-
-      // Persist chosen interest names to the user profile (additive field; never blocks navigation)
-      const savedNames = dedupeInterestIcons(placesList)
-        .filter((p) => selectedPlaces.includes(p.id))
-        .map((p) => p._title)
-        .filter(Boolean);
-      persistSavedInterests(savedNames);
-
-      setTripData((prev) => ({
-        ...prev,
-        interests: selectedPlaces,
-        transport: finalTransport,
-        interestsDetails: selectedInterestItems,
-        transportDetails: selectedTransportItem,
-        selectedCategories: chosenCategories,
-      }));
-      router.push("/create-trip/select-dates");
+      return;
     }
+
+    const finalTransport = selectedTransport || transportList[0]?.id || "taxi";
+    const selectedInterestItems = placesList.filter((p) =>
+      selectedPlaces.includes(p.id)
+    );
+    const selectedTransportItem =
+      transportList.find((t) => t.id === finalTransport) || transportList[0] || null;
+
+    const chosenCategories = Array.from(
+      new Set(selectedInterestItems.map((i) => i.category).filter(Boolean))
+    );
+
+    // Persist chosen interest names to the user profile (additive field; never blocks navigation)
+    const savedNames = dedupeInterestIcons(placesList)
+      .filter((p) => selectedPlaces.includes(p.id))
+      .map((p) => p._title)
+      .filter(Boolean);
+    persistSavedInterests(savedNames);
+
+    setTripData((prev) => ({
+      ...prev,
+      interests: selectedPlaces,
+      transport: finalTransport,
+      interestsDetails: selectedInterestItems,
+      transportDetails: selectedTransportItem,
+      selectedCategories: chosenCategories,
+    }));
+    router.push("/create-trip/select-dates");
   };
 
   const selectedCount = selectedPlaces.length;

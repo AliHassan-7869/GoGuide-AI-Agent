@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -429,6 +429,22 @@ export default function SelectDates() {
     const finalDays = selectedDuration || 5;
     const finalStart = startDate || getTomorrow();
     const finalEnd = endDate || calculateEndDateFromDays(finalStart, finalDays);
+
+    if (!finalStart || !finalEnd) {
+      Alert.alert(
+        "Dates Required",
+        "Please select your departure and return dates on the calendar to continue."
+      );
+      return;
+    }
+
+    if (finalDays < 1 || finalDays > 30) {
+      Alert.alert(
+        "Trip Duration",
+        "Please select a trip duration between 1 and 30 days to continue."
+      );
+      return;
+    }
 
     setTripData((prev) => ({
       ...prev,

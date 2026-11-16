@@ -240,8 +240,11 @@ export default function SearchPlace() {
   const goNext = () => {
     triggerHaptic();
     const cleanTo = toQuery.trim();
-    if (!cleanTo) {
-      alert("Please select your destination to continue.");
+    if (!cleanTo || cleanTo.length < 2) {
+      Alert.alert(
+        "Destination Required",
+        "Please enter or select a destination city (at least 2 letters) to continue."
+      );
       return;
     }
 
@@ -467,7 +470,7 @@ export default function SearchPlace() {
           style={[styles.continueBtn, { backgroundColor: activeAccent }]}
           activeOpacity={0.85}
         >
-          <Text style={styles.continueText}>Continue to Travelers</Text>
+          <Text style={styles.continueText}>Continue to Interests</Text>
           <Ionicons name="arrow-forward" size={18} color={Palette.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>

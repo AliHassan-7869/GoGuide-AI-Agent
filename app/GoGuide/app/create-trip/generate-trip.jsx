@@ -205,7 +205,10 @@ export default function GenerateTrip() {
 
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
       const { buildCuratedPlan } = require("../../Components/utils/CuratedPlans");
-      const destinationName = tripData?.toLocation?.name || "";
+      const destinationName = (tripData?.toLocation?.name || tripData?.destination || "").trim();
+      if (!destinationName || destinationName.length < 2) {
+        throw new Error("Please go back and select a valid destination city to generate your trip.");
+      }
       const budgetName = tripData?.budget || "Moderate";
       const wantsCustomPlan = Boolean(interestNames || categoriesStr);
       let plan = null;
@@ -305,6 +308,8 @@ export default function GenerateTrip() {
           ? "Please sign in to your GoGuide account to generate AI itineraries."
           : isQuota
           ? "AI is experiencing high demand right now. Please wait a minute and try again."
+          : err.message?.includes("422")
+          ? "Trip details are incomplete. Please ensure your destination and dates are selected and try again."
           : err.message?.includes("reach GoGuide server")
           ? "Could not reach GoGuide server. Please check your internet connection and try again."
           : err.message || "Something went wrong while generating your trip.",
