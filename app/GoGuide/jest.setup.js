@@ -7,3 +7,6 @@ jest.mock("./Configs/FirebaseConfig", () => ({
   db: {},
   app: {},
 }));
+
+// Tests never depend on production defaults: give them an explicit (unreachable) backend.
+process.env.EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.goguide.test";

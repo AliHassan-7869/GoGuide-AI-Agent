@@ -1,28 +1,16 @@
 import { auth } from "./FirebaseConfig";
+import { API, APP_ENV, ENV_HELP } from "./env";
 import { EMAIL_VERIFY_MESSAGE, needsEmailVerification, refreshEmailVerification } from "../Components/utils/emailVerification";
 
-const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
-
 // All AI calls go through the GoGuide backend. The app holds no AI provider keys.
-function resolveApiUrl() {
-  const fromEnv = (process.env.EXPO_PUBLIC_API_URL || "").trim();
-  if (fromEnv) return fromEnv.replace(/\/+$/, "");
-
-  // Always use the live secure backend when hosted on HTTPS (Vercel, custom domain, etc.)
-  if (typeof window !== "undefined" && (window.location?.protocol === "https:" || window.location?.hostname?.includes("vercel.app"))) {
-    return LIVE_BACKEND_URL;
-  }
-
-  // Default to live Render backend for seamless remote sharing, local dev & mobile testing
-  return LIVE_BACKEND_URL;
-}
-
-const API_URL = resolveApiUrl();
+// Which backend depends on the environment (Configs/env.js): production builds use the live one;
+// development/staging must set EXPO_PUBLIC_API_URL so a test build never calls production by accident.
+const API_URL = API.url;
 
 if (!API_URL) {
-  console.error("❌ Backend URL not found. Set EXPO_PUBLIC_API_URL in .env");
+  console.error(`❌ No backend configured for the "${APP_ENV}" environment. Set EXPO_PUBLIC_API_URL. ${ENV_HELP}`);
 } else {
-  console.log("[Backend] Using", API_URL);
+  console.log(`[Backend] ${APP_ENV} build using ${API_URL}${API.source === "production-default" && APP_ENV !== "production" ? " (PRODUCTION, by opt-in)" : ""}`);
 }
 
 
@@ -43,7 +31,7 @@ async function ensureUserAuth() {
 // Calls the backend with the signed-in user's Firebase ID token.
 async function callBackend(path, body = null, method = "POST", timeoutMs = REQUEST_TIMEOUT_MS) {
   if (!API_URL) {
-    throw new Error("Backend URL is not configured");
+    throw new Error(`The app has no backend configured for the "${APP_ENV}" environment. ${ENV_HELP}`);
   }
 
   let user = auth.currentUser;
