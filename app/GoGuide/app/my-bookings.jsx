@@ -17,6 +17,7 @@ import FavoriteHeartButton from "../Components/FavoriteHeartButton";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 import { goBack } from "../Components/utils/navigation";
+import { copyText } from "../Components/utils/clipboard";
 const STATUS_TABS = ["Upcoming", "Completed", "Cancelled"];
 const CATEGORY_FILTERS = ["All", "Hotels", "Flights", "Activities"];
 
@@ -106,8 +107,10 @@ export default function MyBookings() {
     setIsPassModalVisible(true);
   };
 
-  const handleCopyRef = (ref) => {
-    Alert.alert("Booking Code", `Copied reference: #${ref}`);
+  const handleCopyRef = async (ref) => {
+    const copied = await copyText(ref);
+    if (copied) Alert.alert("Copied", `Plan reference ${ref} copied to the clipboard.`);
+    else Alert.alert("Couldn't copy", `Please copy it by hand: ${ref}`);
   };
 
   return (

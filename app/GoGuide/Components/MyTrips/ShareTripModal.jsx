@@ -8,6 +8,7 @@ import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
+import { copyText } from "../utils/clipboard";
 export default function ShareTripModal({
   visible,
   tripId,
@@ -49,22 +50,19 @@ export default function ShareTripModal({
     }
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     triggerHaptic();
     syncPublicShare();
 
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(shareableUrl);
+    // Only say "Copied" when the text really reached the clipboard.
+    if (!(await copyText(shareableUrl))) {
+      Alert.alert("Couldn't copy the link", `Please copy it by hand: ${shareableUrl}`);
+      return;
     }
 
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.alert("Link Copied! Shareable trip link copied to clipboard. Share it with friends on WhatsApp or social media!");
-    } else {
-      Alert.alert("Link Copied!", "Shareable trip link copied to clipboard. Share it with friends or co-travelers!");
-    }
+    Alert.alert("Link Copied!", "Shareable trip link copied to clipboard. Share it with friends or co-travelers!");
   };
 
   const handleNativeShare = async () => {

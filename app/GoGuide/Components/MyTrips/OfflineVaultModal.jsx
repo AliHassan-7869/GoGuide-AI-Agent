@@ -6,6 +6,7 @@ import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
+import { copyText } from "../utils/clipboard";
 // Country emergency numbers lookup
 const EMERGENCY_LOOKUP = {
   japan: { police: "110", ambulance: "119", touristHelp: "050-3816-2787" },
@@ -98,15 +99,12 @@ export default function OfflineVaultModal({
   const emergency = getEmergencyNumbers(destination);
   const phrases = getOfflinePhrases(destination);
 
-  const handleCopy = (text, label) => {
+  const handleCopy = async (text, label) => {
     triggerHaptic();
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-      }
+    if (await copyText(text)) {
       Alert.alert("Copied to Clipboard", `${label} has been copied.`);
-    } catch {
-      Alert.alert("Note", text);
+    } else {
+      Alert.alert("Couldn't copy", text);
     }
   };
 
