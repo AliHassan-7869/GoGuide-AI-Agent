@@ -26,101 +26,11 @@ import { buildFlightItinerary } from "../Components/utils/FlightEngine";
 import { normalizeTrip } from "../Components/utils/TripNormalizer";
 import { useHotelImages } from "../Components/utils/HotelImages";
 import { directionsUrl, placeUrl } from "../Components/utils/mapsLinks";
+import { formatRating } from "../Components/utils/rating";
+import { copyText } from "../Components/utils/clipboard";
 
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
-// Curated default luxury itinerary if ID is preview or not found
-const DEMO_TRIP = {
-  destination: "Dubai, United Arab Emirates",
-  duration: "5 Days",
-  traveler: "Couple",
-  budget: "Moderate",
-  hotels: [
-    {
-      name: "Address Downtown Dubai",
-      address: "Downtown Dubai, Near Burj Khalifa",
-      price: "$280/night",
-      rating: "4.9",
-      image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1200&auto=format&fit=crop",
-    },
-    {
-      name: "Rove Downtown",
-      address: "Financial Center Road, Downtown",
-      price: "$110/night",
-      rating: "4.7",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop",
-    },
-  ],
-  itinerary: [
-    {
-      day: 1,
-      theme: "Iconic Downtown & Burj Khalifa",
-      activities: [
-        {
-          placeName: "Burj Khalifa Top Observatory",
-          placeDetails: "Take the high-speed elevator to Level 124 for panoramic views of Dubai's skyline and coastline.",
-          time: "10:00 AM",
-          travelTime: "15 mins",
-          tickets: "$45",
-        },
-        {
-          placeName: "Dubai Mall & Fountain Show",
-          placeDetails: "Explore luxury boutiques, the Dubai Aquarium, and watch the evening choreographed dancing fountain.",
-          time: "02:30 PM",
-          travelTime: "Walk",
-          tickets: "Free",
-        },
-        {
-          placeName: "Dinner at Souk Al Bahar",
-          placeDetails: "Waterfront Arabic & Mediterranean dining with front-row fountain views.",
-          time: "07:30 PM",
-          travelTime: "5 mins",
-          tickets: "$60",
-        },
-      ],
-    },
-    {
-      day: 2,
-      theme: "Red Dune Desert Safari & Bedouin Camp",
-      activities: [
-        {
-          placeName: "Lahbab Red Dunes 4x4 Dune Bashing",
-          placeDetails: "Thrilling roller-coaster ride over golden desert dunes with sandboarding stops.",
-          time: "03:00 PM",
-          travelTime: "45 mins",
-          tickets: "$55",
-        },
-        {
-          placeName: "Al Khayma Traditional Camp",
-          placeDetails: "Sunset camel trek, henna painting, live fire show, and a 5-star BBQ buffet under the stars.",
-          time: "06:30 PM",
-          travelTime: "On-site",
-          tickets: "Included",
-        },
-      ],
-    },
-    {
-      day: 3,
-      theme: "Marina Yacht Cruise & JBR Sunset",
-      activities: [
-        {
-          placeName: "Dubai Marina Luxury Yacht Cruise",
-          placeDetails: "Scenic 2-hour cruise gliding past Bluewaters Island and Ain Dubai.",
-          time: "11:00 AM",
-          travelTime: "25 mins",
-          tickets: "$40",
-        },
-        {
-          placeName: "Jumeirah Beach Residence (JBR) Walk",
-          placeDetails: "Beachside promenade stroll, gelato shops, and sunset swimming on the Gulf.",
-          time: "05:00 PM",
-          travelTime: "10 mins",
-          tickets: "Free",
-        },
-      ],
-    },
-  ],
-};
 
 const makeTripId = () => `trip_${Date.now()}`;
 
@@ -350,11 +260,11 @@ export default function SharedTripView() {
         }
       }
 
-      // 3. Fallback to curated Demo Trip
-      setTripPlan(normalizeTrip(DEMO_TRIP));
+      // 3. Nothing found: say so. Never show someone else's (or a made-up) trip as if it were this one.
+      setTripPlan(null);
     } catch (e) {
       console.log("Error loading shared trip:", e);
-      setTripPlan(DEMO_TRIP);
+      setTripPlan(null);
     } finally {
       setLoading(false);
     }
@@ -401,24 +311,21 @@ export default function SharedTripView() {
     Linking.openURL(directionsUrl(item, tripPlan?.destination));
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     triggerHaptic();
     const currentUrl =
       Platform.OS === "web" && typeof window !== "undefined"
         ? window.location.href
         : `https://dist-seven-tau-79.vercel.app/trip/${targetId || "shared"}`;
 
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(currentUrl);
+    // Only say "Copied" when the text really reached the clipboard.
+    if (!(await copyText(currentUrl))) {
+      Alert.alert("Couldn't copy the link", `Please copy it by hand: ${currentUrl}`);
+      return;
     }
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
-
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.alert("Link Copied! Share it with friends or co-travelers on WhatsApp!");
-    } else {
-      Alert.alert("Link Copied!", "Shareable trip link copied to clipboard.");
-    }
+    Alert.alert("Link Copied!", "Shareable trip link copied to clipboard.");
   };
 
   const handleDownloadPdf = async () => {
@@ -624,6 +531,22 @@ export default function SharedTripView() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.PRIMARY} />
         <Text style={styles.loadingText}>Loading shared itinerary...</Text>
+      </View>
+    );
+  }
+
+  if (!tripPlan) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
+        <EmptyState
+          icon="map-outline"
+          title="Trip not found"
+          text="This link may be wrong, or the trip was removed or is no longer shared. Ask the owner to share it again."
+          actionLabel="Plan a new trip"
+          onAction={() => router.replace("/create-trip/search-place")}
+          secondaryLabel="Go to My Trips"
+          onSecondary={() => router.replace("/(tabs)/mytrip")}
+        />
       </View>
     );
   }
@@ -969,10 +892,12 @@ export default function SharedTripView() {
                       style={{ position: "absolute", top: 8, left: 8, width: 28, height: 28, borderRadius: 14 }}
                     />
                   </View>
-                  <View style={styles.hotelRatingPill}>
-                    <Ionicons name="star" size={11} color={Palette.gold} />
-                    <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>
-                  </View>
+                  {formatRating(hotel.rating) ? (
+                    <View style={styles.hotelRatingPill}>
+                      <Ionicons name="star" size={11} color={Palette.gold} />
+                      <Text style={styles.hotelRatingText}>{formatRating(hotel.rating)}</Text>
+                    </View>
+                  ) : null}
 
                   <View style={styles.hotelBody}>
                     <Text style={styles.hotelName} numberOfLines={1}>

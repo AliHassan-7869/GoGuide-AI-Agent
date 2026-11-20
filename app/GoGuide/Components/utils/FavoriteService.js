@@ -122,7 +122,7 @@ export async function toggleFavoritePlace(place) {
         description: place.desc || place.description || "Top rated destination to explore",
         image: safeImageUri(place.image || place.img || place.photoRef),
         category: typeof (place.category || place.tag) === "string" ? place.category || place.tag : "Must Visit",
-        rating: typeof place.rating === "string" || typeof place.rating === "number" ? place.rating : "4.8",
+        rating: typeof place.rating === "string" || typeof place.rating === "number" ? place.rating : "",
         addedAt: new Date().toISOString(),
       };
       updated = [itemToAdd, ...favorites];

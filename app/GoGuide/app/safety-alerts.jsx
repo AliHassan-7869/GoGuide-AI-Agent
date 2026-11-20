@@ -14,6 +14,7 @@ import ScreenHeader from '../Components/ui/ScreenHeader';
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 import { goBack } from "../Components/utils/navigation";
+import { buildEmergencyContacts } from "../Components/utils/emergencyNumbers";
 // Fallback Standard Data for Safety Alerts
 const safetyMockData = [
   {
@@ -60,6 +61,7 @@ export default function SafetyAlerts() {
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
+  const [noDestination, setNoDestination] = useState(false);
 
   const destinationName = tripData?.toLocation?.name || tripData?.destination || tripData?.aiTripPlan?.destination || "Popular Travel Spots";
 
@@ -82,8 +84,18 @@ export default function SafetyAlerts() {
   }, [destinationName]);
 
   const fetchWeather = useCallback(async () => {
-    const lat = tripData?.toLocation?.coordinates?.lat || "48.8566"; // Default to Paris if no trip
-    const lng = tripData?.toLocation?.coordinates?.lng || "2.3522";
+    const lat = tripData?.toLocation?.coordinates?.lat;
+    const lng = tripData?.toLocation?.coordinates?.lng;
+
+    // No trip location: say so. Showing another city's weather as "Destination Weather" would be wrong.
+    if (lat === undefined || lat === null || lng === undefined || lng === null) {
+      setNoDestination(true);
+      setWeather(null);
+      setWeatherError(false);
+      setLoading(false);
+      return;
+    }
+    setNoDestination(false);
 
     try {
       setLoading(true);
@@ -111,12 +123,19 @@ export default function SafetyAlerts() {
     return () => clearTimeout(timer);
   }, [fetchWeather, loadAiAlerts]);
 
-  const emergencyContacts = [
-    { title: "Police / Emergency", number: "911", icon: "shield-outline", color: theme.text },
-    { title: "Ambulance / Medical", number: "911", icon: "medical-outline", color: Colors.ERROR },
-    { title: "Fire Department", number: "911", icon: "flame-outline", color: Colors.SECONDARY },
-    { title: "Traveller Assistance", number: "0318-8444029", icon: "call-outline", color: Colors.PRIMARY },
-  ];
+  // Numbers for the trip's own country (never another country's). Unknown destinations get the
+  // international number and a note saying so.
+  const tripDestination = tripData?.toLocation?.name || tripData?.destination || tripData?.aiTripPlan?.destination || "";
+  const emergency = buildEmergencyContacts(tripDestination);
+  const CONTACT_STYLE = {
+    all: { icon: "shield-outline", color: Colors.ERROR },
+    international: { icon: "globe-outline", color: Colors.PRIMARY },
+    police: { icon: "shield-outline", color: theme.text },
+    ambulance: { icon: "medical-outline", color: Colors.ERROR },
+    "ambulance-fire": { icon: "medical-outline", color: Colors.ERROR },
+    fire: { icon: "flame-outline", color: Colors.SECONDARY },
+  };
+  const emergencyContacts = emergency.contacts.map((c) => ({ ...c, ...(CONTACT_STYLE[c.key] || CONTACT_STYLE.all) }));
 
   const handleCall = (number) => {
     if (!number) return;
@@ -183,16 +202,18 @@ export default function SafetyAlerts() {
           ) : (
             <View style={styles.weatherErrorRow}>
               <Text style={[styles.weatherLabel, { color: theme.subtext, flex: 1 }]} maxFontSizeMultiplier={1.3}>
-                {weatherError ? "Weather data unavailable. Check your connection." : "Weather data unavailable"}
+                {noDestination
+                  ? "Open or plan a trip to see the weather at your destination."
+                  : weatherError ? "Weather data unavailable. Check your connection." : "Weather data unavailable"}
               </Text>
-              <TouchableOpacity
+              {noDestination ? null : <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Retry loading weather"
                 onPress={fetchWeather}
                 style={[styles.retryBtn, { borderColor: theme.border }]}
               >
                 <Text style={[styles.retryText, { color: Colors.PRIMARY }]} maxFontSizeMultiplier={1.3}>Try again</Text>
-              </TouchableOpacity>
+              </TouchableOpacity>}
             </View>
           )}
         </FadeInView>
@@ -224,6 +245,7 @@ export default function SafetyAlerts() {
           <FadeInView index={0} style={[styles.emergencyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text accessibilityRole="header" style={[styles.modalTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Emergency Contacts</Text>
             <Text style={[styles.modalSub, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Tapping a number will dial it on your phone.</Text>
+            <Text style={[styles.modalSub, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>{emergency.note}</Text>
             {emergencyContacts.map((contact, index) => (
               <TouchableOpacity
                 key={index}

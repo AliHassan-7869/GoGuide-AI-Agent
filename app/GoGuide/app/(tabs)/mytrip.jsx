@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { openExternalUrl } from "../../Components/utils/openExternalUrl";
 import { directionsUrl, placeUrl } from "../../Components/utils/mapsLinks";
+import { formatRating } from "../../Components/utils/rating";
 import { useCallback, useContext, useEffect, useState, useRef, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, useWindowDimensions } from "react-native";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
@@ -659,7 +660,7 @@ export default function MyTrip() {
     if (plan?.hotels?.length > 0) {
       text += `🏨 RECOMMENDED STAYS:\n`;
       plan.hotels.forEach((h, idx) => {
-        text += `${idx + 1}. ${h.name} (${h.rating || "4.8"}★) - ${h.price || ""}\n`;
+        text += `${idx + 1}. ${h.name}${formatRating(h.rating) ? ` (${formatRating(h.rating)}★)` : ""} - ${h.price || ""}\n`;
         text += `   Address: ${h.address || h.details || "Central location"}\n`;
       });
       text += `\n`;
@@ -723,14 +724,15 @@ export default function MyTrip() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const dest = plan?.destination || tripData?.locationInfo?.name || "Trip";
     try {
-      await saveTripToBookings(tripData, auth.currentUser);
+      const saved = await saveTripToBookings(tripData, auth.currentUser);
       await GetMyTrips();
 
-      const successTitle = "Saved to My Bookings! 🎫";
-      const successMsg = `Your Hotel and Flight booking passes for "${dest}" have been saved to My Bookings, and your trip is automatically saved in My Trips.`;
+      const what = saved?.hotelBooking ? "hotel and flight plans" : "flight plan";
+      const successTitle = "Saved to My Bookings";
+      const successMsg = `Your ${what} for "${dest}" are saved in My Bookings, and your trip is saved in My Trips. Nothing has been booked or paid for yet; flight details are estimates.`;
 
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        const viewNow = window.confirm(`${successTitle}\n\n${successMsg}\n\nWould you like to open My Bookings now to view your passes?`);
+        const viewNow = window.confirm(`${successTitle}\n\n${successMsg}\n\nWould you like to open My Bookings now to view your plans?`);
         if (viewNow) {
           router.push("/my-bookings");
         }
@@ -2349,10 +2351,12 @@ export default function MyTrip() {
                         size={18}
                         style={{ position: "absolute", bottom: 6, left: 6 }}
                       />
-                      <View style={styles.hotelRatingPill}>
-                        <Ionicons name="star" size={12} color={Palette.gold} />
-                        <Text style={styles.hotelRatingText}>{hotel.rating || "4.8"}</Text>
-                      </View>
+                      {formatRating(hotel.rating) ? (
+                        <View style={styles.hotelRatingPill}>
+                          <Ionicons name="star" size={12} color={Palette.gold} />
+                          <Text style={styles.hotelRatingText}>{formatRating(hotel.rating)}</Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={styles.hotelBody}>

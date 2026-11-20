@@ -25,6 +25,7 @@ import { selectHaptic, tapHaptic } from "../Components/utils/haptics";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 import { goBack } from "../Components/utils/navigation";
+import { formatRating } from "../Components/utils/rating";
 import { FALLBACK_FAVORITE_IMAGE, cleanFavorites, prettyLabel, safeImageUri } from "../Components/utils/favoritesNormalize";
 
 /** Destination photo that falls back to a default picture if the link is dead, so a card is never blank. */
@@ -174,7 +175,7 @@ export default function Favourites() {
           {favorites.map((place, idx) => {
             const title = place.name || place.title || "Scenic Escape";
             const categoryLabel = formatCategory(place.category);
-            const rating = place.rating || "4.8";
+            const rating = formatRating(place.rating);
             const imageUri = place.image;
 
             return (
@@ -216,10 +217,12 @@ export default function Favourites() {
                     <Text style={styles.heroTitle} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                       {title}
                     </Text>
-                    <View style={styles.ratingBadge} accessible accessibilityLabel={`Rating ${rating}`}>
-                      <Ionicons name="star" size={13} color={Palette.warning} />
-                      <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{rating}</Text>
-                    </View>
+                    {rating ? (
+                      <View style={styles.ratingBadge} accessible accessibilityLabel={`Rating ${rating}`}>
+                        <Ionicons name="star" size={13} color={Palette.warning} />
+                        <Text style={styles.ratingText} maxFontSizeMultiplier={1.3}>{rating}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
 

@@ -28,7 +28,7 @@ test("normalizeFavorite survives broken data", () => {
   const f = normalizeFavorite({ name: "Tokyo", image: { weird: true }, rating: { value: 5 }, category: { x: 1 } });
   assert.equal(f.id, "Tokyo");
   assert.equal(f.image, FALLBACK_FAVORITE_IMAGE);
-  assert.equal(f.rating, "4.8");
+  assert.equal(f.rating, "");
   assert.equal(f.category, "Destination");
   assert.equal(normalizeFavorite({ title: "Paris", rating: 4.25 }).rating, "4.3");
   assert.equal(normalizeFavorite({ name: "A", id: 7 }).id, "7");

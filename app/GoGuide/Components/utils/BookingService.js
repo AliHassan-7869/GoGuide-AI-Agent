@@ -4,6 +4,7 @@ import { db } from "../../Configs/FirebaseConfig";
 import { getDestinationImage } from "../constants/Destinations";
 import { buildFlightItinerary } from "./FlightEngine";
 import { coordsOf } from "./mapsLinks";
+import { planReference } from "./planReference";
 
 /**
  * Saves hotel & flight booking passes into My Bookings and ensures the trip is saved in My Trips
@@ -18,7 +19,6 @@ export async function saveTripToBookings(tripData, authUser) {
     tripData?.destination ||
     tripData?.locationInfo?.name ||
     "Destination";
-  const destClean = destName.split(",")[0].trim();
 
   const hotel = plan?.hotels?.[0];
   const flight = plan?.flights;
@@ -40,28 +40,28 @@ export async function saveTripToBookings(tripData, authUser) {
   const budgetTier = plan?.budget || tripData?.budget || "Moderate";
   const userEmail = authUser?.email || "traveler@goguide.com";
 
-  // 1. Create Hotel Booking Entry
-  const hotelRefCode = `GG-H${Math.floor(10000 + Math.random() * 90000)}`;
-  const hotelBooking = {
-    id: `bk_${Date.now()}_hotel`,
-    type: "Hotels",
-    status: "Upcoming",
-    bookingRef: hotelRefCode,
-    title: hotel?.name || `${destClean} Grand Boutique Hotel`,
-    subtitle: hotel?.address || `${destName} (Central District)`,
-    checkIn: `${startFormatted} • 03:00 PM`,
-    checkOut: `${endFormatted} • 11:00 AM`,
-    details: `${travelerType} • 1 Deluxe Room • Planned stay (not booked yet)`,
-    price: hotel?.price || "$120/night",
-    image: hotel?.image || destImage,
-    coordinates: coordsOf(hotel) || null,
-    userEmail: userEmail,
-    destination: destName,
-    createdAt: new Date().toISOString(),
-  };
+  // 1. Hotel plan entry. Only when the trip actually has a hotel: never invent a name or a price.
+  const hotelBooking = hotel?.name
+    ? {
+        id: `bk_${Date.now()}_hotel`,
+        type: "Hotels",
+        status: "Upcoming",
+        bookingRef: planReference("H", destName, hotel.name, tripData?.startDate),
+        title: hotel.name,
+        subtitle: hotel.address || destName,
+        checkIn: startFormatted,
+        checkOut: endFormatted,
+        details: `${travelerType} • Planned stay (not booked yet)`,
+        price: hotel.price || "Price not listed",
+        image: hotel.image || destImage,
+        coordinates: coordsOf(hotel) || null,
+        userEmail: userEmail,
+        destination: destName,
+        createdAt: new Date().toISOString(),
+      }
+    : null;
 
   // 2. Create Flight / Transit Booking Entry with real IATA codes & airline details
-  const flightRefCode = `GG-F${Math.floor(10000 + Math.random() * 90000)}`;
   const originRaw =
     flight?.origin ||
     plan?.origin ||
@@ -80,13 +80,13 @@ export async function saveTripToBookings(tripData, authUser) {
     id: `bk_${Date.now()}_flight`,
     type: "Flights",
     status: "Upcoming",
-    bookingRef: flightRefCode,
+    bookingRef: planReference("F", destName, originRaw, tripData?.startDate, tripData?.endDate),
     title: `${resolvedFlight.airline} (${resolvedFlight.outboundFlightNo} / ${resolvedFlight.returnFlightNo})`,
     subtitle: `${resolvedFlight.originIata} (${resolvedFlight.origin}) ✈️ ${resolvedFlight.destIata} (${resolvedFlight.destination})`,
     checkIn: `Outbound: ${resolvedFlight.departureDate} • ${resolvedFlight.outboundDepTime}`,
     checkOut: `Return: ${resolvedFlight.returnDate} • ${resolvedFlight.returnDepTime}`,
-    details: `${resolvedFlight.cabinClass} • ${resolvedFlight.duration} (${resolvedFlight.stops}) • ${resolvedFlight.baggage}`,
-    price: resolvedFlight.price || "$680.00",
+    details: `Estimated • ${resolvedFlight.cabinClass} • ${resolvedFlight.duration} (${resolvedFlight.stops}) • ${resolvedFlight.baggage}`,
+    price: resolvedFlight.price || "Estimate unavailable",
     image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
     coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
     userEmail: userEmail,
@@ -94,7 +94,7 @@ export async function saveTripToBookings(tripData, authUser) {
     createdAt: new Date().toISOString(),
   };
 
-  const newBookings = [hotelBooking, flightBooking];
+  const newBookings = [hotelBooking, flightBooking].filter(Boolean);
 
   // 3. Save Bookings to Local Storage (@goguide_user_bookings)
   try {
@@ -201,7 +201,7 @@ export async function addHotelBooking(hotel, destination, tripData, authUser) {
   if (!hotel) return null;
   const destName = destination || tripData?.destination || "Destination";
   const userEmail = authUser?.email || "traveler@goguide.com";
-  const hotelRefCode = `GG-H${Math.floor(10000 + Math.random() * 90000)}`;
+  const hotelRefCode = planReference("H", destName, hotel?.name, tripData?.startDate);
 
   const startFormatted = tripData?.startDate
     ? new Date(tripData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -215,12 +215,12 @@ export async function addHotelBooking(hotel, destination, tripData, authUser) {
     type: "Hotels",
     status: "Upcoming",
     bookingRef: hotelRefCode,
-    title: hotel?.name || `${destName} Boutique Hotel`,
-    subtitle: hotel?.address || `${destName} (Central District)`,
-    checkIn: `${startFormatted} • 03:00 PM`,
-    checkOut: `${endFormatted} • 11:00 AM`,
-    details: `${tripData?.traveler || "Explorer"} • 1 Deluxe Room • Planned stay (not booked yet)`,
-    price: hotel?.price || "$120/night",
+    title: hotel?.name || "Hotel (name not listed)",
+    subtitle: hotel?.address || destName,
+    checkIn: startFormatted,
+    checkOut: endFormatted,
+    details: `${tripData?.traveler || "Explorer"} • Planned stay (not booked yet)`,
+    price: hotel?.price || "Price not listed",
     image: hotel?.image || getDestinationImage(destName),
     coordinates: coordsOf(hotel) || null,
     userEmail: userEmail,
@@ -255,7 +255,7 @@ export async function addFlightBooking(flightInfo, destination, tripData, authUs
   if (!flightInfo) return null;
   const destName = destination || tripData?.destination || "Destination";
   const userEmail = authUser?.email || "traveler@goguide.com";
-  const flightRefCode = `GG-F${Math.floor(10000 + Math.random() * 90000)}`;
+  const flightRefCode = planReference("F", destName, flightInfo.origin, flightInfo.departureDate, flightInfo.returnDate);
 
   const booking = {
     id: `bk_${Date.now()}_flight`,
@@ -266,8 +266,8 @@ export async function addFlightBooking(flightInfo, destination, tripData, authUs
     subtitle: `${flightInfo.originIata} (${flightInfo.origin}) ✈️ ${flightInfo.destIata} (${flightInfo.destination})`,
     checkIn: `Outbound: ${flightInfo.departureDate} • ${flightInfo.outboundDepTime}`,
     checkOut: `Return: ${flightInfo.returnDate} • ${flightInfo.returnDepTime}`,
-    details: `${flightInfo.cabinClass} • ${flightInfo.duration} (${flightInfo.stops}) • ${flightInfo.baggage}`,
-    price: flightInfo.price || "$680.00",
+    details: `Estimated • ${flightInfo.cabinClass} • ${flightInfo.duration} (${flightInfo.stops}) • ${flightInfo.baggage}`,
+    price: flightInfo.price || "Estimate unavailable",
     image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop",
     coordinates: tripData?.toLocation?.coordinates || { lat: 0, lng: 0 },
     userEmail: userEmail,
@@ -302,7 +302,7 @@ export async function addActivityBooking(activity, dayNumber, destination, tripD
   if (!activity) return null;
   const destName = destination || tripData?.destination || "Destination";
   const userEmail = authUser?.email || "traveler@goguide.com";
-  const passRefCode = `GG-A${Math.floor(10000 + Math.random() * 90000)}`;
+  const passRefCode = planReference("A", destName, activity.placeName, dayNumber);
 
   const booking = {
     id: `bk_${Date.now()}_activity`,
