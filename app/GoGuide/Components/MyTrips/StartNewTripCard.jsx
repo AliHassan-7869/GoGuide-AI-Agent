@@ -9,6 +9,7 @@ import { Radius, Typography, useTheme, Palette } from "../constants/theme";
 import FadeInView from "../ui/FadeInView";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../FavoriteHeartButton";
+import { quickPlanFields } from "../utils/quickPlan";
 import DayRouteModal from "./DayRouteModal";
 
 import { TouchableOpacity } from "../ui/Touchable";
@@ -205,17 +206,15 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
   const handleSelectDestination = (item) => {
     triggerHaptic();
-    setTripData({
-      locationInfo: {
-        name: `${item.name}, ${item.country}`,
-        coordinates: item.coordinates,
-        photoRef: item.image,
-      },
-      totalDays: item.days,
-      budget: item.budget,
-      traveler: { title: "Solo / Couple", people: "1 to 2" },
-      interests: ["Sightseeing", "Local Food", "Culture", "Photography"],
-    });
+    const name = `${item.name}, ${item.country}`;
+    // Starts a fresh trip (nothing left over from an earlier one) but keeps the user's departure city.
+    setTripData((prev) => ({
+      fromLocation: prev?.fromLocation,
+      toLocation: { name, coordinates: item.coordinates },
+      toLocationImage: item.image,
+      locationInfo: { name, coordinates: item.coordinates, photoRef: item.image },
+      ...quickPlanFields({ days: item.days, budget: item.budget }),
+    }));
     router.push("/create-trip/review-trip");
   };
 

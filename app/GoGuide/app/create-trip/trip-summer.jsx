@@ -18,6 +18,7 @@ import { TouchableOpacity } from "../../Components/ui/Touchable";
 
 import { goBack } from "../../Components/utils/navigation";
 import { formatRating } from "../../Components/utils/rating";
+import { quickPlanFields } from "../../Components/utils/quickPlan";
 export default function TripSummer() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -102,10 +103,7 @@ export default function TripSummer() {
         name: destination,
         photoRef: imageUri,
       },
-      totalDays: 3,
-      budget: "Moderate",
-      traveler: { title: "Solo / Couple", people: "1 to 2" },
-      interests: ["Sightseeing", "Local Food", "Culture"],
+      ...quickPlanFields({ days: 3, budget: "Moderate" }),
     }));
     router.push("/create-trip/review-trip");
   };
