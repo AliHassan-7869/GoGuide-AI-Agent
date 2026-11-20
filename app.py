@@ -92,6 +92,9 @@ app = FastAPI(title="GoGuide AI API")
 # Also permits local development (localhost/127.0.0.1 on any port) and Vercel domains.
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 CORS_ORIGIN_REGEX = r"^(https://([a-zA-Z0-9-]+\.)*vercel\.app|https?://(localhost|127\.0\.0\.1)(:\d+)?)$"
+# In production with an explicit allow-list, drop the wildcard (any *.vercel.app / localhost) fallback.
+if ENVIRONMENT == "production" and ALLOWED_ORIGINS:
+    CORS_ORIGIN_REGEX = None
 
 app.add_middleware(
     CORSMiddleware,
