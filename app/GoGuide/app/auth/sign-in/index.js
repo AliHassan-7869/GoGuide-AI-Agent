@@ -5,13 +5,15 @@ import PolicyModal from "../../../Components/PolicyModal";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
 import { Palette } from "../../../Components/constants/theme";
+import { purgeLegacyLoginData } from "../../../Components/utils/legacyLoginCleanup";
+import { resetOutcome, validateResetEmail } from "../../../Components/utils/passwordReset";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorField, setErrorField] = useState(null); // "email" | "password" | "both" | null
+  const [infoMessage, setInfoMessage] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const [policyModal, setPolicyModal] = useState({ visible: false, type: "terms" });
 
@@ -101,8 +105,9 @@ export default function SignIn() {
     }
   };
 
-  const proceedToApp = async (res) => {
-    await AsyncStorage.setItem("loginUserData", JSON.stringify(res));
+  const proceedToApp = async () => {
+    // Firebase Auth keeps the session itself. Never copy the credential into app storage.
+    await purgeLegacyLoginData(AsyncStorage);
     router.replace("/mytrip");
   };
 
@@ -121,11 +126,10 @@ export default function SignIn() {
 
     try {
       setLoading(true);
-      const res = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      console.log("User signed in:", res);
+      await signInWithEmailAndPassword(auth, cleanEmail, password);
 
       // Successfully authenticated -> Proceed directly to app
-      await proceedToApp(res);
+      await proceedToApp();
     } catch (error) {
       console.log("Sign in error:", error.code, error.message);
       const parsed = parseAuthError(error.code, error.message);
@@ -141,7 +145,41 @@ export default function SignIn() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setErrorMessage("");
+    setErrorTitle("");
+    setErrorField(null);
+    setInfoMessage("");
+
+    const check = validateResetEmail(email);
+    if (!check.ok) {
+      setErrorTitle("Reset Password");
+      setErrorMessage(check.message);
+      setErrorField("email");
+      return;
+    }
+
+    setResetting(true);
+    let failure = null;
+    try {
+      await sendPasswordResetEmail(auth, check.email);
+    } catch (error) {
+      failure = error;
+    } finally {
+      setResetting(false);
+    }
+
+    const outcome = resetOutcome(failure);
+    if (outcome.sent) {
+      setInfoMessage(outcome.message);
+    } else {
+      setErrorTitle("Couldn't Send Reset Email");
+      setErrorMessage(outcome.message);
+    }
+  };
+
   const clearErrors = () => {
+    if (infoMessage) setInfoMessage("");
     if (errorMessage) {
       setErrorMessage("");
       setErrorTitle("");
@@ -175,6 +213,13 @@ export default function SignIn() {
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close" size={18} color="#991B1B" />
                 </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {infoMessage ? (
+              <View style={styles.infoBanner} accessibilityLiveRegion="polite">
+                <Ionicons name="checkmark-circle" size={22} color={Palette.successDark} style={{ marginRight: 10, marginTop: 1 }} />
+                <Text style={styles.infoText}>{infoMessage}</Text>
               </View>
             ) : null}
 
@@ -235,6 +280,15 @@ export default function SignIn() {
               {(errorField === "password" || errorField === "both") && (
                 <Text style={styles.fieldErrorHint}>Please check your password</Text>
               )}
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Forgot password? Send a reset link to the email above"
+                style={styles.forgotBtn}
+                onPress={handleForgotPassword}
+                disabled={resetting || loading}
+              >
+                <Text style={styles.forgotText}>{resetting ? "Sending reset link..." : "Forgot password?"}</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Sign In Button */}
@@ -345,6 +399,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#991B1B",
     lineHeight: 17,
+  },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: Palette.greenPale,
+    borderColor: Palette.success,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontFamily: "Outfit-Regular",
+    fontSize: 13,
+    color: Palette.successDark,
+    lineHeight: 18,
+  },
+  forgotBtn: {
+    alignSelf: "flex-end",
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  forgotText: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 14,
+    color: Colors.PRIMARY,
   },
   inputWrap: {
     marginBottom: 18,
