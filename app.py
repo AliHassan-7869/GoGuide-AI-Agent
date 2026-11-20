@@ -265,8 +265,10 @@ def call_gemini(contents: list, generation_config: dict, system_instruction: str
             if text:
                 return text
             logger.error("Gemini %s returned an empty response", model)
-        except requests.exceptions.RequestException as e:
-            logger.error("Gemini %s error: %s", model, e)
+        except Exception as e:
+            # Not only network errors: a malformed reply (missing/empty "candidates", bad JSON) must
+            # also fall through to the next model instead of aborting the whole chain.
+            logger.error("Gemini %s error: %s: %s", model, type(e).__name__, e)
             last_error = e
 
     if last_error:
@@ -330,7 +332,11 @@ def call_nvidia(messages: list, temperature: float = 0.5, max_tokens: int = 4096
 
 
 def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=None) -> str:
-    """Try Gemini first, then NVIDIA NIM, then DeepSeek. Raise a generic error if all configured fail."""
+    """Try Gemini first, then NVIDIA NIM, then DeepSeek. Raise a generic error if all configured fail.
+
+    Any failure of one provider (network error, malformed reply, unexpected exception) moves on to
+    the next one. Only an HTTPException (the spend cap) is allowed to stop the chain.
+    """
     if not GEMINI_API_KEY and not DEEPSEEK_API_KEY and not NVIDIA_API_KEY:
         logger.error("No AI provider key configured on server (Gemini/NVIDIA/DeepSeek)")
         raise HTTPException(status_code=503, detail="Service not configured")
@@ -341,8 +347,10 @@ def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=Non
             if text:
                 return text
             logger.error("Gemini returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("Gemini API error: %s", e)
+        except HTTPException:
+            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
+        except Exception as e:
+            logger.error("Gemini API error: %s: %s", type(e).__name__, e)
 
     if NVIDIA_API_KEY and nvidia_call:
         try:
@@ -350,8 +358,10 @@ def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=Non
             if text:
                 return text
             logger.error("NVIDIA returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("NVIDIA API error: %s", e)
+        except HTTPException:
+            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
+        except Exception as e:
+            logger.error("NVIDIA API error: %s: %s", type(e).__name__, e)
 
     if DEEPSEEK_API_KEY and deepseek_call:
         try:
@@ -359,8 +369,10 @@ def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=Non
             if text:
                 return text
             logger.error("DeepSeek returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("DeepSeek API error: %s", e)
+        except HTTPException:
+            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
+        except Exception as e:
+            logger.error("DeepSeek API error: %s: %s", type(e).__name__, e)
 
     raise HTTPException(status_code=502, detail=AI_ERROR)
 
@@ -651,6 +663,8 @@ def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
             with _DEEP_LOCK:
                 _DEEP_JOBS[job_id] = {
                     "status": "ready",
+                    # Must match the creator: GET /plan-deep/{id} returns 404 to anyone else.
+                    "owner": owner,
                     "created_at": _DEEP_JOBS.get(job_id, {}).get("created_at", time.time()),
                     "data": {
                         "destination": destination,

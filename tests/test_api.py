@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from conftest import API_HEADERS, USER_HEADERS, deepseek_ok, gemini_ok
+from conftest import API_HEADERS, USER_HEADERS, FakeResponse, deepseek_ok, gemini_ok
 
 PLAN_BODY = {"destination": "Lahore", "days": 3, "budget": "Cheap"}
 CHAT_BODY = {"message": "Lahore mein kya khaun?"}
@@ -132,6 +132,50 @@ def test_deepseek_only_when_gemini_not_configured(client, app, monkeypatch, prov
     assert all("deepseek" in u for u in providers.urls())
 
 
+# -------------------- Provider fallback must survive ANY provider failure, not just network errors --------------------
+def test_malformed_gemini_reply_tries_the_backup_model(client, providers):
+    providers.handlers["gemini-primary"] = lambda: FakeResponse(200, {"candidates": []})
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "backup"}'
+
+
+def test_non_network_gemini_error_falls_through_to_deepseek(client, providers):
+    providers.handlers["gemini-primary"] = lambda: KeyError("candidates")
+    providers.handlers["gemini-backup"] = lambda: ValueError("bad payload")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "deepseek"}'
+
+
+def test_non_network_nvidia_error_still_reaches_deepseek(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "NVIDIA_API_KEY", "test-nvidia-key")
+    providers.handlers["gemini-primary"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["gemini-backup"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["integrate.api.nvidia.com"] = lambda: ValueError("unexpected reply shape")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "deepseek"}'
+    assert any("deepseek" in u for u in providers.urls())
+
+
+def test_every_provider_failing_oddly_is_a_generic_502_without_leaks(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "NVIDIA_API_KEY", "test-nvidia-key")
+    for key in ("gemini-primary", "gemini-backup", "integrate.api.nvidia.com", "api.deepseek.com"):
+        providers.handlers[key] = lambda: RuntimeError("boom SECRET-TOKEN")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 502
+    assert res.json() == {"detail": "AI service error, please try again"}
+    assert "SECRET" not in res.text
+
+
+def test_spend_cap_still_stops_the_request_without_calling_any_provider(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "check_spend_cap_guard", lambda: False)
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 429
+    assert providers.calls == []
+
+
 # -------------------- /plan --------------------
 def test_plan_returns_parsed_json(client, providers):
     plan = {"trip": {"destination": "Lahore", "itinerary": [{"day": 1}]}}
@@ -174,8 +218,13 @@ def test_chat_without_trip(client, providers):
 
 
 # -------------------- Errors --------------------
-def test_unexpected_error_is_hidden(client, providers):
-    providers.handlers["gemini-primary"] = lambda: (_ for _ in ()).throw(RuntimeError("internal secret detail"))
+def test_unexpected_error_is_hidden(client, app, monkeypatch, providers):
+    # A provider blowing up now just moves to the next provider (see the fallback tests above), so
+    # trigger the unexpected error outside the provider chain to exercise the global handler.
+    def explode(*args, **kwargs):
+        raise RuntimeError("internal secret detail")
+
+    monkeypatch.setattr(app, "generate_with_fallback", explode)
     res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
     assert res.status_code == 500
     assert "internal secret detail" not in res.text
@@ -207,6 +256,35 @@ def test_deep_job_not_readable_by_other_user(client, providers):
     other = {"Authorization": "Bearer other-user-token"}
     assert client.get(f"/plan-deep/{job_id}", headers=other).status_code == 404
     assert client.get(f"/plan-deep/{job_id}", headers=USER_HEADERS).status_code == 200
+
+
+def _enable_orchestrator(app, monkeypatch, result=None, error=None):
+    """Make /plan-deep take the grounded LangGraph branch without running the real graph."""
+    monkeypatch.setattr(app, "get_curated_plan", lambda *a, **kw: {"data": {"plan": {"trip": {}}}})
+
+    def fake_orchestration(**kwargs):
+        if error:
+            raise error
+        return result or {"destination": kwargs["destination"], "itinerary": [{"day": 1}]}
+
+    monkeypatch.setattr(app, "execute_trip_orchestration", fake_orchestration)
+
+
+def test_orchestrated_deep_plan_is_readable_by_its_owner(client, app, monkeypatch, providers):
+    _enable_orchestrator(app, monkeypatch)
+    job_id = client.post("/plan-deep", json=PLAN_BODY, headers=USER_HEADERS).json()["data"]["job_id"]
+    res = client.get(f"/plan-deep/{job_id}", headers=USER_HEADERS)
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["status"] == "ready"
+    assert res.json()["data"]["orchestrated"] is True
+    assert providers.calls == []
+
+
+def test_orchestrated_deep_plan_is_not_readable_by_another_user(client, app, monkeypatch, providers):
+    _enable_orchestrator(app, monkeypatch)
+    job_id = client.post("/plan-deep", json=PLAN_BODY, headers=USER_HEADERS).json()["data"]["job_id"]
+    other = {"Authorization": "Bearer other-user-token"}
+    assert client.get(f"/plan-deep/{job_id}", headers=other).status_code == 404
 
 
 def test_deep_plan_failure_is_an_error_not_fake_plan(client, providers):
@@ -278,3 +356,16 @@ def test_copilot_is_told_not_to_write_full_itineraries(client, providers):
     sent = str(providers.calls[0].get("json"))
     assert "NO FULL ITINERARIES" in sent
     assert "Plan this trip" in sent
+
+
+# -------------------- Test hygiene: results must not depend on the developer's .env --------------------
+def test_tests_never_see_real_provider_keys():
+    import os
+    import app as app_module
+
+    assert not os.environ.get("NVIDIA_API_KEY")
+    assert not os.environ.get("JEV_API_KEY")
+    assert app_module.GEMINI_API_KEY == "test-gemini-key"
+    assert app_module.DEEPSEEK_API_KEY == "test-deepseek-key"
+    assert not app_module.NVIDIA_API_KEY
+    assert app_module.ALLOWED_ORIGINS == []
