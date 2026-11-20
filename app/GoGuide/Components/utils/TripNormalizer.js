@@ -248,13 +248,13 @@ export function normalizeTrip(raw) {
   if (Array.isArray(rawHotels)) {
     hotels = rawHotels.map((h) => {
       if (typeof h === "string") {
-        return { name: h, address: destination, price: "N/A", rating: "4.5" };
+        return { name: h, address: destination, price: "Price not listed", rating: "" };
       }
       return {
-        name: h?.name || h?.hotelName || "Verified Stay",
+        name: h?.name || h?.hotelName || "Hotel (name not listed)",
         address: h?.address || h?.hotelAddress || destination,
-        price: h?.price || h?.hotelPrice || "Competitive Rate",
-        rating: h?.rating || h?.hotelRating || "4.7",
+        price: h?.price || h?.hotelPrice || "Price not listed",
+        rating: h?.rating || h?.hotelRating || "",
         geoCoordinates: h?.geoCoordinates || h?.coordinates || null,
         description: h?.description || "",
       };

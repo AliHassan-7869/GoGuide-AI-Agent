@@ -6,6 +6,7 @@ import { Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Platform, St
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { askTravelAssistant } from "../../Configs/AiModel";
 import { auth } from "../../Configs/FirebaseConfig";
+import { EMAIL_VERIFY_MESSAGE, isEmailVerificationError } from "../../Components/utils/emailVerification";
 import { Colors } from "../../Components/constants/constants";
 import { Radius, Spacing, Typography, useTheme, useHydrated, Palette } from "../../Components/constants/theme";
 import FadeInView from "../../Components/ui/FadeInView";
@@ -287,11 +288,13 @@ export default function AiAssistant() {
       const finalMsgs = [...updatedWithUser, aiMsg];
       setMessages(finalMsgs);
       persistMessages(finalMsgs);
-    } catch {
+    } catch (err) {
       const errorMsg = {
         id: "err_" + Date.now(),
         sender: "ai",
-        text: "⚠️ I couldn't reach the server just now. Please check your connection and send your message again.",
+        text: isEmailVerificationError(err)
+          ? `✉️ ${EMAIL_VERIFY_MESSAGE} Then send your message again.`
+          : "⚠️ I couldn't reach the server just now. Please check your connection and send your message again.",
         time: nowTime(),
       };
       setMessages([...updatedWithUser, errorMsg]);

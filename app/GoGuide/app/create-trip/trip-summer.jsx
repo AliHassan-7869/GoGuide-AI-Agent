@@ -17,6 +17,8 @@ import FavoriteHeartButton from "../../Components/FavoriteHeartButton";
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 
 import { goBack } from "../../Components/utils/navigation";
+import { formatRating } from "../../Components/utils/rating";
+import { quickPlanFields } from "../../Components/utils/quickPlan";
 export default function TripSummer() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function TripSummer() {
   const [imgFailed, setImgFailed] = React.useState(false);
   const imageUri = imgFailed ? DEFAULT_HD_TRAVEL_IMAGE : rawImageUri;
 
-  const rating = tripData?.toLocationRating || "4.9";
+  const rating = formatRating(tripData?.toLocationRating);
   const activeAccent = Colors.PRIMARY || Palette.slate900;
 
   const destCity = destination.split(",")[0].trim();
@@ -101,10 +103,7 @@ export default function TripSummer() {
         name: destination,
         photoRef: imageUri,
       },
-      totalDays: 3,
-      budget: "Moderate",
-      traveler: { title: "Solo / Couple", people: "1 to 2" },
-      interests: ["Sightseeing", "Local Food", "Culture"],
+      ...quickPlanFields({ days: 3, budget: "Moderate" }),
     }));
     router.push("/create-trip/review-trip");
   };
@@ -147,8 +146,8 @@ export default function TripSummer() {
           <View style={styles.imageOverlay}>
             <Text style={styles.destName}>{destCity}</Text>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={16} color={Palette.gold} />
-              <Text style={styles.ratingText}>{rating} • AI Curated Destination</Text>
+              {rating ? <Ionicons name="star" size={16} color={Palette.gold} /> : null}
+              <Text style={styles.ratingText}>{rating ? `${rating} • ` : ""}AI Curated Destination</Text>
             </View>
           </View>
         </View>

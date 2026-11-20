@@ -33,3 +33,6 @@ Thumbs.db
 node_modules
 .vercel
 .env*
+
+# Keep the documented example (real .env files above stay ignored)
+!.env.example

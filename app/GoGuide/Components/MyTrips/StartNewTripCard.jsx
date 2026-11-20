@@ -3,12 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/constants";
 import { Radius, Typography, useTheme, Palette } from "../constants/theme";
 import FadeInView from "../ui/FadeInView";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import FavoriteHeartButton from "../FavoriteHeartButton";
+import { quickPlanFields } from "../utils/quickPlan";
 import DayRouteModal from "./DayRouteModal";
 
 import { TouchableOpacity } from "../ui/Touchable";
@@ -138,7 +139,7 @@ const FEATURE_PILLS = [
     icon: "sunny",
     color: Palette.warning,
     bg: "rgba(245, 158, 11, 0.12)",
-    label: "Weather Ready",
+    label: "Local Weather",
     route: "/location",
   },
   {
@@ -159,63 +160,6 @@ const FEATURE_PILLS = [
   },
 ];
 
-const DEFAULT_LIVE_ROUTE_DAYS = [
-  {
-    day: 1,
-    theme: "Dubai Downtown & Iconic Skyline Route",
-    activities: [
-      {
-        time: "09:30 AM",
-        placeName: "Burj Khalifa & Dubai Mall",
-        details: "Start at the world's tallest tower and observation deck in Downtown Dubai.",
-        coordinates: { lat: 25.1972, lng: 55.2744 },
-      },
-      {
-        time: "01:30 PM",
-        placeName: "Museum of the Future",
-        details: "Explore futuristic exhibitions along Sheikh Zayed Road.",
-        coordinates: { lat: 25.2192, lng: 55.2819 },
-      },
-      {
-        time: "05:30 PM",
-        placeName: "Palm Jumeirah & The Pointe",
-        details: "Sunset views over the Arabian Gulf and Atlantis skyline.",
-        coordinates: { lat: 25.1124, lng: 55.139 },
-      },
-      {
-        time: "08:00 PM",
-        placeName: "Dubai Marina Yacht Promenade",
-        details: "Evening waterfront dinner cruise and illuminated marina walk.",
-        coordinates: { lat: 25.0805, lng: 55.1403 },
-      },
-    ],
-  },
-  {
-    day: 2,
-    theme: "Old Dubai Heritage & Creek Route",
-    activities: [
-      {
-        time: "10:00 AM",
-        placeName: "Al Fahidi Historical Neighbourhood",
-        details: "Traditional wind-tower alleys, cultural cafes, and heritage galleries.",
-        coordinates: { lat: 25.2633, lng: 55.2972 },
-      },
-      {
-        time: "01:00 PM",
-        placeName: "Dubai Creek Abra Crossing & Gold Souk",
-        details: "Ride a traditional wooden boat across the creek to the historic souks.",
-        coordinates: { lat: 25.2697, lng: 55.2962 },
-      },
-      {
-        time: "05:00 PM",
-        placeName: "Dubai Frame & Zabeel Park",
-        details: "Panoramic glass bridge connecting Old and New Dubai.",
-        coordinates: { lat: 25.2355, lng: 55.3003 },
-      },
-    ],
-  },
-];
-
 export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDeleteTrip }) {
   const router = useRouter();
   const theme = useTheme();
@@ -233,15 +177,25 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
   const openTripLiveRoutes = (tripObj) => {
     triggerHaptic();
     const plan = tripObj?.aiTripPlan || tripObj?.tripData?.aiTripPlan || tripObj;
-    const days = Array.isArray(plan?.itinerary) && plan.itinerary.length > 0
-      ? plan.itinerary
-      : DEFAULT_LIVE_ROUTE_DAYS;
+    const days = Array.isArray(plan?.itinerary) ? plan.itinerary : [];
+    // Routes come from a real itinerary only. With no trip (or an empty one) say so, never show a sample city.
+    if (days.length === 0) {
+      Alert.alert(
+        "Plan a trip first",
+        "Live routes show the stops of your itinerary on a map. Plan a trip, then open its route here.",
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Plan a trip", onPress: () => router.push("/create-trip/search-place") },
+        ]
+      );
+      return;
+    }
     const dest =
       plan?.destination ||
       tripObj?.destination ||
       tripObj?.toLocation?.name ||
       tripObj?.locationInfo?.name ||
-      "Dubai, United Arab Emirates";
+      "Your trip";
 
     setLiveRouteConfig({
       day: days[0],
@@ -252,17 +206,15 @@ export default function StartNewTripCard({ userTrips = [], onSelectTrip, onDelet
 
   const handleSelectDestination = (item) => {
     triggerHaptic();
-    setTripData({
-      locationInfo: {
-        name: `${item.name}, ${item.country}`,
-        coordinates: item.coordinates,
-        photoRef: item.image,
-      },
-      totalDays: item.days,
-      budget: item.budget,
-      traveler: { title: "Solo / Couple", people: "1 to 2" },
-      interests: ["Sightseeing", "Local Food", "Culture", "Photography"],
-    });
+    const name = `${item.name}, ${item.country}`;
+    // Starts a fresh trip (nothing left over from an earlier one) but keeps the user's departure city.
+    setTripData((prev) => ({
+      fromLocation: prev?.fromLocation,
+      toLocation: { name, coordinates: item.coordinates },
+      toLocationImage: item.image,
+      locationInfo: { name, coordinates: item.coordinates, photoRef: item.image },
+      ...quickPlanFields({ days: item.days, budget: item.budget }),
+    }));
     router.push("/create-trip/review-trip");
   };
 

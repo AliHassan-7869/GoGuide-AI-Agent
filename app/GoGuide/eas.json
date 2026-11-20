@@ -6,7 +6,10 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -21,12 +24,21 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production"
       }
     },
     "preview-device": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      }
+    },
+    "staging": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "staging"
       }
     }
   },

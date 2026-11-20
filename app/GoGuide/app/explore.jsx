@@ -150,7 +150,7 @@ export default function Explore() {
                   title: item.title,
                   image: item.image,
                   category: item.category || "Explore",
-                  rating: item.rating || "4.8",
+                  rating: item.rating,
                 }}
               />
             </View>

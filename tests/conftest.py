@@ -4,13 +4,36 @@ import sys
 import pytest
 import requests
 
-# Fixed fake config. Set before app.py is imported so a local .env cannot override it.
-os.environ["API_KEY"] = "test-api-key"
-os.environ["GEMINI_API_KEY"] = "test-gemini-key"
-os.environ["DEEPSEEK_API_KEY"] = "test-deepseek-key"
-os.environ["FIREBASE_PROJECT_ID"] = "test-project"
-os.environ["GEMINI_MODELS"] = "gemini-primary,gemini-backup"
-os.environ["RATE_LIMIT_PER_HOUR"] = "30"
+# Fixed fake config. Set before app.py is imported so a local .env cannot override it
+# (app.py calls load_dotenv(), which never overwrites a variable that is already set, even to "").
+# EVERY setting the backend reads is pinned here, so tests behave the same on a developer machine
+# with real keys in .env as they do in CI with no .env at all.
+_TEST_ENV = {
+    "API_KEY": "test-api-key",
+    "GEMINI_API_KEY": "test-gemini-key",
+    "DEEPSEEK_API_KEY": "test-deepseek-key",
+    "NVIDIA_API_KEY": "",          # not configured; tests that need it enable it explicitly
+    "JEV_API_KEY": "",             # orchestrator must use its offline evaluator, never the network
+    "JEV_API_BASE": "http://jev.invalid",
+    "FIREBASE_PROJECT_ID": "test-project",
+    "GEMINI_MODELS": "gemini-primary,gemini-backup",
+    "DEEPSEEK_MODEL": "deepseek-chat",
+    "NVIDIA_MODEL": "nvidia/test-model",
+    "RATE_LIMIT_PER_HOUR": "30",
+    "IP_RATE_LIMIT_PER_HOUR": "1000",
+    "MAX_DAILY_AI_CALLS": "500",
+    "ALLOW_API_KEY_AUTH": "false",
+    "REQUIRE_EMAIL_VERIFICATION": "false",
+    "ALLOWED_ORIGINS": "",
+    "SENTRY_DSN": "",
+    "SENTRY_ENVIRONMENT": "test",
+    "SENTRY_TRACES_SAMPLE_RATE": "0",
+    "ENVIRONMENT": "test",
+}
+os.environ.update(_TEST_ENV)
+# Make sure the "keep-alive" thread (only started on Render) can never start during tests.
+for _var in ("RENDER", "PORT", "RENDER_EXTERNAL_URL", "RENDER_GIT_COMMIT"):
+    os.environ.pop(_var, None)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -80,6 +103,15 @@ def fake_verify_firebase_token(token, request, audience):
         return {"sub": "user-1", "iss": f"https://securetoken.google.com/{audience}", "aud": audience}
     if token == "other-user-token":
         return {"sub": "user-2", "iss": f"https://securetoken.google.com/{audience}", "aud": audience}
+    if token == "unverified-password-token":
+        return {"sub": "user-3", "iss": f"https://securetoken.google.com/{audience}", "email": "a@b.co",
+                "email_verified": False, "firebase": {"sign_in_provider": "password"}}
+    if token == "verified-password-token":
+        return {"sub": "user-4", "iss": f"https://securetoken.google.com/{audience}", "email": "a@b.co",
+                "email_verified": True, "firebase": {"sign_in_provider": "password"}}
+    if token == "anonymous-token":
+        return {"sub": "user-5", "iss": f"https://securetoken.google.com/{audience}",
+                "firebase": {"sign_in_provider": "anonymous"}}
     if token == "wrong-issuer-token":
         return {"sub": "user-1", "iss": "https://securetoken.google.com/someone-else"}
     if token == "network-down-token":
@@ -105,6 +137,7 @@ def isolate(monkeypatch):
     monkeypatch.setattr(app_module, "API_KEY", "test-api-key")
     monkeypatch.setattr(app_module, "GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.setattr(app_module, "DEEPSEEK_API_KEY", "test-deepseek-key")
+    monkeypatch.setattr(app_module, "NVIDIA_API_KEY", None)
     monkeypatch.setattr(app_module, "RATE_LIMIT_PER_HOUR", 30)
     monkeypatch.setattr(app_module, "IP_RATE_LIMIT_PER_HOUR", 1000)
     monkeypatch.setattr(app_module, "ALLOW_API_KEY_AUTH", True)

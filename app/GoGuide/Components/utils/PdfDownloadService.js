@@ -103,7 +103,7 @@ export function buildPrintableHtml(data) {
       </div>
       <div style="text-align: right;">
         <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${h.price}</div>
-        <div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>
+        ${h.rating ? `<div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>` : ""}
       </div>
     </div>
   `
@@ -186,7 +186,7 @@ function openPrintableHtmlItinerary(data) {
   }
 }
 
-function normalizeTripPlan(rawPlan, destinationName) {
+export function normalizeTripPlan(rawPlan, destinationName) {
   let plan = rawPlan;
 
   if (typeof plan === "string") {
@@ -269,7 +269,7 @@ function normalizeTripPlan(rawPlan, destinationName) {
         ? rawActs.map((a) => ({
             time: a.time || a.timing || "Scheduled",
             placeName: a.placeName || a.place || a.name || a.activity || "Curated Attraction",
-            details: a.details || a.placeDetails || a.description || "Sightseeing and local cultural visit.",
+            details: a.details || a.placeDetails || a.description || "",
             tickets: a.tickets || a.ticketPrice || a.price || a.cost || "",
           }))
         : [];
@@ -286,7 +286,7 @@ function normalizeTripPlan(rawPlan, destinationName) {
           activities: d.map((a) => ({
             time: a.time || a.timing || "Scheduled",
             placeName: a.placeName || a.place || a.name || a.activity || "Attraction",
-            details: a.details || a.placeDetails || a.description || "Local activity.",
+            details: a.details || a.placeDetails || a.description || "",
             tickets: a.tickets || a.price || "",
           })),
         };
@@ -304,78 +304,19 @@ function normalizeTripPlan(rawPlan, destinationName) {
     });
   }
 
-  // Fallback if itinerary is empty: provide rich realistic days so PDF is never empty
-  if (itinerary.length === 0) {
-    const destShort = destination.split(",")[0].trim();
-    itinerary = [
-      {
-        day: 1,
-        theme: `Arrival & Historic ${destShort} Landmarks`,
-        activities: [
-          {
-            time: "09:30 AM",
-            placeName: `${destShort} Central Historic District`,
-            details: "Stroll through iconic architecture, historic city squares, and cultural monuments.",
-            tickets: "Free Access",
-          },
-          {
-            time: "01:30 PM",
-            placeName: "Traditional Regional Bistro",
-            details: "Sample authentic regional cuisine, signature coffee, and local delicacies.",
-            tickets: "$15 - $25",
-          },
-          {
-            time: "04:30 PM",
-            placeName: `${destShort} Heritage Museum & Arts`,
-            details: "Explore national galleries, classical sculptures, and cultural archives.",
-            tickets: "$12 - $18",
-          },
-        ],
-      },
-      {
-        day: 2,
-        theme: `Scenic Panoramas & ${destShort} Hidden Gems`,
-        activities: [
-          {
-            time: "10:00 AM",
-            placeName: "Scenic Panoramic Viewpoint & Sky Deck",
-            details: "Breathtaking 360-degree skyline views and memorable photo opportunities.",
-            tickets: "$10",
-          },
-          {
-            time: "02:30 PM",
-            placeName: "Old Quarter Artisan Market",
-            details: "Browse handmade souvenirs, artisanal perfumes, textiles, and specialty shops.",
-            tickets: "Free",
-          },
-          {
-            time: "07:30 PM",
-            placeName: "Golden Hour Waterfront Promenade",
-            details: "Relaxing sunset walk followed by waterfront dining and ambient city evening lights.",
-            tickets: "Included",
-          },
-        ],
-      },
-    ];
-  }
+  // No itinerary: leave it empty. The caller tells the user; we never print an invented itinerary.
 
   // Normalize hotels
   let rawHotels = plan?.hotels || plan?.hotel || plan?.accommodations || [];
+  // Only the trip's own hotels. Never an invented hotel, address, price or rating.
   let hotels = Array.isArray(rawHotels) && rawHotels.length > 0
     ? rawHotels.map((h) => ({
-        name: h.name || h.hotelName || "Boutique Hotel Stay",
-        address: h.address || h.location || h.details || "Prime city location",
-        price: h.price || h.cost || h.pricing || "$120/night",
-        rating: h.rating || "4.8",
+        name: h.name || h.hotelName || "Hotel (name not listed)",
+        address: h.address || h.location || h.details || "",
+        price: h.price || h.cost || h.pricing || "Price not listed",
+        rating: h.rating || "",
       }))
-    : [
-        {
-          name: `Grand ${destination.split(",")[0].trim()} Suites`,
-          address: `Central City District, ${destination}`,
-          price: "$110/night",
-          rating: "4.8",
-        },
-      ];
+    : [];
 
   return { destination, duration, budget, traveler, flights, itinerary, hotels, weatherBrief, summary, packingList };
 }
@@ -743,7 +684,7 @@ function buildItineraryVectorPdf(data, JsPDFClass) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.2);
-      const addrLines = doc.splitTextToSize(String(h.address || "Central Prime Location"), hotelInfoWidth);
+      const addrLines = doc.splitTextToSize(String(h.address || ""), hotelInfoWidth);
 
       const nameH = Math.min(nameLines.length, 2) * 4.2;
       const addrH = Math.min(addrLines.length, 2) * 3.4;
@@ -875,6 +816,10 @@ function buildItineraryVectorPdf(data, JsPDFClass) {
 export async function downloadItineraryPDF(plan, destinationName) {
   try {
     const normalizedData = normalizeTripPlan(plan, destinationName);
+    if (!normalizedData.itinerary.length) {
+      Alert.alert("Nothing to export", "This trip doesn't have an itinerary yet, so there is no PDF to create.");
+      return false;
+    }
     const destClean = String(normalizedData.destination || "Trip").replace(/[^a-zA-Z0-9]/g, "_");
     const fileName = `GoGuide_Itinerary_${destClean}.pdf`;
 

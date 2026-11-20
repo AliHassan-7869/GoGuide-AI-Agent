@@ -168,6 +168,8 @@ Find the computer IP with `ip -4 -br addr` (Linux) or `ipconfig` (Windows, look 
 | AI says "AI service error" | Check the backend terminal. Usually Gemini quota (`429`) or DeepSeek balance (`402`) |
 | `[Backend] Using` shows the wrong address | Set `EXPO_PUBLIC_API_URL=http://<computer-ip>:8000` in `app/GoGuide/.env` and restart with `npx expo start -c` |
 
+> **Environments:** development builds no longer fall back to the live backend or Firebase project. Create `app/GoGuide/.env.local` from `.env.example` (see `docs/ENVIRONMENTS.md`). To knowingly use production for a quick check, add `EXPO_PUBLIC_USE_PRODUCTION_SERVICES=true`.
+
 ---
 
 ## 6. Web Export & Production Deployment

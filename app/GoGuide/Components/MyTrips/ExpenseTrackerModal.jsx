@@ -560,7 +560,7 @@ export default function ExpenseTrackerModal({
                       ≈ {targetSym}{converted.toLocaleString()} {targetConvCode}
                     </Text>
                     <Text style={{ fontSize: 12, fontFamily: "Outfit-Medium", color: theme.subtext, marginTop: 2 }}>
-                      (Live Rate: 1 {inputCurrency} = {unitRateStr} {targetConvCode})
+                      (Approx. rate: 1 {inputCurrency} = {unitRateStr} {targetConvCode})
                     </Text>
                   </View>
                 );

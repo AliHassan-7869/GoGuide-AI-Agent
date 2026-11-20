@@ -41,7 +41,7 @@ export function normalizeFavorite(f) {
     title: text(f.title) || name,
     image: safeImageUri(f.image || f.img || f.photoRef),
     category: prettyLabel(f.category || f.tag),
-    rating: Number.isFinite(ratingNum) && ratingNum > 0 ? ratingNum.toFixed(1) : "4.8",
+    rating: Number.isFinite(ratingNum) && ratingNum > 0 ? ratingNum.toFixed(1) : "",
     description: text(f.description, 200),
   };
 }

@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from conftest import API_HEADERS, USER_HEADERS, deepseek_ok, gemini_ok
+from conftest import API_HEADERS, USER_HEADERS, FakeResponse, deepseek_ok, gemini_ok
 
 PLAN_BODY = {"destination": "Lahore", "days": 3, "budget": "Cheap"}
 CHAT_BODY = {"message": "Lahore mein kya khaun?"}
@@ -132,6 +132,50 @@ def test_deepseek_only_when_gemini_not_configured(client, app, monkeypatch, prov
     assert all("deepseek" in u for u in providers.urls())
 
 
+# -------------------- Provider fallback must survive ANY provider failure, not just network errors --------------------
+def test_malformed_gemini_reply_tries_the_backup_model(client, providers):
+    providers.handlers["gemini-primary"] = lambda: FakeResponse(200, {"candidates": []})
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "backup"}'
+
+
+def test_non_network_gemini_error_falls_through_to_deepseek(client, providers):
+    providers.handlers["gemini-primary"] = lambda: KeyError("candidates")
+    providers.handlers["gemini-backup"] = lambda: ValueError("bad payload")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "deepseek"}'
+
+
+def test_non_network_nvidia_error_still_reaches_deepseek(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "NVIDIA_API_KEY", "test-nvidia-key")
+    providers.handlers["gemini-primary"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["gemini-backup"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["integrate.api.nvidia.com"] = lambda: ValueError("unexpected reply shape")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 200
+    assert res.json()["data"]["reply"] == '{"ok": "deepseek"}'
+    assert any("deepseek" in u for u in providers.urls())
+
+
+def test_every_provider_failing_oddly_is_a_generic_502_without_leaks(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "NVIDIA_API_KEY", "test-nvidia-key")
+    for key in ("gemini-primary", "gemini-backup", "integrate.api.nvidia.com", "api.deepseek.com"):
+        providers.handlers[key] = lambda: RuntimeError("boom SECRET-TOKEN")
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 502
+    assert res.json() == {"detail": "AI service error, please try again"}
+    assert "SECRET" not in res.text
+
+
+def test_spend_cap_still_stops_the_request_without_calling_any_provider(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "check_spend_cap_guard", lambda: False)
+    res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert res.status_code == 429
+    assert providers.calls == []
+
+
 # -------------------- /plan --------------------
 def test_plan_returns_parsed_json(client, providers):
     plan = {"trip": {"destination": "Lahore", "itinerary": [{"day": 1}]}}
@@ -174,8 +218,13 @@ def test_chat_without_trip(client, providers):
 
 
 # -------------------- Errors --------------------
-def test_unexpected_error_is_hidden(client, providers):
-    providers.handlers["gemini-primary"] = lambda: (_ for _ in ()).throw(RuntimeError("internal secret detail"))
+def test_unexpected_error_is_hidden(client, app, monkeypatch, providers):
+    # A provider blowing up now just moves to the next provider (see the fallback tests above), so
+    # trigger the unexpected error outside the provider chain to exercise the global handler.
+    def explode(*args, **kwargs):
+        raise RuntimeError("internal secret detail")
+
+    monkeypatch.setattr(app, "generate_with_fallback", explode)
     res = client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
     assert res.status_code == 500
     assert "internal secret detail" not in res.text
@@ -207,6 +256,35 @@ def test_deep_job_not_readable_by_other_user(client, providers):
     other = {"Authorization": "Bearer other-user-token"}
     assert client.get(f"/plan-deep/{job_id}", headers=other).status_code == 404
     assert client.get(f"/plan-deep/{job_id}", headers=USER_HEADERS).status_code == 200
+
+
+def _enable_orchestrator(app, monkeypatch, result=None, error=None):
+    """Make /plan-deep take the grounded LangGraph branch without running the real graph."""
+    monkeypatch.setattr(app, "get_curated_plan", lambda *a, **kw: {"data": {"plan": {"trip": {}}}})
+
+    def fake_orchestration(**kwargs):
+        if error:
+            raise error
+        return result or {"destination": kwargs["destination"], "itinerary": [{"day": 1}]}
+
+    monkeypatch.setattr(app, "execute_trip_orchestration", fake_orchestration)
+
+
+def test_orchestrated_deep_plan_is_readable_by_its_owner(client, app, monkeypatch, providers):
+    _enable_orchestrator(app, monkeypatch)
+    job_id = client.post("/plan-deep", json=PLAN_BODY, headers=USER_HEADERS).json()["data"]["job_id"]
+    res = client.get(f"/plan-deep/{job_id}", headers=USER_HEADERS)
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["status"] == "ready"
+    assert res.json()["data"]["orchestrated"] is True
+    assert providers.calls == []
+
+
+def test_orchestrated_deep_plan_is_not_readable_by_another_user(client, app, monkeypatch, providers):
+    _enable_orchestrator(app, monkeypatch)
+    job_id = client.post("/plan-deep", json=PLAN_BODY, headers=USER_HEADERS).json()["data"]["job_id"]
+    other = {"Authorization": "Bearer other-user-token"}
+    assert client.get(f"/plan-deep/{job_id}", headers=other).status_code == 404
 
 
 def test_deep_plan_failure_is_an_error_not_fake_plan(client, providers):
@@ -278,3 +356,166 @@ def test_copilot_is_told_not_to_write_full_itineraries(client, providers):
     sent = str(providers.calls[0].get("json"))
     assert "NO FULL ITINERARIES" in sent
     assert "Plan this trip" in sent
+
+
+# -------------------- Test hygiene: results must not depend on the developer's .env --------------------
+def test_tests_never_see_real_provider_keys():
+    import os
+    import app as app_module
+
+    assert not os.environ.get("NVIDIA_API_KEY")
+    assert not os.environ.get("JEV_API_KEY")
+    assert app_module.GEMINI_API_KEY == "test-gemini-key"
+    assert app_module.DEEPSEEK_API_KEY == "test-deepseek-key"
+    assert not app_module.NVIDIA_API_KEY
+    assert app_module.ALLOWED_ORIGINS == []
+
+
+# -------------------- Email verification (M5) --------------------
+def _bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_unverified_password_account_cannot_use_ai(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    res = client.post("/chat", json=CHAT_BODY, headers=_bearer("unverified-password-token"))
+    assert res.status_code == 403
+    assert "verify your email" in res.json()["detail"].lower()
+    assert providers.calls == []
+
+
+@pytest.mark.parametrize("path,body", [("/plan", PLAN_BODY), ("/plan-deep", PLAN_BODY), ("/destination/safety", {"destination": "Paris"})])
+def test_verification_applies_to_every_ai_endpoint(client, app, monkeypatch, providers, path, body):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post(path, json=body, headers=_bearer("unverified-password-token")).status_code == 403
+    assert providers.calls == []
+
+
+def test_verified_password_account_can_use_ai(client, app, monkeypatch):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("verified-password-token")).status_code == 200
+
+
+def test_anonymous_guests_are_not_blocked_by_verification(client, app, monkeypatch):
+    # Guests (used by the Copilot) have no email to verify.
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("anonymous-token")).status_code == 200
+
+
+def test_verification_check_can_be_switched_off(client, app, monkeypatch):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", False)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("unverified-password-token")).status_code == 200
+
+
+def test_verification_is_required_by_default():
+    """With no REQUIRE_EMAIL_VERIFICATION in the environment the server must enforce it."""
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if k != "REQUIRE_EMAIL_VERIFICATION"}
+    env.update({"SENTRY_DSN": "", "PYTHONPATH": os.path.dirname(os.path.dirname(os.path.abspath(__file__)))})
+    out = subprocess.run(
+        [sys.executable, "-c", "import app; print(app.REQUIRE_EMAIL_VERIFICATION)"],
+        env=env, capture_output=True, text=True, timeout=60,
+    )
+    assert out.stdout.strip().splitlines()[-1] == "True", out.stderr[-500:]
+
+
+# -------------------- Environments (M12) --------------------
+PROD_DSN = "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+
+
+def test_environment_defaults(app):
+    assert app._resolve_environment({"ENVIRONMENT": "staging"}) == "staging"
+    assert app._resolve_environment({"RENDER": "true"}) == "production"   # a Render service with no setting
+    assert app._resolve_environment({}) == "development"                  # a laptop
+    assert app._resolve_environment({"ENVIRONMENT": "  Production "}) == "production"
+
+
+def test_development_never_reports_to_the_production_sentry_project(app):
+    assert app._sentry_settings({"ENVIRONMENT": "development"}) is None
+    assert app._sentry_settings({"ENVIRONMENT": "staging"}) is None  # staging must bring its own DSN
+
+
+def test_production_keeps_error_reporting_even_without_a_dsn_variable(app):
+    s = app._sentry_settings({"ENVIRONMENT": "production"})
+    assert s["dsn"] == PROD_DSN
+    assert s["environment"] == "production"
+
+
+def test_staging_reports_under_its_own_name(app):
+    s = app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": "https://k@o1.ingest.sentry.io/9"})
+    assert s["dsn"] == "https://k@o1.ingest.sentry.io/9"
+    assert s["environment"] == "staging"
+
+
+def test_sentry_samples_a_tenth_of_requests_by_default_and_tags_the_release(app):
+    s = app._sentry_settings({"ENVIRONMENT": "production", "RENDER_GIT_COMMIT": "abc1234def"})
+    assert s["traces_sample_rate"] == 0.1
+    assert s["release"] == "abc1234def"
+    assert app._sentry_settings({"ENVIRONMENT": "production", "SENTRY_TRACES_SAMPLE_RATE": "0.5"})["traces_sample_rate"] == 0.5
+    assert app._sentry_settings({"ENVIRONMENT": "production", "SENTRY_TRACES_SAMPLE_RATE": "junk"})["traces_sample_rate"] == 0.1
+    assert app._sentry_settings({"ENVIRONMENT": "production"})["send_default_pii"] is False
+
+
+def test_invalid_sentry_dsn_is_ignored(app):
+    assert app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": "not-a-url"}) is None
+    assert app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": '"https://k@o1.ingest.sentry.io/9"'})["dsn"] == "https://k@o1.ingest.sentry.io/9"
+
+
+def test_keep_alive_pings_this_service_itself_never_another_environment(app):
+    assert app._keep_alive_url({"RENDER_EXTERNAL_URL": "https://goguide-staging.onrender.com"}) == "https://goguide-staging.onrender.com/health"
+    assert app._keep_alive_url({"RENDER_EXTERNAL_URL": "https://x.onrender.com/"}) == "https://x.onrender.com/health"
+    assert app._keep_alive_url({}) is None
+    assert "goguide-ai-agent" not in (app._keep_alive_url({}) or "")
+
+
+# -------------------- Monitoring (M13) --------------------
+def test_health_stays_minimal_without_a_release(client):
+    assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_health_reports_which_release_is_running(client, monkeypatch):
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abc1234def5678")
+    body = client.get("/health").json()
+    assert body == {"status": "ok", "release": "abc1234"}
+
+
+def test_successful_ai_call_logs_which_provider_answered_and_how_long(client, providers, caplog):
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        assert client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS).status_code == 200
+    line = next(r.getMessage() for r in caplog.records if "AI answered" in r.getMessage())
+    assert "provider=gemini" in line
+    assert "ms" in line
+
+
+def test_fallback_is_visible_in_the_logs(client, providers, caplog):
+    import logging
+
+    providers.handlers["gemini-primary"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["gemini-backup"] = lambda: requests.exceptions.HTTPError("503")
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert any("provider=deepseek" in r.getMessage() for r in caplog.records)
+
+
+def test_total_ai_outage_raises_one_clear_error_event_for_alerting(client, providers, caplog):
+    import logging
+
+    for key in providers.handlers:
+        providers.handlers[key] = lambda: requests.exceptions.HTTPError("500")
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        assert client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS).status_code == 502
+    errors = [r for r in caplog.records if r.levelno >= logging.ERROR and "All AI providers failed" in r.getMessage()]
+    assert len(errors) == 1
+
+
+def test_logs_never_contain_user_text(client, providers, caplog):
+    import logging
+
+    with caplog.at_level(logging.DEBUG, logger="goguide"):
+        client.post("/chat", json={"message": "my secret plan to visit Rome"}, headers=USER_HEADERS)
+    assert "secret plan" not in caplog.text

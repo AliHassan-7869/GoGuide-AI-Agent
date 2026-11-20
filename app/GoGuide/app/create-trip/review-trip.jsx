@@ -5,7 +5,9 @@ import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { sendEmailVerification } from "firebase/auth";
 import { auth } from "../../Configs/FirebaseConfig";
+import { needsEmailVerification, refreshEmailVerification } from "../../Components/utils/emailVerification";
 
 
 import { Colors } from "../../Components/constants/constants";
@@ -101,7 +103,32 @@ export default function ReviewTrip() {
       return;
     }
 
-    // Email verification bypassed for immediate trip generation
+    // AI generation needs a verified email (the server enforces it too). Picks up a verification the
+    // user just completed; otherwise explains what to do. Instant Plan below needs no account check.
+    if (needsEmailVerification(auth.currentUser) && !(await refreshEmailVerification(auth.currentUser))) {
+      Alert.alert(
+        "Verify your email",
+        `We sent a verification link to ${auth.currentUser.email}. Open it, then tap Generate again.`,
+        [
+          { text: "OK", style: "cancel" },
+          {
+            text: "Resend email",
+            onPress: async () => {
+              try {
+                await sendEmailVerification(auth.currentUser);
+                Alert.alert("Email sent", "Check your inbox (and spam folder) for the verification link.");
+              } catch (e) {
+                Alert.alert(
+                  "Couldn't send email",
+                  e?.code === "auth/too-many-requests" ? "Too many requests. Please wait a few minutes." : "Please try again in a moment."
+                );
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
 
     if (setTripData) {
       setTripData((prev) => ({ ...prev, isDeepPlan, useInstant: false }));

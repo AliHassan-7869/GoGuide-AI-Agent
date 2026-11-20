@@ -1,35 +1,45 @@
-name: Render Backend 24/7 Keep-Alive
+name: Backend uptime check
 
+# Every 12 minutes: checks that the backend answers /health, and (as a side effect) keeps the free-tier
+# Render service from going to sleep. If the backend is down after retries the run FAILS, and GitHub
+# emails the repository's Actions notification recipients. That email is the outage alert.
+#
+# Staging: create a repository variable BACKEND_URL (Settings > Secrets and variables > Actions > Variables)
+# or run this workflow manually with a different URL. Without either, production is checked.
 on:
   schedule:
-    # Run every 12 minutes to keep Render alive before the 15m idle sleep window
-    - cron: '*/12 * * * *'
+    - cron: "*/12 * * * *"
   workflow_dispatch:
+    inputs:
+      url:
+        description: "Base URL to check (default: BACKEND_URL variable, else production)"
+        required: false
+
+permissions:
+  contents: read
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_URL: ${{ github.event.inputs.url || vars.BACKEND_URL || 'https://goguide-ai-agent.onrender.com' }}
     steps:
-      - name: Ping GoGuide AI Backend
+      - name: Check /health (3 attempts, generous first timeout for a cold start)
         run: |
-          echo "Pinging GoGuide AI backend to keep it active..."
-
-          # Attempt 1: Ping with generous timeout to accommodate waking from sleep
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 75 https://goguide-ai-agent.onrender.com/health || echo "000")
-          echo "First ping response: $HTTP_STATUS"
-
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "Server was warming up (code: $HTTP_STATUS). Retrying in 8s..."
-            sleep 8
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 30 https://goguide-ai-agent.onrender.com/health || echo "000")
-            echo "Second ping response: $HTTP_STATUS"
-          fi
-
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Render backend is fully active and awake (HTTP 200)!"
-          else
-            echo "ℹ️ Ping signal transmitted to Render (code: $HTTP_STATUS)."
-          fi
-
-          # Always exit 0 to prevent GitHub from sending failure alert emails
-          exit 0
+          URL="${BASE_URL%/}/health"
+          echo "Checking $URL"
+          for attempt in 1 2 3; do
+            if [ "$attempt" -eq 1 ]; then MAX=75; else MAX=30; fi
+            RESPONSE=$(curl -s --connect-timeout 15 --max-time "$MAX" -w '\n%{http_code}' "$URL" || true)
+            CODE=$(printf '%s' "$RESPONSE" | tail -n1)
+            BODY=$(printf '%s' "$RESPONSE" | sed '$d')
+            echo "Attempt $attempt: HTTP $CODE $BODY"
+            if [ "$CODE" = "200" ] && printf '%s' "$BODY" | grep -q '"status":"ok"'; then
+              echo "Backend is healthy."
+              exit 0
+            fi
+            [ "$attempt" -lt 3 ] && sleep 20
+          done
+          echo "::error title=Backend is DOWN::$URL did not return a healthy response after 3 attempts (last HTTP ${CODE:-none})."
+          exit 1

@@ -34,21 +34,54 @@ except Exception as _e:
 
 logger = logging.getLogger("goguide")
 
-# Crash/error tracking. Completely optional: does nothing unless SENTRY_DSN is set on the server.
-_raw_sentry_dsn = (os.getenv("SENTRY_DSN") or "").strip().strip('"').strip("'")
-_SENTRY_DSN = _raw_sentry_dsn or "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+# -------------------- ENVIRONMENT & ERROR TRACKING --------------------
+# Which environment is this process? Set ENVIRONMENT=production|staging|development. A Render service that
+# does not set it counts as production (Render sets RENDER); anything else (a laptop) is development.
+def _resolve_environment(env) -> str:
+    explicit = (env.get("ENVIRONMENT") or "").strip().lower()
+    if explicit:
+        return explicit
+    return "production" if env.get("RENDER") else "development"
 
-if _SENTRY_DSN and _SENTRY_DSN.startswith(("http://", "https://")):
+
+ENVIRONMENT = _resolve_environment(os.environ)
+
+# The shared production Sentry project. Only production may fall back to it, so local runs and staging
+# never report into production's error feed. Staging/dev use their own SENTRY_DSN or report nowhere.
+_PRODUCTION_SENTRY_DSN = "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+
+
+def _sentry_settings(env):
+    """Sentry init arguments for this environment, or None when error reporting should stay off."""
+    environment = _resolve_environment(env)
+    dsn = (env.get("SENTRY_DSN") or "").strip().strip('"').strip("'")
+    if not dsn and environment == "production":
+        dsn = _PRODUCTION_SENTRY_DSN
+    if not dsn.startswith(("http://", "https://")):
+        return None
+    try:
+        rate = float(env.get("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+    except ValueError:
+        rate = 0.1
+    settings = {
+        "dsn": dsn,
+        "environment": (env.get("SENTRY_ENVIRONMENT") or environment).strip(),
+        "traces_sample_rate": rate,
+        "send_default_pii": False,  # never send user emails/IPs/request bodies
+    }
+    release = (env.get("RENDER_GIT_COMMIT") or "").strip()
+    if release:
+        settings["release"] = release  # lets Sentry say which deploy introduced an error
+    return settings
+
+
+_sentry = _sentry_settings(os.environ)
+if _sentry:
     try:
         import sentry_sdk  # type: ignore
 
-        sentry_sdk.init(
-            dsn=_SENTRY_DSN,
-            environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
-            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0")),
-            send_default_pii=False,  # never send user emails/IPs/request bodies
-        )
-        logging.getLogger("goguide").info("Sentry error tracking enabled")
+        sentry_sdk.init(**_sentry)
+        logging.getLogger("goguide").info("Sentry error tracking enabled (%s)", _sentry["environment"])
     except Exception as _sentry_err:  # a broken Sentry setup must never stop the API
         logging.getLogger("goguide").error("Sentry init failed: %s", _sentry_err)
 
@@ -79,7 +112,9 @@ RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 IP_RATE_LIMIT_PER_HOUR = int(os.getenv("IP_RATE_LIMIT_PER_HOUR", "120"))
 # Static X-API-Key login is for admin/cron use only. Off by default; the app uses Firebase tokens.
 ALLOW_API_KEY_AUTH = os.getenv("ALLOW_API_KEY_AUTH", "false").lower() == "true"
-REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
+# On by default: accounts that sign in with an email address must confirm it before using the AI.
+# Anonymous guests (used by the Copilot) have no email and are not affected. Set to "false" to switch off.
+REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "true").lower() == "true"
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
 # Tried in order. If one is down or overloaded, the next one is used.
@@ -116,8 +151,10 @@ def verify_firebase_user(token: str) -> str:
     if not claims or claims.get("iss") != f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}" or not claims.get("sub"):
         raise HTTPException(status_code=401, detail="Invalid or expired login, please sign in again")
 
-    if REQUIRE_EMAIL_VERIFICATION and not claims.get("email_verified", False):
-        raise HTTPException(status_code=403, detail="Email verification required. Please verify your email to access AI features.")
+    # Only email/password accounts can have an unverified address. Guests and other providers are exempt.
+    provider = (claims.get("firebase") or {}).get("sign_in_provider")
+    if REQUIRE_EMAIL_VERIFICATION and provider == "password" and not claims.get("email_verified", False):
+        raise HTTPException(status_code=403, detail="Please verify your email to use AI features. Check your inbox for the verification link.")
 
     return claims["sub"]
 
@@ -265,8 +302,10 @@ def call_gemini(contents: list, generation_config: dict, system_instruction: str
             if text:
                 return text
             logger.error("Gemini %s returned an empty response", model)
-        except requests.exceptions.RequestException as e:
-            logger.error("Gemini %s error: %s", model, e)
+        except Exception as e:
+            # Not only network errors: a malformed reply (missing/empty "candidates", bad JSON) must
+            # also fall through to the next model instead of aborting the whole chain.
+            logger.error("Gemini %s error: %s: %s", model, type(e).__name__, e)
             last_error = e
 
     if last_error:
@@ -330,38 +369,42 @@ def call_nvidia(messages: list, temperature: float = 0.5, max_tokens: int = 4096
 
 
 def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=None) -> str:
-    """Try Gemini first, then NVIDIA NIM, then DeepSeek. Raise a generic error if all configured fail."""
+    """Try Gemini first, then NVIDIA NIM, then DeepSeek. Raise a generic error if all configured fail.
+
+    Any failure of one provider (network error, malformed reply, unexpected exception) moves on to
+    the next one. Only an HTTPException (the spend cap) is allowed to stop the chain.
+
+    Logging (no user text, ever): one INFO line per answer with provider and latency; one WARNING per
+    provider that failed but was covered by the next; one ERROR when every provider failed. That single
+    ERROR is the event to alert on.
+    """
     if not GEMINI_API_KEY and not DEEPSEEK_API_KEY and not NVIDIA_API_KEY:
         logger.error("No AI provider key configured on server (Gemini/NVIDIA/DeepSeek)")
         raise HTTPException(status_code=503, detail="Service not configured")
 
-    if GEMINI_API_KEY and gemini_call:
+    chain = [
+        ("gemini", "Gemini", GEMINI_API_KEY, gemini_call),
+        ("nvidia", "NVIDIA", NVIDIA_API_KEY, nvidia_call),
+        ("deepseek", "DeepSeek", DEEPSEEK_API_KEY, deepseek_call),
+    ]
+    tried = []
+    for name, label, key, call in chain:
+        if not (key and call):
+            continue
+        tried.append(name)
+        started = time.monotonic()
         try:
-            text = gemini_call()
+            text = call()
             if text:
+                logger.info("AI answered: provider=%s latency=%dms", name, (time.monotonic() - started) * 1000)
                 return text
-            logger.error("Gemini returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("Gemini API error: %s", e)
+            logger.warning("%s returned an empty response", label)
+        except HTTPException:
+            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
+        except Exception as e:
+            logger.warning("%s API error after %dms: %s: %s", label, (time.monotonic() - started) * 1000, type(e).__name__, e)
 
-    if NVIDIA_API_KEY and nvidia_call:
-        try:
-            text = nvidia_call()
-            if text:
-                return text
-            logger.error("NVIDIA returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("NVIDIA API error: %s", e)
-
-    if DEEPSEEK_API_KEY and deepseek_call:
-        try:
-            text = deepseek_call()
-            if text:
-                return text
-            logger.error("DeepSeek returned an empty response")
-        except requests.exceptions.RequestException as e:
-            logger.error("DeepSeek API error: %s", e)
-
+    logger.error("All AI providers failed (tried: %s)", ", ".join(tried) or "none")
     raise HTTPException(status_code=502, detail=AI_ERROR)
 
 
@@ -399,9 +442,18 @@ async def root():
     return {"status": "ok"}
 
 
+def _release(env=os.environ):
+    """Short id of the deployed commit (Render sets RENDER_GIT_COMMIT), or None locally."""
+    return (env.get("RENDER_GIT_COMMIT") or "").strip()[:7] or None
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok"}
+    body = {"status": "ok"}
+    release = _release()
+    if release:
+        body["release"] = release  # lets uptime checks and humans see which deploy is live
+    return body
 
 # -------------------- ITINERARY CACHE --------------------
 # In-memory TTL cache for generated travel plans (24-hour TTL)
@@ -651,6 +703,8 @@ def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
             with _DEEP_LOCK:
                 _DEEP_JOBS[job_id] = {
                     "status": "ready",
+                    # Must match the creator: GET /plan-deep/{id} returns 404 to anyone else.
+                    "owner": owner,
                     "created_at": _DEEP_JOBS.get(job_id, {}).get("created_at", time.time()),
                     "data": {
                         "destination": destination,
@@ -1161,22 +1215,29 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"status": "error", "detail": "Internal server error"}
     )
 
-# -------------------- 24/7 RENDER KEEP-ALIVE DAEMON --------------------
-def _render_keep_alive_daemon():
-    """Background heartbeat that pings the Render service every 8 minutes to prevent idle sleep."""
-    logger.info("Keep-alive heartbeat daemon started (pings every 8 minutes)")
+# -------------------- RENDER KEEP-ALIVE --------------------
+def _keep_alive_url(env):
+    """This service's own health URL (Render provides RENDER_EXTERNAL_URL), never another environment's."""
+    base = (env.get("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+    return f"{base}/health" if base.startswith("http") else None
+
+
+def _render_keep_alive_daemon(url: str):
+    """Background heartbeat that pings this service every 8 minutes to prevent idle sleep."""
+    logger.info("Keep-alive heartbeat daemon started (pings %s every 8 minutes)", url)
     while True:
         time.sleep(480)
         try:
-            requests.get("https://goguide-ai-agent.onrender.com/health", timeout=15)
+            requests.get(url, timeout=15)
         except Exception as _e:
             logger.debug("Keep-alive heartbeat notice: %s", _e)
 
 
 @app.on_event("startup")
 def _start_keep_alive():
-    if os.getenv("RENDER") or os.getenv("PORT"):
-        t = threading.Thread(target=_render_keep_alive_daemon, daemon=True)
+    url = _keep_alive_url(os.environ)
+    if url and os.getenv("RENDER"):
+        t = threading.Thread(target=_render_keep_alive_daemon, args=(url,), daemon=True)
         t.start()
 
 # -------------------- GRADIO MOUNT FOR HUGGING FACE SPACES --------------------

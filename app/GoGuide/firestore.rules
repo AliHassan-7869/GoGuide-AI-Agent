@@ -25,19 +25,63 @@ service cloud.firestore {
       return v is string && v.size() <= max;
     }
 
+    // True when the field is absent, or is a string no longer than max.
+    function optString(d, k, max) {
+      return !(k in d) || (d[k] is string && d[k].size() <= max);
+    }
+
+    function validProfile(d) {
+      return optString(d, 'name', 200)
+        && optString(d, 'email', 320)
+        && optString(d, 'phone', 50)
+        && optString(d, 'avatar', 600000)
+        && optString(d, 'status', 30)
+        && optString(d, 'updatedAt', 64)
+        && optString(d, 'deactivatedAt', 64)
+        && (!('savedInterests' in d) || (d.savedInterests is list && d.savedInterests.size() <= 100))
+        && (!('userLocation' in d) || d.userLocation is map);
+    }
+
+    function validSharedTrip(d) {
+      return optString(d, 'id', 200)
+        && optString(d, 'destination', 200)
+        && optString(d, 'updatedAt', 64)
+        && (!('plan' in d) || d.plan is map);
+    }
+
     // 1. User Trips: Private to the trip creator (by email or UID)
     match /UserTrips/{docId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
 
-      allow create: if (isOwnerByEmail(request.resource.data.userEmail) || isOwnerByUid(request.resource.data.userId));
+      // A trip is always stamped with the signed-in user's own email (the app never writes userId),
+      // so nobody can plant a trip into another account or create trips without an email identity.
+      // Only the fields the app writes are accepted.
+      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+        && request.resource.data.keys().hasOnly(['userEmail', 'tripData', 'createdAt', 'updatedAt'])
+        && request.resource.data.tripData is map
+        && optString(request.resource.data, 'createdAt', 64)
+        && optString(request.resource.data, 'updatedAt', 64);
 
+      // Owners may change only the trip content. Ownership fields (userEmail, userId) are immutable.
       allow update: if (isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
-        && (request.resource.data.userEmail == resource.data.userEmail);  
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tripData', 'updatedAt'])
+        && request.resource.data.tripData is map
+        && optString(request.resource.data, 'updatedAt', 64);
     }
 
     // 2. User Profiles: Private to the authenticated user
     match /users/{userId} {
-      allow read, write: if signedInUid() && request.auth.uid == userId;
+      allow read, delete: if signedInUid() && request.auth.uid == userId;
+
+      // Only profile fields the app writes, with sane types and lengths. The avatar limit is generous
+      // because web builds can store the picked image inline.
+      allow create: if signedInUid() && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'avatar', 'status', 'updatedAt', 'deactivatedAt', 'savedInterests', 'userLocation'])
+        && validProfile(request.resource.data);
+
+      allow update: if signedInUid() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'phone', 'avatar', 'status', 'updatedAt', 'deactivatedAt', 'savedInterests', 'userLocation'])
+        && validProfile(request.resource.data);
     }
 
     // 3. User Bookings: Private to the booking owner
@@ -77,13 +121,20 @@ service cloud.firestore {
     // 5. Shared Trips: Publicly readable (share links); only the authenticated owner can create/modify.
     // The client must stamp userId = auth.uid on create. Owner fields cannot be changed afterwards.
     match /SharedTrips/{tripId} {
-      allow read: if true;
+      // Share links fetch ONE document by id, so single-document reads stay public.
+      // Listing is limited to the owner's own documents (needed by account deletion), which
+      // stops anyone from enumerating every shared trip and the owner emails inside them.
+      allow get: if true;
+      allow list: if signedInUid() && resource.data.userId == request.auth.uid;
       allow create: if signedInUid()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['id', 'destination', 'plan', 'updatedAt', 'userId', 'userEmail']);
+        && request.resource.data.keys().hasOnly(['id', 'destination', 'plan', 'updatedAt', 'userId'])
+        && validSharedTrip(request.resource.data);
       allow update: if signedInUid()
         && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == resource.data.userId;
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['id', 'destination', 'plan', 'updatedAt'])
+        && validSharedTrip(request.resource.data);
       allow delete: if signedInUid() && resource.data.userId == request.auth.uid;
     }
 
