@@ -34,21 +34,54 @@ except Exception as _e:
 
 logger = logging.getLogger("goguide")
 
-# Crash/error tracking. Completely optional: does nothing unless SENTRY_DSN is set on the server.
-_raw_sentry_dsn = (os.getenv("SENTRY_DSN") or "").strip().strip('"').strip("'")
-_SENTRY_DSN = _raw_sentry_dsn or "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+# -------------------- ENVIRONMENT & ERROR TRACKING --------------------
+# Which environment is this process? Set ENVIRONMENT=production|staging|development. A Render service that
+# does not set it counts as production (Render sets RENDER); anything else (a laptop) is development.
+def _resolve_environment(env) -> str:
+    explicit = (env.get("ENVIRONMENT") or "").strip().lower()
+    if explicit:
+        return explicit
+    return "production" if env.get("RENDER") else "development"
 
-if _SENTRY_DSN and _SENTRY_DSN.startswith(("http://", "https://")):
+
+ENVIRONMENT = _resolve_environment(os.environ)
+
+# The shared production Sentry project. Only production may fall back to it, so local runs and staging
+# never report into production's error feed. Staging/dev use their own SENTRY_DSN or report nowhere.
+_PRODUCTION_SENTRY_DSN = "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+
+
+def _sentry_settings(env):
+    """Sentry init arguments for this environment, or None when error reporting should stay off."""
+    environment = _resolve_environment(env)
+    dsn = (env.get("SENTRY_DSN") or "").strip().strip('"').strip("'")
+    if not dsn and environment == "production":
+        dsn = _PRODUCTION_SENTRY_DSN
+    if not dsn.startswith(("http://", "https://")):
+        return None
+    try:
+        rate = float(env.get("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+    except ValueError:
+        rate = 0.1
+    settings = {
+        "dsn": dsn,
+        "environment": (env.get("SENTRY_ENVIRONMENT") or environment).strip(),
+        "traces_sample_rate": rate,
+        "send_default_pii": False,  # never send user emails/IPs/request bodies
+    }
+    release = (env.get("RENDER_GIT_COMMIT") or "").strip()
+    if release:
+        settings["release"] = release  # lets Sentry say which deploy introduced an error
+    return settings
+
+
+_sentry = _sentry_settings(os.environ)
+if _sentry:
     try:
         import sentry_sdk  # type: ignore
 
-        sentry_sdk.init(
-            dsn=_SENTRY_DSN,
-            environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
-            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0")),
-            send_default_pii=False,  # never send user emails/IPs/request bodies
-        )
-        logging.getLogger("goguide").info("Sentry error tracking enabled")
+        sentry_sdk.init(**_sentry)
+        logging.getLogger("goguide").info("Sentry error tracking enabled (%s)", _sentry["environment"])
     except Exception as _sentry_err:  # a broken Sentry setup must never stop the API
         logging.getLogger("goguide").error("Sentry init failed: %s", _sentry_err)
 
@@ -340,44 +373,38 @@ def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=Non
 
     Any failure of one provider (network error, malformed reply, unexpected exception) moves on to
     the next one. Only an HTTPException (the spend cap) is allowed to stop the chain.
+
+    Logging (no user text, ever): one INFO line per answer with provider and latency; one WARNING per
+    provider that failed but was covered by the next; one ERROR when every provider failed. That single
+    ERROR is the event to alert on.
     """
     if not GEMINI_API_KEY and not DEEPSEEK_API_KEY and not NVIDIA_API_KEY:
         logger.error("No AI provider key configured on server (Gemini/NVIDIA/DeepSeek)")
         raise HTTPException(status_code=503, detail="Service not configured")
 
-    if GEMINI_API_KEY and gemini_call:
+    chain = [
+        ("gemini", "Gemini", GEMINI_API_KEY, gemini_call),
+        ("nvidia", "NVIDIA", NVIDIA_API_KEY, nvidia_call),
+        ("deepseek", "DeepSeek", DEEPSEEK_API_KEY, deepseek_call),
+    ]
+    tried = []
+    for name, label, key, call in chain:
+        if not (key and call):
+            continue
+        tried.append(name)
+        started = time.monotonic()
         try:
-            text = gemini_call()
+            text = call()
             if text:
+                logger.info("AI answered: provider=%s latency=%dms", name, (time.monotonic() - started) * 1000)
                 return text
-            logger.error("Gemini returned an empty response")
+            logger.warning("%s returned an empty response", label)
         except HTTPException:
             raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
         except Exception as e:
-            logger.error("Gemini API error: %s: %s", type(e).__name__, e)
+            logger.warning("%s API error after %dms: %s: %s", label, (time.monotonic() - started) * 1000, type(e).__name__, e)
 
-    if NVIDIA_API_KEY and nvidia_call:
-        try:
-            text = nvidia_call()
-            if text:
-                return text
-            logger.error("NVIDIA returned an empty response")
-        except HTTPException:
-            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
-        except Exception as e:
-            logger.error("NVIDIA API error: %s: %s", type(e).__name__, e)
-
-    if DEEPSEEK_API_KEY and deepseek_call:
-        try:
-            text = deepseek_call()
-            if text:
-                return text
-            logger.error("DeepSeek returned an empty response")
-        except HTTPException:
-            raise  # e.g. the daily spend cap: stop, do not silently move on to another provider
-        except Exception as e:
-            logger.error("DeepSeek API error: %s: %s", type(e).__name__, e)
-
+    logger.error("All AI providers failed (tried: %s)", ", ".join(tried) or "none")
     raise HTTPException(status_code=502, detail=AI_ERROR)
 
 
@@ -415,9 +442,18 @@ async def root():
     return {"status": "ok"}
 
 
+def _release(env=os.environ):
+    """Short id of the deployed commit (Render sets RENDER_GIT_COMMIT), or None locally."""
+    return (env.get("RENDER_GIT_COMMIT") or "").strip()[:7] or None
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok"}
+    body = {"status": "ok"}
+    release = _release()
+    if release:
+        body["release"] = release  # lets uptime checks and humans see which deploy is live
+    return body
 
 # -------------------- ITINERARY CACHE --------------------
 # In-memory TTL cache for generated travel plans (24-hour TTL)
@@ -1179,20 +1215,27 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"status": "error", "detail": "Internal server error"}
     )
 
-# -------------------- 24/7 RENDER KEEP-ALIVE DAEMON --------------------
-def _render_keep_alive_daemon():
-    """Background heartbeat that pings the Render service every 8 minutes to prevent idle sleep."""
-    logger.info("Keep-alive heartbeat daemon started (pings every 8 minutes)")
+# -------------------- RENDER KEEP-ALIVE --------------------
+def _keep_alive_url(env):
+    """This service's own health URL (Render provides RENDER_EXTERNAL_URL), never another environment's."""
+    base = (env.get("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+    return f"{base}/health" if base.startswith("http") else None
+
+
+def _render_keep_alive_daemon(url: str):
+    """Background heartbeat that pings this service every 8 minutes to prevent idle sleep."""
+    logger.info("Keep-alive heartbeat daemon started (pings %s every 8 minutes)", url)
     while True:
         time.sleep(480)
         try:
-            requests.get("https://goguide-ai-agent.onrender.com/health", timeout=15)
+            requests.get(url, timeout=15)
         except Exception as _e:
             logger.debug("Keep-alive heartbeat notice: %s", _e)
 
 
 @app.on_event("startup")
 def _start_keep_alive():
-    if os.getenv("RENDER") or os.getenv("PORT"):
-        t = threading.Thread(target=_render_keep_alive_daemon, daemon=True)
+    url = _keep_alive_url(os.environ)
+    if url and os.getenv("RENDER"):
+        t = threading.Thread(target=_render_keep_alive_daemon, args=(url,), daemon=True)
         t.start()

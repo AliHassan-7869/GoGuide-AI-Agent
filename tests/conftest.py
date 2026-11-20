@@ -28,11 +28,12 @@ _TEST_ENV = {
     "SENTRY_DSN": "",
     "SENTRY_ENVIRONMENT": "test",
     "SENTRY_TRACES_SAMPLE_RATE": "0",
+    "ENVIRONMENT": "test",
 }
 os.environ.update(_TEST_ENV)
 # Make sure the "keep-alive" thread (only started on Render) can never start during tests.
-os.environ.pop("RENDER", None)
-os.environ.pop("PORT", None)
+for _var in ("RENDER", "PORT", "RENDER_EXTERNAL_URL", "RENDER_GIT_COMMIT"):
+    os.environ.pop(_var, None)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

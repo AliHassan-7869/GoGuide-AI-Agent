@@ -420,3 +420,102 @@ def test_verification_is_required_by_default():
         env=env, capture_output=True, text=True, timeout=60,
     )
     assert out.stdout.strip().splitlines()[-1] == "True", out.stderr[-500:]
+
+
+# -------------------- Environments (M12) --------------------
+PROD_DSN = "https://46091668e6834ce1cfc205ee0fb34ad7@o4512412462546944.ingest.us.sentry.io/4512412472311808"
+
+
+def test_environment_defaults(app):
+    assert app._resolve_environment({"ENVIRONMENT": "staging"}) == "staging"
+    assert app._resolve_environment({"RENDER": "true"}) == "production"   # a Render service with no setting
+    assert app._resolve_environment({}) == "development"                  # a laptop
+    assert app._resolve_environment({"ENVIRONMENT": "  Production "}) == "production"
+
+
+def test_development_never_reports_to_the_production_sentry_project(app):
+    assert app._sentry_settings({"ENVIRONMENT": "development"}) is None
+    assert app._sentry_settings({"ENVIRONMENT": "staging"}) is None  # staging must bring its own DSN
+
+
+def test_production_keeps_error_reporting_even_without_a_dsn_variable(app):
+    s = app._sentry_settings({"ENVIRONMENT": "production"})
+    assert s["dsn"] == PROD_DSN
+    assert s["environment"] == "production"
+
+
+def test_staging_reports_under_its_own_name(app):
+    s = app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": "https://k@o1.ingest.sentry.io/9"})
+    assert s["dsn"] == "https://k@o1.ingest.sentry.io/9"
+    assert s["environment"] == "staging"
+
+
+def test_sentry_samples_a_tenth_of_requests_by_default_and_tags_the_release(app):
+    s = app._sentry_settings({"ENVIRONMENT": "production", "RENDER_GIT_COMMIT": "abc1234def"})
+    assert s["traces_sample_rate"] == 0.1
+    assert s["release"] == "abc1234def"
+    assert app._sentry_settings({"ENVIRONMENT": "production", "SENTRY_TRACES_SAMPLE_RATE": "0.5"})["traces_sample_rate"] == 0.5
+    assert app._sentry_settings({"ENVIRONMENT": "production", "SENTRY_TRACES_SAMPLE_RATE": "junk"})["traces_sample_rate"] == 0.1
+    assert app._sentry_settings({"ENVIRONMENT": "production"})["send_default_pii"] is False
+
+
+def test_invalid_sentry_dsn_is_ignored(app):
+    assert app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": "not-a-url"}) is None
+    assert app._sentry_settings({"ENVIRONMENT": "staging", "SENTRY_DSN": '"https://k@o1.ingest.sentry.io/9"'})["dsn"] == "https://k@o1.ingest.sentry.io/9"
+
+
+def test_keep_alive_pings_this_service_itself_never_another_environment(app):
+    assert app._keep_alive_url({"RENDER_EXTERNAL_URL": "https://goguide-staging.onrender.com"}) == "https://goguide-staging.onrender.com/health"
+    assert app._keep_alive_url({"RENDER_EXTERNAL_URL": "https://x.onrender.com/"}) == "https://x.onrender.com/health"
+    assert app._keep_alive_url({}) is None
+    assert "goguide-ai-agent" not in (app._keep_alive_url({}) or "")
+
+
+# -------------------- Monitoring (M13) --------------------
+def test_health_stays_minimal_without_a_release(client):
+    assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_health_reports_which_release_is_running(client, monkeypatch):
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abc1234def5678")
+    body = client.get("/health").json()
+    assert body == {"status": "ok", "release": "abc1234"}
+
+
+def test_successful_ai_call_logs_which_provider_answered_and_how_long(client, providers, caplog):
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        assert client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS).status_code == 200
+    line = next(r.getMessage() for r in caplog.records if "AI answered" in r.getMessage())
+    assert "provider=gemini" in line
+    assert "ms" in line
+
+
+def test_fallback_is_visible_in_the_logs(client, providers, caplog):
+    import logging
+
+    providers.handlers["gemini-primary"] = lambda: requests.exceptions.HTTPError("503")
+    providers.handlers["gemini-backup"] = lambda: requests.exceptions.HTTPError("503")
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS)
+    assert any("provider=deepseek" in r.getMessage() for r in caplog.records)
+
+
+def test_total_ai_outage_raises_one_clear_error_event_for_alerting(client, providers, caplog):
+    import logging
+
+    for key in providers.handlers:
+        providers.handlers[key] = lambda: requests.exceptions.HTTPError("500")
+    with caplog.at_level(logging.INFO, logger="goguide"):
+        assert client.post("/chat", json=CHAT_BODY, headers=USER_HEADERS).status_code == 502
+    errors = [r for r in caplog.records if r.levelno >= logging.ERROR and "All AI providers failed" in r.getMessage()]
+    assert len(errors) == 1
+
+
+def test_logs_never_contain_user_text(client, providers, caplog):
+    import logging
+
+    with caplog.at_level(logging.DEBUG, logger="goguide"):
+        client.post("/chat", json={"message": "my secret plan to visit Rome"}, headers=USER_HEADERS)
+    assert "secret plan" not in caplog.text
