@@ -9,7 +9,7 @@ The app is **close to launch-ready from a code standpoint**. What remains is mos
 | Area | Status |
 |---|---|
 | Code quality (lint, tests, web build) | Green: lint exit 0, 91/91 tests, `expo export -p web` exit 0 |
-| Firestore security rules | Strong (reviewed, see section 4) |
+| Firestore security rules | Strong in the repo (see section 4). Booking and favorite validation added but **not yet deployed or emulator-tested** |
 | Backend hardening (CORS, auth, secrets) | Good |
 | Web hosting headers | Good, but no CSP yet |
 | Secrets and key hygiene | **Needs action** (rotate and restrict) |
@@ -42,12 +42,12 @@ Earlier fixes in the same effort: jspdf SSR crash in `metro.config.js`, missing 
 
 I re-read `firestore.rules`. Findings:
 
-- Default deny. Trips, profiles, shared trips, support tickets and error logs have key whitelists and size limits. **Bookings, UserBookings and UserFavorites do not**: any signed-in owner can write arbitrary fields and sizes there. Add shape and size validation (Medium).
-- A second copy exists at `app/GoGuide/firestore.rules`. I did not read it, so confirm both copies match.
+- Default deny. Trips, profiles, shared trips, support tickets and error logs have key whitelists and size limits. **Bookings, UserBookings and UserFavorites now have them too** (`validBooking`, `validFavorite`: key whitelist, string and size caps, `userEmail` immutable on update). This is in the repo only; it has not been deployed.
+- A second copy exists at `app/GoGuide/firestore.rules`. Verified: it is now byte-identical to the root file.
 - Trips, profiles, bookings and favourites are owner-only. Ownership fields are immutable on update.
 - `SupportTickets` is create-only for guests, with bounded payloads. `AppErrors` is write-only.
 - **SharedTrips:** single-document `get` is public by design, because share links need it. Listing is owner-only, so nobody can enumerate trips. The stored fields are `id`, `destination`, `plan`, `updatedAt` and `userId` (a UID). The remaining check is that the `plan` content never embeds an email address or phone number. The rules cannot enforce that, so it depends on the client code.
-- Not verified: that the **deployed** rules in the Firebase console match this file. Run `firebase deploy --only firestore:rules` if you are unsure.
+- Not verified: that the **deployed** rules in the Firebase console match this file. `firebase deploy --only firestore:rules` has **not** been run. Test the new rules in the Firebase emulator first (see section 6), then deploy.
 
 ## 5. Open issues
 
@@ -67,7 +67,7 @@ I re-read `firestore.rules`. Findings:
 9. `moment` and `date-fns` are both installed. Consolidate over time to reduce bundle size.
 10. The backend `requirements.txt` is heavy. A lighter file means faster Render deploys (#20).
 11. Add an uptime alert on `/health` and a spend alert on the AI provider.
-12. Add field and size validation to the Bookings, UserBookings and UserFavorites rules, and keep the two `firestore.rules` copies identical.
+12. ~~Add field and size validation to the Bookings, UserBookings and UserFavorites rules~~ Done in the repo, and the two `firestore.rules` copies are identical. Still to do: emulator test, then deploy. Keep both copies identical in future.
 13. Rename the stray home-folder `.git` so tools do not mistake it for this repo (#23).
 
 ### Release tasks
@@ -83,6 +83,7 @@ I re-read `firestore.rules`. Findings:
 - Real-device behavior, for example keyboard docking of the chat bar on Android and iOS.
 - The deployed Firestore rules and the live Render environment variables. I cannot see either from here.
 - Load or cost behavior under real traffic.
+- The new booking and favorite rules against the Firebase emulator or the live project. A rule that is too strict (for example, a booking with a field I did not see) would reject writes, and the app swallows those errors, so the failure would be silent.
 
 ## 7. Recommended order of work
 

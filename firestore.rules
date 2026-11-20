@@ -49,6 +49,49 @@ service cloud.firestore {
         && (!('plan' in d) || d.plan is map);
     }
 
+    // True when the field is absent, or is a string or a number (string length capped).
+    function optStringOrNumber(d, k, max) {
+      return !(k in d) || (d[k] is number) || (d[k] is string && d[k].size() <= max);
+    }
+
+    // Shape and size limits for booking documents (UserBookings / Bookings)
+    function validBooking(d) {
+      return d.keys().hasOnly(['id', 'type', 'status', 'bookingRef', 'title', 'subtitle', 'checkIn', 'checkOut',
+          'details', 'price', 'image', 'coordinates', 'userEmail', 'destination', 'createdAt'])
+        && isShortString(d.userEmail, 320)
+        && optString(d, 'id', 2000)
+        && optString(d, 'type', 2000)
+        && optString(d, 'status', 2000)
+        && optString(d, 'bookingRef', 2000)
+        && optString(d, 'title', 2000)
+        && optString(d, 'subtitle', 2000)
+        && optString(d, 'details', 20000)
+        && optString(d, 'destination', 2000)
+        && optString(d, 'checkIn', 64)
+        && optString(d, 'checkOut', 64)
+        && optString(d, 'createdAt', 64)
+        && optString(d, 'image', 600000)
+        && optStringOrNumber(d, 'price', 200)
+        && (!('coordinates' in d) || d.coordinates == null || d.coordinates is map);
+    }
+
+    // Shape and size limits for favorite documents (UserFavorites)
+    function validFavorite(d) {
+      return d.keys().hasOnly(['userEmail', 'placeKey', 'id', 'name', 'title', 'description', 'image',
+          'category', 'rating', 'addedAt', 'updatedAt'])
+        && isShortString(d.userEmail, 320)
+        && optString(d, 'placeKey', 2000)
+        && optString(d, 'id', 2000)
+        && optString(d, 'name', 2000)
+        && optString(d, 'title', 2000)
+        && optString(d, 'description', 20000)
+        && optString(d, 'category', 2000)
+        && optString(d, 'image', 600000)
+        && optStringOrNumber(d, 'rating', 50)
+        && optString(d, 'addedAt', 64)
+        && optString(d, 'updatedAt', 64);
+    }
+
     // 1. User Trips: Private to the trip creator (by email or UID)
     match /UserTrips/{docId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
@@ -87,16 +130,20 @@ service cloud.firestore {
     // 3. User Bookings: Private to the booking owner
     match /UserBookings/{bookingId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+        && validBooking(request.resource.data);
       allow update: if isOwnerByEmail(resource.data.userEmail)
-        && request.resource.data.userEmail == resource.data.userEmail;
+        && request.resource.data.userEmail == resource.data.userEmail
+        && validBooking(request.resource.data);
     }
 
     match /Bookings/{bookingId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+        && validBooking(request.resource.data);
       allow update: if isOwnerByEmail(resource.data.userEmail)
-        && request.resource.data.userEmail == resource.data.userEmail;
+        && request.resource.data.userEmail == resource.data.userEmail
+        && validBooking(request.resource.data);
     }
 
     // 4. Support Tickets: Anyone can create; users can ONLY read their own tickets
@@ -141,9 +188,11 @@ service cloud.firestore {
     // 5b. Favorites: private to the owner (synced by email, matching existing documents)
     match /UserFavorites/{favId} {
       allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail);
+      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+        && validFavorite(request.resource.data);
       allow update: if isOwnerByEmail(resource.data.userEmail)
-        && request.resource.data.userEmail == resource.data.userEmail;
+        && request.resource.data.userEmail == resource.data.userEmail
+        && validFavorite(request.resource.data);
     }
 
     // 6. Telemetry & Crash Reports: App can log errors; NEVER readable or modifiable from client
