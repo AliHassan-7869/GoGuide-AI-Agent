@@ -240,7 +240,7 @@ export default function Discover() {
       });
       await AsyncStorage.setItem("@goguide_saved_places", JSON.stringify(updated));
     } catch (e) {
-      console.log("Error saving place:", e);
+      __DEV__ && console.log("Error saving place:", e);
     }
   };
 
@@ -563,7 +563,7 @@ export default function Discover() {
       const departureDateStr = fmtDate(startObj);
       const returnDateStr = fmtDate(endObj);
 
-      console.log("[AI-Copilot] Generating instant trip for:", cleanDest, "from:", cleanOrigin);
+      __DEV__ && console.log("[AI-Copilot] Generating instant trip for:", cleanDest, "from:", cleanOrigin);
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
       const { buildCuratedPlan } = require("../../Components/utils/CuratedPlans");
 
@@ -729,7 +729,7 @@ export default function Discover() {
         setResults(list);
         setSearchStatus(list.length === 0 ? "empty" : "idle");
       } catch (error) {
-        console.log("Search error:", error);
+        __DEV__ && console.log("Search error:", error);
         setResults([]);
         setSearchStatus("error");
       }

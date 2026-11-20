@@ -38,7 +38,7 @@ export async function getFavoritePlaces() {
 
     return localFavorites;
   } catch (e) {
-    console.log("Error loading favorites:", e);
+    __DEV__ && console.log("Error loading favorites:", e);
     return [];
   }
 }
@@ -152,7 +152,7 @@ export async function toggleFavoritePlace(place) {
 
     return isNowFav;
   } catch (e) {
-    console.log("Toggle favorite error:", e);
+    __DEV__ && console.log("Toggle favorite error:", e);
     return false;
   }
 }

@@ -46,7 +46,7 @@ export default function ShareTripModal({
         }, { merge: true });
       }
     } catch (e) {
-      console.log("SharedTrips sync notice:", e?.message);
+      __DEV__ && console.log("SharedTrips sync notice:", e?.message);
     }
   };
 
@@ -83,7 +83,7 @@ export default function ShareTripModal({
         message: shareMessage,
       });
     } catch (e) {
-      console.log("Share error:", e);
+      __DEV__ && console.log("Share error:", e);
     }
   };
 

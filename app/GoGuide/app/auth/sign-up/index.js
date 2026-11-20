@@ -140,7 +140,7 @@ export default function Signup() {
       try {
         await sendEmailVerification(userCredential.user);
       } catch (emailErr) {
-        console.log("Email verification notice:", emailErr.message);
+        __DEV__ && console.log("Email verification notice:", emailErr.message);
       }
 
       if (Platform.OS === "web") {
@@ -153,7 +153,7 @@ export default function Signup() {
         );
       }
     } catch (error) {
-      console.log("Sign up error:", error.code, error.message);
+      __DEV__ && console.log("Sign up error:", error.code, error.message);
       const parsed = parseSignUpError(error.code, error.message);
       setErrorTitle(parsed.title);
       setErrorMessage(parsed.message);

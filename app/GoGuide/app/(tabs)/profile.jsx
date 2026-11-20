@@ -91,7 +91,7 @@ export default function Profile() {
           remoteTrips.push(normalized);
         });
       } catch (err) {
-        console.log("Stats fetch notice (offline/fallback):", err?.message);
+        __DEV__ && console.log("Stats fetch notice (offline/fallback):", err?.message);
       }
     }
 

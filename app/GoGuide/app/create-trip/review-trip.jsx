@@ -226,7 +226,7 @@ export default function ReviewTrip() {
             setWeather(data.current_weather);
           }
         } catch (error) {
-          console.log("Error fetching weather:", error);
+          __DEV__ && console.log("Error fetching weather:", error);
         }
       }
     };

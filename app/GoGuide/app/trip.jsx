@@ -199,7 +199,7 @@ export default function SharedTripView() {
             }
           }
         } catch (localErr) {
-          console.log("Local trip find notice:", localErr);
+          __DEV__ && console.log("Local trip find notice:", localErr);
         }
       }
 
@@ -226,7 +226,7 @@ export default function SharedTripView() {
           }
         }
       } catch (cErr) {
-        console.log("Cached trip read notice:", cErr);
+        __DEV__ && console.log("Cached trip read notice:", cErr);
       }
 
       // 2. Try fetching from Firestore UserTrips or SharedTrips
@@ -256,14 +256,14 @@ export default function SharedTripView() {
             }
           }
         } catch (fbErr) {
-          console.log("SharedTrips load notice:", fbErr?.message);
+          __DEV__ && console.log("SharedTrips load notice:", fbErr?.message);
         }
       }
 
       // 3. Nothing found: say so. Never show someone else's (or a made-up) trip as if it were this one.
       setTripPlan(null);
     } catch (e) {
-      console.log("Error loading shared trip:", e);
+      __DEV__ && console.log("Error loading shared trip:", e);
       setTripPlan(null);
     } finally {
       setLoading(false);
@@ -276,7 +276,7 @@ export default function SharedTripView() {
       try {
         await loadSharedTrip();
       } catch (err) {
-        if (active) console.log("Shared trip fetch note:", err);
+        if (active) __DEV__ && console.log("Shared trip fetch note:", err);
       }
     };
     fetchTrip();
@@ -335,7 +335,7 @@ export default function SharedTripView() {
       setDownloadingPdf(true);
       await downloadItineraryPDF(tripPlan, tripPlan?.destination);
     } catch (e) {
-      console.log("PDF download error:", e);
+      __DEV__ && console.log("PDF download error:", e);
     } finally {
       setDownloadingPdf(false);
     }
@@ -416,7 +416,7 @@ export default function SharedTripView() {
         Alert.alert("Trip Saved! ✅", msg);
       }
     } catch (e) {
-      console.log("Save error:", e);
+      __DEV__ && console.log("Save error:", e);
     }
   };
 

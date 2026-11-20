@@ -324,7 +324,7 @@ export default function PackingChecklist() {
             Alert.alert("Checklist Copied! 📋", "Your checklist was copied to clipboard.");
           }
         } catch {
-          console.log("Error sharing checklist:", e);
+          __DEV__ && console.log("Error sharing checklist:", e);
         }
       }
     }

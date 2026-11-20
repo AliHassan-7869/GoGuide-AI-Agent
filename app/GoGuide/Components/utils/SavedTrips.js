@@ -55,7 +55,7 @@ export async function loadSavedTrips() {
         });
       });
     } catch (e) {
-      console.log("[SavedTrips] cloud load notice:", e?.message);
+      __DEV__ && console.log("[SavedTrips] cloud load notice:", e?.message);
     }
   }
 
@@ -91,7 +91,7 @@ export async function deleteSavedTrip(trip) {
     try {
       await deleteDoc(doc(db, "UserTrips", String(trip.id)));
     } catch (e) {
-      console.log("[SavedTrips] cloud delete notice:", e?.message);
+      __DEV__ && console.log("[SavedTrips] cloud delete notice:", e?.message);
     }
   }
   for (const key of [LOCAL_KEY, LEGACY_LOCAL_KEY]) {

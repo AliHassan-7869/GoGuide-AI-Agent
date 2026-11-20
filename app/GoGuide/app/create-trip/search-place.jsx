@@ -117,7 +117,7 @@ export default function SearchPlace() {
         const data = await response.json();
         setResults(data || []);
       } catch (error) {
-        console.log("Search error:", error);
+        __DEV__ && console.log("Search error:", error);
       }
     }, 450);
   };

@@ -51,7 +51,7 @@ export default function MyBookings() {
           if (Array.isArray(parsed)) localBookings = parsed;
         }
       } catch (e) {
-        console.log("Error reading local bookings:", e);
+        __DEV__ && console.log("Error reading local bookings:", e);
       }
 
       let remoteBookings = [];

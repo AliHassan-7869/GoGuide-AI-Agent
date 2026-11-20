@@ -19,7 +19,7 @@ export async function requestNotificationPermission() {
     }
     return true;
   } catch (e) {
-    console.log("Notification permission error:", e);
+    __DEV__ && console.log("Notification permission error:", e);
     return false;
   }
 }
@@ -38,7 +38,7 @@ export async function sendLocalNotification(title, body, tag = "goguide-alert") 
       }
     }
   } catch (e) {
-    console.log("Local notification send error:", e);
+    __DEV__ && console.log("Local notification send error:", e);
   }
   return false;
 }
@@ -72,7 +72,7 @@ export async function scheduleTripCountdown(destination, startDateStr, hotelName
     // Request browser permission proactively on web
     await requestNotificationPermission();
   } catch (e) {
-    console.log("Schedule trip countdown error:", e);
+    __DEV__ && console.log("Schedule trip countdown error:", e);
   }
 }
 

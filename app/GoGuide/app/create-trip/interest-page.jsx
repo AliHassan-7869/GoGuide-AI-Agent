@@ -579,7 +579,7 @@ export default function YourInterest() {
           new Promise((_, reject) => setTimeout(() => reject(new Error("AI response timeout")), 4000)),
         ]);
       } catch (aiErr) {
-        console.log("[Interests] Live AI fetch notice:", aiErr.message);
+        __DEV__ && console.log("[Interests] Live AI fetch notice:", aiErr.message);
       }
 
       if (aiResponse && Array.isArray(aiResponse.interests) && aiResponse.interests.length > 0) {
@@ -626,10 +626,10 @@ export default function YourInterest() {
           }
         }
       } catch (nomErr) {
-        console.log("[Interests] Nominatim search note:", nomErr.message);
+        __DEV__ && console.log("[Interests] Nominatim search note:", nomErr.message);
       }
     } catch (error) {
-      console.log("[Interests] Error fetching interests:", error?.message);
+      __DEV__ && console.log("[Interests] Error fetching interests:", error?.message);
       setErrorMessage("We couldn't load live highlights. Check your connection and try again.");
     } finally {
       setLoadingInterests(false);

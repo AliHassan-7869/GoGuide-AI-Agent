@@ -10,7 +10,7 @@ const API_URL = API.url;
 if (!API_URL) {
   console.error(`❌ No backend configured for the "${APP_ENV}" environment. Set EXPO_PUBLIC_API_URL. ${ENV_HELP}`);
 } else {
-  console.log(`[Backend] ${APP_ENV} build using ${API_URL}${API.source === "production-default" && APP_ENV !== "production" ? " (PRODUCTION, by opt-in)" : ""}`);
+  __DEV__ && console.log(`[Backend] ${APP_ENV} build using ${API_URL}${API.source === "production-default" && APP_ENV !== "production" ? " (PRODUCTION, by opt-in)" : ""}`);
 }
 
 
@@ -132,7 +132,7 @@ export const fetchDestinationInterests = async (destination) => {
 };
 
 export const generateTripWithAgent = async (params) => {
-  console.log("[Agent] Generating trip for:", params.destination);
+  __DEV__ && console.log("[Agent] Generating trip for:", params.destination);
 
   const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
   const payload = {
@@ -207,7 +207,7 @@ export const fetchDestinationSafety = async (destination) => {
 
 // Premium Deep Plan (Async background polling with zero timeout risk)
 export const generateDeepTripPlan = async (params, onProgress) => {
-  console.log("[DeepAgent] Enqueueing deep trip for:", params.destination);
+  __DEV__ && console.log("[DeepAgent] Enqueueing deep trip for:", params.destination);
   const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
   const payload = {
     destination: String(params.destination || "").slice(0, 100),

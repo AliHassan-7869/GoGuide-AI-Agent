@@ -369,7 +369,7 @@ export default function MyTrip() {
     if (tripData?.aiTripPlan) {
       AsyncStorage.setItem('@goguide_cached_trip', JSON.stringify(tripData))
         .then(() => setIsOfflineCached(true))
-        .catch((e) => console.log("Failed to cache trip:", e));
+        .catch((e) => __DEV__ && console.log("Failed to cache trip:", e));
     }
   }, [tripData]);
 
@@ -405,7 +405,7 @@ export default function MyTrip() {
             });
           });
         } catch (fbErr) {
-          console.log("Firestore trips query:", fbErr?.message);
+          __DEV__ && console.log("Firestore trips query:", fbErr?.message);
         }
       }
 
@@ -439,7 +439,7 @@ export default function MyTrip() {
         setUserTripsList(dedupedTrips);
       }
     } catch (e) {
-      console.log("Error loading trips:", e);
+      __DEV__ && console.log("Error loading trips:", e);
     } finally {
       setLoading(false);
     }
@@ -496,7 +496,7 @@ export default function MyTrip() {
           try {
             await deleteDoc(doc(db, "UserTrips", targetId));
           } catch (fbErr) {
-            console.log("Firestore delete error:", fbErr?.message);
+            __DEV__ && console.log("Firestore delete error:", fbErr?.message);
           }
         }
 
@@ -534,7 +534,7 @@ export default function MyTrip() {
         }
         Alert.alert("Trip Deleted", `Your trip to "${destTitle}" has been deleted.`);
       } catch (e) {
-        console.log("Error deleting trip:", e);
+        __DEV__ && console.log("Error deleting trip:", e);
         Alert.alert("Delete Failed", "Could not delete this trip. Please try again.");
       }
     };
@@ -634,7 +634,7 @@ export default function MyTrip() {
       const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
       Linking.openURL(calUrl);
     } catch (e) {
-      console.log("Error syncing calendar:", e);
+      __DEV__ && console.log("Error syncing calendar:", e);
       Alert.alert("Calendar Sync", "Unable to open calendar application. Try copying your itinerary text instead.");
     }
   };
@@ -701,7 +701,7 @@ export default function MyTrip() {
         message: fullDoc,
       });
     } catch (err) {
-      console.log("Error sharing:", err);
+      __DEV__ && console.log("Error sharing:", err);
     }
   };
 
@@ -714,7 +714,7 @@ export default function MyTrip() {
     try {
       await downloadItineraryPDF(targetPlan, dest);
     } catch (e) {
-      console.log("PDF download error:", e);
+      __DEV__ && console.log("PDF download error:", e);
       Alert.alert("Download Error", "Unable to download PDF. Please try again.");
     }
   };
@@ -804,11 +804,11 @@ export default function MyTrip() {
             updatedAt: new Date().toISOString(),
           });
         } catch (fbErr) {
-          console.log("Firestore sync notice (local updated):", fbErr?.message);
+          __DEV__ && console.log("Firestore sync notice (local updated):", fbErr?.message);
         }
       }
     } catch (err) {
-      console.log("Error syncing trip changes:", err);
+      __DEV__ && console.log("Error syncing trip changes:", err);
     }
   };
 
@@ -1180,7 +1180,7 @@ export default function MyTrip() {
         `Successfully saved a copy of "${plan?.destination || "Trip"}" to your account. You can now customize it!`
       );
     } catch (err) {
-      console.log("Error cloning trip:", err);
+      __DEV__ && console.log("Error cloning trip:", err);
       Alert.alert("Cloning Notice", "Trip copied to your offline storage successfully.");
     }
   };

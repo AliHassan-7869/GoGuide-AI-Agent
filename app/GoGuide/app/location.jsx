@@ -68,7 +68,7 @@ export default function LocationPage() {
       const data = await response.json();
       setWeather(data.current_weather);
     } catch (error) {
-      console.log("Weather error:", error);
+      __DEV__ && console.log("Weather error:", error);
     } finally {
       setWeatherLoading(false);
     }
@@ -123,7 +123,7 @@ export default function LocationPage() {
         const data = await response.json();
         setResults(data);
       } catch (error) {
-        console.log("Search error:", error);
+        __DEV__ && console.log("Search error:", error);
       } finally {
         setLoading(false);
       }
@@ -151,7 +151,7 @@ export default function LocationPage() {
         await updateDoc(userRef, { userLocation: location });
         setUserData((prev) => ({ ...prev, userLocation: location }));
       } catch (error) {
-        console.log("Error updating location:", error);
+        __DEV__ && console.log("Error updating location:", error);
       }
     }
   };

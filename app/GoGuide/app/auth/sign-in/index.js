@@ -131,7 +131,7 @@ export default function SignIn() {
       // Successfully authenticated -> Proceed directly to app
       await proceedToApp();
     } catch (error) {
-      console.log("Sign in error:", error.code, error.message);
+      __DEV__ && console.log("Sign in error:", error.code, error.message);
       const parsed = parseAuthError(error.code, error.message);
       setErrorTitle(parsed.title);
       setErrorMessage(parsed.message);

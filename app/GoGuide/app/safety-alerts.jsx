@@ -76,7 +76,7 @@ export default function SafetyAlerts() {
         setUsingFallback(true);
       }
     } catch (e) {
-      console.log("Error loading AI safety alerts:", e);
+      __DEV__ && console.log("Error loading AI safety alerts:", e);
       setUsingFallback(true);
     } finally {
       setAlertsLoading(false);
@@ -108,7 +108,7 @@ export default function SafetyAlerts() {
         setWeatherError(true);
       }
     } catch (error) {
-      console.log("Error fetching weather for safety:", error);
+      __DEV__ && console.log("Error fetching weather for safety:", error);
       setWeatherError(true);
     } finally {
       setLoading(false);
