@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "start",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "app/GoGuide",
+        "run",
+        "web",
+        "--",
+        "--port",
+        "8081"
+      ],
+      "env": {
+        "BROWSER": "none",
+        "EXPO_PUBLIC_USE_PRODUCTION_SERVICES": "true"
+      },
+      "port": 8081
+    }
+  ]
+}
