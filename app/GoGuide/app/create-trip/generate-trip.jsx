@@ -9,6 +9,7 @@ import { useContext, useEffect, useState, useRef, useMemo } from "react";
 
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { auth } from "../../Configs/FirebaseConfig";
+import { EMAIL_VERIFY_MESSAGE, isEmailVerificationError } from "../../Components/utils/emailVerification";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -299,12 +300,16 @@ export default function GenerateTrip() {
       setLoading(false);
       console.error("[GenerateTrip] Error:", err.message);
 
-      const isAuthError = err.message?.toLowerCase().includes("sign in");
+      const isEmailUnverified = isEmailVerificationError(err);
+      const isAuthError = !isEmailUnverified && err.message?.toLowerCase().includes("sign in");
       const isQuota = err.message?.includes("429") || err.message?.toLowerCase().includes("quota");
       setError({
         isAuthError,
+        isEmailUnverified,
         isQuota,
-        message: isAuthError
+        message: isEmailUnverified
+          ? EMAIL_VERIFY_MESSAGE
+          : isAuthError
           ? "Please sign in to your GoGuide account to generate AI itineraries."
           : isQuota
           ? "AI is experiencing high demand right now. Please wait a minute and try again."
@@ -453,24 +458,30 @@ export default function GenerateTrip() {
 
             <View style={styles.errorButtonsRow}>
               {error.isEmailUnverified ? (
-                <TouchableOpacity
-                  style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}
-                  onPress={async () => {
-                    try {
-                      const { sendEmailVerification } = require("firebase/auth");
-                      if (auth.currentUser) {
-                        await sendEmailVerification(auth.currentUser);
-                        alert("Verification email sent! Please check your inbox.");
+                <>
+                  <TouchableOpacity
+                    style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}
+                    onPress={async () => {
+                      try {
+                        const { sendEmailVerification } = require("firebase/auth");
+                        if (auth.currentUser) {
+                          await sendEmailVerification(auth.currentUser);
+                          alert("Verification email sent! Please check your inbox.");
+                        }
+                      } catch (e) {
+                        alert(e.message || "Failed to send link");
                       }
-                    } catch (e) {
-                      alert(e.message || "Failed to send link");
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="mail-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
-                  <Text style={styles.retryText}>Resend Link</Text>
-                </TouchableOpacity>
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="mail-outline" size={16} color={Palette.white} style={{ marginRight: 4 }} />
+                    <Text style={styles.retryText}>Resend Link</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.retryBtn} onPress={() => GenerateAiTrip(false)} activeOpacity={0.8}>
+                    <Ionicons name="checkmark-done-outline" size={15} color={Palette.white} style={{ marginRight: 4 }} />
+                    <Text style={styles.retryText}>I&apos;ve verified</Text>
+                  </TouchableOpacity>
+                </>
               ) : error.isAuthError ? (
                 <TouchableOpacity
                   style={[styles.retryBtn, { backgroundColor: Colors.PRIMARY }]}

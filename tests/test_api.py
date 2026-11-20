@@ -369,3 +369,54 @@ def test_tests_never_see_real_provider_keys():
     assert app_module.DEEPSEEK_API_KEY == "test-deepseek-key"
     assert not app_module.NVIDIA_API_KEY
     assert app_module.ALLOWED_ORIGINS == []
+
+
+# -------------------- Email verification (M5) --------------------
+def _bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_unverified_password_account_cannot_use_ai(client, app, monkeypatch, providers):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    res = client.post("/chat", json=CHAT_BODY, headers=_bearer("unverified-password-token"))
+    assert res.status_code == 403
+    assert "verify your email" in res.json()["detail"].lower()
+    assert providers.calls == []
+
+
+@pytest.mark.parametrize("path,body", [("/plan", PLAN_BODY), ("/plan-deep", PLAN_BODY), ("/destination/safety", {"destination": "Paris"})])
+def test_verification_applies_to_every_ai_endpoint(client, app, monkeypatch, providers, path, body):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post(path, json=body, headers=_bearer("unverified-password-token")).status_code == 403
+    assert providers.calls == []
+
+
+def test_verified_password_account_can_use_ai(client, app, monkeypatch):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("verified-password-token")).status_code == 200
+
+
+def test_anonymous_guests_are_not_blocked_by_verification(client, app, monkeypatch):
+    # Guests (used by the Copilot) have no email to verify.
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", True)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("anonymous-token")).status_code == 200
+
+
+def test_verification_check_can_be_switched_off(client, app, monkeypatch):
+    monkeypatch.setattr(app, "REQUIRE_EMAIL_VERIFICATION", False)
+    assert client.post("/chat", json=CHAT_BODY, headers=_bearer("unverified-password-token")).status_code == 200
+
+
+def test_verification_is_required_by_default():
+    """With no REQUIRE_EMAIL_VERIFICATION in the environment the server must enforce it."""
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if k != "REQUIRE_EMAIL_VERIFICATION"}
+    env.update({"SENTRY_DSN": "", "PYTHONPATH": os.path.dirname(os.path.dirname(os.path.abspath(__file__)))})
+    out = subprocess.run(
+        [sys.executable, "-c", "import app; print(app.REQUIRE_EMAIL_VERIFICATION)"],
+        env=env, capture_output=True, text=True, timeout=60,
+    )
+    assert out.stdout.strip().splitlines()[-1] == "True", out.stderr[-500:]

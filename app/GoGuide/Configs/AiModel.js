@@ -1,4 +1,5 @@
 import { auth } from "./FirebaseConfig";
+import { EMAIL_VERIFY_MESSAGE, needsEmailVerification, refreshEmailVerification } from "../Components/utils/emailVerification";
 
 const LIVE_BACKEND_URL = "https://goguide-ai-agent.onrender.com";
 
@@ -51,6 +52,11 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
   }
   if (!user) {
     throw new Error("Please sign in to use AI features");
+  }
+  // The server only serves verified email accounts. Pick up a verification the user just completed
+  // (reloads the account and refreshes the ID token); if still unverified, say so without a round trip.
+  if (needsEmailVerification(user) && !(await refreshEmailVerification(user))) {
+    throw new Error(EMAIL_VERIFY_MESSAGE);
   }
   const idToken = await user.getIdToken();
 

@@ -79,7 +79,9 @@ RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 IP_RATE_LIMIT_PER_HOUR = int(os.getenv("IP_RATE_LIMIT_PER_HOUR", "120"))
 # Static X-API-Key login is for admin/cron use only. Off by default; the app uses Firebase tokens.
 ALLOW_API_KEY_AUTH = os.getenv("ALLOW_API_KEY_AUTH", "false").lower() == "true"
-REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
+# On by default: accounts that sign in with an email address must confirm it before using the AI.
+# Anonymous guests (used by the Copilot) have no email and are not affected. Set to "false" to switch off.
+REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "true").lower() == "true"
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
 # Tried in order. If one is down or overloaded, the next one is used.
@@ -116,8 +118,10 @@ def verify_firebase_user(token: str) -> str:
     if not claims or claims.get("iss") != f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}" or not claims.get("sub"):
         raise HTTPException(status_code=401, detail="Invalid or expired login, please sign in again")
 
-    if REQUIRE_EMAIL_VERIFICATION and not claims.get("email_verified", False):
-        raise HTTPException(status_code=403, detail="Email verification required. Please verify your email to access AI features.")
+    # Only email/password accounts can have an unverified address. Guests and other providers are exempt.
+    provider = (claims.get("firebase") or {}).get("sign_in_provider")
+    if REQUIRE_EMAIL_VERIFICATION and provider == "password" and not claims.get("email_verified", False):
+        raise HTTPException(status_code=403, detail="Please verify your email to use AI features. Check your inbox for the verification link.")
 
     return claims["sub"]
 

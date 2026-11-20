@@ -102,6 +102,15 @@ def fake_verify_firebase_token(token, request, audience):
         return {"sub": "user-1", "iss": f"https://securetoken.google.com/{audience}", "aud": audience}
     if token == "other-user-token":
         return {"sub": "user-2", "iss": f"https://securetoken.google.com/{audience}", "aud": audience}
+    if token == "unverified-password-token":
+        return {"sub": "user-3", "iss": f"https://securetoken.google.com/{audience}", "email": "a@b.co",
+                "email_verified": False, "firebase": {"sign_in_provider": "password"}}
+    if token == "verified-password-token":
+        return {"sub": "user-4", "iss": f"https://securetoken.google.com/{audience}", "email": "a@b.co",
+                "email_verified": True, "firebase": {"sign_in_provider": "password"}}
+    if token == "anonymous-token":
+        return {"sub": "user-5", "iss": f"https://securetoken.google.com/{audience}",
+                "firebase": {"sign_in_provider": "anonymous"}}
     if token == "wrong-issuer-token":
         return {"sub": "user-1", "iss": "https://securetoken.google.com/someone-else"}
     if token == "network-down-token":
