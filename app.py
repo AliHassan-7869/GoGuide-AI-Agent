@@ -85,7 +85,15 @@ if _sentry:
     except Exception as _sentry_err:  # a broken Sentry setup must never stop the API
         logging.getLogger("goguide").error("Sentry init failed: %s", _sentry_err)
 
-app = FastAPI(title="GoGuide AI API")
+# Interactive docs and the OpenAPI schema expose the full API surface;
+# keep them for local/staging work but disable them in production.
+_DOCS_ENABLED = ENVIRONMENT != "production"
+app = FastAPI(
+    title="GoGuide AI API",
+    docs_url="/docs" if _DOCS_ENABLED else None,
+    redoc_url="/redoc" if _DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if _DOCS_ENABLED else None,
+)
 
 # -------------------- CORS --------------------
 # Comma-separated list, e.g. "https://goguide.app,https://admin.goguide.app".
