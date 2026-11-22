@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "development"
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_USE_PRODUCTION_SERVICES": "true"
       }
     },
     "preview": {
@@ -20,7 +21,8 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "staging"
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_USE_PRODUCTION_SERVICES": "true"
       }
     },
     "production": {
@@ -38,13 +40,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "staging"
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_USE_PRODUCTION_SERVICES": "true"
       }
     },
     "staging": {
       "extends": "preview",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "staging"
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_USE_PRODUCTION_SERVICES": "true"
       }
     }
   },

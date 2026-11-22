@@ -211,7 +211,7 @@ export default function SignIn() {
                   <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={clearErrors} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close" size={18} color="#991B1B" />
+                  <Ionicons name="close" size={18} color={Palette.dangerDark} />
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -268,6 +268,7 @@ export default function SignIn() {
                   accessibilityRole="button"
                   accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                   style={{ position: "absolute", right: 16, top: 14 }}
+                  hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   <Feather
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: "Outfit-Regular",
     fontSize: 12,
-    color: "#991B1B",
+    color: Palette.dangerDark,
     lineHeight: 17,
   },
   infoBanner: {
