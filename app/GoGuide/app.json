@@ -24,7 +24,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.arrehman.AiTravel_agent",
-      "permissions": [
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
       "softwareKeyboardLayoutMode": "resize"
@@ -64,7 +64,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "GoGuide accesses your photos to let you set your profile picture."
+          "photosPermission": "GoGuide accesses your photos to let you set your profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       "expo-image",

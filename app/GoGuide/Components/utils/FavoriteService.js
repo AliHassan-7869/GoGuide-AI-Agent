@@ -21,6 +21,13 @@ const notifyListeners = (favorites) => {
   });
 };
 
+export async function clearLocalFavorites() {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {}
+  notifyListeners([]);
+}
+
 /**
  * Fetch all favorite places (Local first, synced with Firebase)
  */
@@ -47,12 +54,17 @@ async function syncFromFirebase(email, localFavorites) {
   try {
     const q = query(collection(db, "UserFavorites"), where("userEmail", "==", email));
     const snap = await getDocs(q);
+    if (!auth.currentUser || auth.currentUser.email !== email) return;
     if (!snap.empty) {
       const remoteList = [];
       snap.forEach((d) => remoteList.push({ id: d.id, ...d.data() }));
 
-      // Merge by place name (local entries first), dropping duplicates and unusable entries
-      const merged = cleanFavorites([...localFavorites, ...remoteList]);
+      const latestRaw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!auth.currentUser || auth.currentUser.email !== email) return;
+      const latestLocal = cleanFavorites(latestRaw ? JSON.parse(latestRaw) : localFavorites);
+
+      // Merge by place name (latest local entries first), dropping duplicates and unusable entries
+      const merged = cleanFavorites([...latestLocal, ...remoteList]);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       notifyListeners(merged);
     }
@@ -125,7 +137,13 @@ export async function toggleFavoritePlace(place) {
         image: safeImageUri(place.image || place.img || place.photoRef),
         category: typeof (place.category || place.tag) === "string" ? place.category || place.tag : "Must Visit",
         rating: typeof place.rating === "string" || typeof place.rating === "number" ? place.rating : "",
-        ...(Number.isFinite(latVal) && Number.isFinite(lonVal) && (latVal !== 0 || lonVal !== 0)
+        ...(Number.isFinite(latVal) &&
+        Number.isFinite(lonVal) &&
+        latVal >= -90 &&
+        latVal <= 90 &&
+        lonVal >= -180 &&
+        lonVal <= 180 &&
+        (latVal !== 0 || lonVal !== 0)
           ? { lat: latVal, lon: lonVal }
           : {}),
         addedAt: new Date().toISOString(),
@@ -148,10 +166,14 @@ export async function toggleFavoritePlace(place) {
           placeKey,
           ...addedItem, // the cleaned item (the raw `place` can hold undefined values, which Firestore rejects)
           updatedAt: new Date().toISOString(),
-        }).catch(() => {});
+        }).catch((err) => {
+          __DEV__ && console.warn("[Favorites] Firestore sync failed:", err?.message || err);
+        });
       } else {
         // Awaited so a background sync can never bring the removed place back from Firebase
-        await deleteDoc(doc(db, "UserFavorites", docId)).catch(() => {});
+        await deleteDoc(doc(db, "UserFavorites", docId)).catch((err) => {
+          __DEV__ && console.warn("[Favorites] Firestore delete failed:", err?.message || err);
+        });
       }
     }
 

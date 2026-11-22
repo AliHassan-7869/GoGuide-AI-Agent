@@ -8,6 +8,10 @@ const REMINDER_KEY = "@goguide_scheduled_reminders";
  * Supports Web Notification API and safe in-app scheduling
  */
 
+export function supportsOsPushNotifications() {
+  return Platform.OS === "web" && typeof window !== "undefined" && "Notification" in window;
+}
+
 export async function requestNotificationPermission() {
   try {
     if (Platform.OS === "web" && typeof window !== "undefined" && "Notification" in window) {

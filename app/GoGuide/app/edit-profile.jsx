@@ -5,15 +5,15 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { deleteUser, signOut, updatePassword } from "firebase/auth";
 import { collection, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
-import React, { useContext, useState } from "react";
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { Colors } from "../Components/constants/constants";
 import { Radius, Spacing, Typography, lightTheme, useTheme } from "../Components/constants/theme";
 import FadeInView from "../Components/ui/FadeInView";
 import ScreenHeader from "../Components/ui/ScreenHeader";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { CreateTripContext } from "../context/CreateTripContext";
-import { clearLocalUserData, deleteAllUserData, hasRecentLogin } from "../Components/utils/AccountService";
+import { clearLocalUserData, clearSessionLocalData, deleteAllUserData, hasRecentLogin } from "../Components/utils/AccountService";
 
 import { TouchableOpacity } from "../Components/ui/Touchable";
 
@@ -48,7 +48,7 @@ export default function EditProfile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
-  const { userData, setUserData, uid, preferences } = useContext(CreateTripContext);
+  const { userData, setUserData, uid, preferences, setTripData } = useContext(CreateTripContext);
 
   const [name, setName] = useState(userData?.name || "Traveler");
   const [email, setEmail] = useState(userData?.email || "");
@@ -76,32 +76,81 @@ export default function EditProfile() {
     setAvatar(next);
   };
 
+  const applyPickedAvatar = useCallback((asset) => {
+    if (!asset?.uri && !asset?.base64) return;
+    let nextAvatar = "";
+    if (asset.base64) {
+      const mimeType = typeof asset.mimeType === "string" && asset.mimeType.startsWith("image/")
+        ? asset.mimeType
+        : "image/jpeg";
+      const dataUri = `data:${mimeType};base64,${asset.base64}`;
+      if (dataUri.length > 580000) {
+        Alert.alert("Image Too Large", "Please choose a smaller photo or crop closer.");
+        return;
+      }
+      nextAvatar = dataUri;
+    } else if (typeof asset.uri === "string" && asset.uri.trim()) {
+      nextAvatar = asset.uri.trim();
+    }
+    if (!nextAvatar) return;
+    setAvatar(nextAvatar);
+    if (setUserData) {
+      setUserData((prev) => ({ ...prev, avatar: nextAvatar }));
+    }
+  }, [setUserData]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android" || typeof ImagePicker.getPendingResultAsync !== "function") return;
+    let active = true;
+    (async () => {
+      try {
+        const pending = await ImagePicker.getPendingResultAsync();
+        const first = Array.isArray(pending) ? pending[0] : pending;
+        if (!active || !first || first.canceled || !first.assets?.length) return;
+        applyPickedAvatar(first.assets[0]);
+      } catch {}
+    })();
+    return () => {
+      active = false;
+    };
+  }, [applyPickedAvatar]);
+
   // Pick custom DP from device gallery
   const pickImageFromGallery = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please grant gallery access in settings to upload your profile picture."
-        );
-        return;
+      const skipPermissionPrompt = Platform.OS === "android" && Number(Platform.Version) >= 33;
+      if (!skipPermissionPrompt) {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          if (Platform.OS !== "web" && permission.canAskAgain === false) {
+            Alert.alert(
+              "Permission Required",
+              "Gallery permission is turned off. Open Settings to allow photo access.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Open Settings", onPress: () => Linking.openSettings().catch(() => {}) },
+              ]
+            );
+          } else {
+            Alert.alert(
+              "Permission Required",
+              "Please grant gallery access in settings to upload your profile picture."
+            );
+          }
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.35,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const pickedUri = result.assets[0].uri;
-        setAvatar(pickedUri);
-        // Instant context sync
-        if (setUserData) {
-          setUserData((prev) => ({ ...prev, avatar: pickedUri }));
-        }
+        applyPickedAvatar(result.assets[0]);
       }
     } catch (e) {
       console.error("Gallery picker error:", e);
@@ -265,17 +314,27 @@ export default function EditProfile() {
           style: "destructive",
           onPress: async () => {
             try {
-              if (uid) {
-                await updateDoc(doc(db, "users", uid), {
+              const currentUid = uid || auth.currentUser?.uid || null;
+              if (currentUid) {
+                await updateDoc(doc(db, "users", currentUid), {
                   status: "deactivated",
                   deactivatedAt: new Date().toISOString(),
                 });
               }
-              await signOut(auth);
+              setTripData?.({});
+              await clearSessionLocalData(currentUid);
+              try {
+                await signOut(auth);
+              } catch (signOutErr) {
+                console.warn("Sign out notice after deactivation:", signOutErr);
+              }
               router.replace("/auth/sign-in");
             } catch (e) {
-              console.warn("Deactivation notice:", e);
-              router.replace("/auth/sign-in");
+              console.warn("Deactivation failed:", e);
+              Alert.alert(
+                "Couldn't deactivate",
+                "Please check your connection and try again."
+              );
             }
           },
         },

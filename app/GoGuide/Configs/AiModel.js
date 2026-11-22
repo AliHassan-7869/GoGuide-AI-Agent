@@ -111,7 +111,12 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
           ? String(rawDetail[0].msg)
           : `Server error ${response.status}`;
     console.warn(`[Backend] ${path} failed:`, response.status, detail);
-    throw new Error(detail);
+    const err = new Error(detail);
+    err.statusCode = response.status;
+    if (data?.retryable === false) {
+      err.retryable = false;
+    }
+    throw err;
   }
 
   return data.data;
@@ -120,6 +125,7 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
 // Retries only failures that are likely temporary (server waking up, network blip, AI hiccup).
 const isTransient = (e) =>
   e?.name !== "AbortError" &&
+  e?.retryable !== false &&
   /reach GoGuide server|Server error 5|AI service error|Auth service unavailable/i.test(String(e?.message || ""));
 
 async function withRetry(fn, delaysMs = [3000, 7000], signal = null) {

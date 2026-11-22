@@ -13,11 +13,15 @@ export function robustParseJson(raw) {
   // Strip markdown code blocks ```json ... ```
   s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
-  // Find outermost { ... }
+  // Find outermost { ... } or [ ... ]
   const firstBrace = s.indexOf("{");
   const lastBrace = s.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+  const firstBracket = s.indexOf("[");
+  const lastBracket = s.lastIndexOf("]");
+  if (firstBrace !== -1 && lastBrace > firstBrace && (firstBracket === -1 || firstBrace < firstBracket)) {
     s = s.substring(firstBrace, lastBrace + 1);
+  } else if (firstBracket !== -1 && lastBracket > firstBracket) {
+    s = s.substring(firstBracket, lastBracket + 1);
   }
 
   // 1. Direct standard parse attempt
@@ -30,20 +34,26 @@ export function robustParseJson(raw) {
   // 2. Normalize smart / curly quotes
   s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
 
-  // 3. Fix unquoted property names (e.g. { name: "...", , price: "..." or \n day: 1)
-  s = s.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+  // 3. Remove single-line comments // ... and multi-line comments /* ... */ outside strings
+  s = s.replace(
+    /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\r\n]*|\/\*[\s\S]*?\*\//g,
+    (m) => (m.startsWith('"') || m.startsWith("'") ? m : "")
+  );
 
-  // 4. Fix single-quoted property names ({'name': "...")
+  // 4. Fix unquoted property names outside string literals (e.g. { name: "...", day: 1 })
+  s = s.replace(
+    /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,
+    (m, p1, p2) => (m.startsWith('"') || m.startsWith("'") ? m : `${p1}"${p2}":`)
+  );
+
+  // 5. Fix single-quoted property names ({'name': "...")
   s = s.replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":');
 
-  // 5. Fix single-quoted string values (: 'value')
+  // 6. Fix single-quoted string values (: 'value')
   s = s.replace(/:\s*'([^']*)'/g, ': "$1"');
 
-  // 6. Remove trailing commas before } or ]
+  // 7. Remove trailing commas before } or ]
   s = s.replace(/,\s*([}\]])/g, "$1");
-
-  // 7. Remove single-line comments // ... and multi-line comments /* ... */
-  s = s.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 
   try {
     return JSON.parse(s);
@@ -77,6 +87,53 @@ export function robustParseJson(raw) {
   }
 }
 
+function toSafeString(val, fallback = "") {
+  if (typeof val === "string") return val.trim() || fallback;
+  if (typeof val === "number" && Number.isFinite(val)) return String(val);
+  if (val && typeof val === "object") {
+    const candidate = val.name || val.title || val.label || val.tier || val.city || val.text;
+    if (typeof candidate === "string") return candidate.trim() || fallback;
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return String(candidate);
+  }
+  return fallback;
+}
+
+function normalizeActivitiesList(rawActs) {
+  let list = rawActs;
+  if (typeof list === "string") {
+    list = robustParseJson(list) || [];
+  } else if (list && typeof list === "object" && !Array.isArray(list)) {
+    list = Object.values(list);
+  }
+  if (!Array.isArray(list)) return [];
+
+  return list
+    .filter((a) => a && (typeof a === "string" || typeof a === "object"))
+    .map((a) => {
+      if (typeof a === "string") {
+        return { time: "Scheduled", placeName: a, details: a, tickets: "", isVisited: false };
+      }
+      const time = toSafeString(a.time) || toSafeString(a.timeSlot) || "Scheduled";
+      const placeName =
+        toSafeString(a.placeName) ||
+        toSafeString(a.name) ||
+        toSafeString(a.activity) ||
+        toSafeString(a.title) ||
+        "City Highlight";
+      const details = toSafeString(a.details) || toSafeString(a.description) || toSafeString(a.notes) || "";
+      const tickets = toSafeString(a.tickets) || toSafeString(a.ticketPrice) || toSafeString(a.cost) || "";
+      return {
+        ...a,
+        time,
+        placeName,
+        details,
+        tickets,
+        coordinates: a?.coordinates || a?.geo || null,
+        isVisited: Boolean(a?.isVisited),
+      };
+    });
+}
+
 /**
  * Universal Trip Normalizer
  * Standardizes any shape of travel plan (AI raw JSON, Firestore document, 
@@ -96,6 +153,39 @@ export function normalizeTrip(raw) {
   // Unnest common nested wrapper keys (up to 6 levels deep)
   let depth = 0;
   while (depth < 6 && data && typeof data === "object") {
+    if (typeof data.trip === "string") {
+      const parsedTrip = robustParseJson(data.trip);
+      if (parsedTrip && typeof parsedTrip === "object") {
+        data = parsedTrip;
+        depth++;
+        continue;
+      }
+    }
+    if (typeof data.aiTripPlan === "string") {
+      const parsedAi = robustParseJson(data.aiTripPlan);
+      if (parsedAi && typeof parsedAi === "object") {
+        data = parsedAi;
+        depth++;
+        continue;
+      }
+    }
+    if (typeof data.travelPlan === "string") {
+      const parsedTp = robustParseJson(data.travelPlan);
+      if (parsedTp && typeof parsedTp === "object") {
+        data = parsedTp;
+        depth++;
+        continue;
+      }
+    }
+    if (typeof data.plan === "string") {
+      const parsedPlan = robustParseJson(data.plan);
+      if (parsedPlan && typeof parsedPlan === "object") {
+        data = parsedPlan;
+        depth++;
+        continue;
+      }
+    }
+
     if (data.trip && typeof data.trip === "object") {
       data = data.trip;
     } else if (data.aiTripPlan && typeof data.aiTripPlan === "object") {
@@ -128,21 +218,26 @@ export function normalizeTrip(raw) {
 
   // Check if there is actual meaningful content
   const foundDestination =
-    data.destination ||
-    data.locationInfo?.name ||
-    data.toLocation?.name ||
-    data.toLocation ||
-    raw.destination ||
-    raw.toLocation?.name ||
+    toSafeString(data.destination) ||
+    toSafeString(data.locationInfo) ||
+    toSafeString(data.toLocation) ||
+    toSafeString(raw.destination) ||
+    toSafeString(raw.toLocation) ||
     null;
 
-  const rawItin = data.itinerary || data.days || data.schedule || raw.itinerary || [];
-  const rawHotels = data.hotels || data.hotelList || raw.hotels || [];
+  let rawItin = data.itinerary || data.days || data.schedule || raw.itinerary || [];
+  if (typeof rawItin === "string") {
+    rawItin = robustParseJson(rawItin) || [];
+  }
+  let rawHotels = data.hotels || data.hotelList || raw.hotels || [];
+  if (typeof rawHotels === "string") {
+    rawHotels = robustParseJson(rawHotels) || [];
+  }
 
   const hasContent = Boolean(
     foundDestination ||
     (Array.isArray(rawItin) && rawItin.length > 0) ||
-    (typeof rawItin === "object" && Object.keys(rawItin).length > 0) ||
+    (rawItin && typeof rawItin === "object" && Object.keys(rawItin).length > 0) ||
     (Array.isArray(rawHotels) && rawHotels.length > 0)
   );
 
@@ -155,57 +250,49 @@ export function normalizeTrip(raw) {
 
   // 2. Duration
   const duration =
-    data.duration ||
-    (data.totalNoOfDays ? `${data.totalNoOfDays} Days` : null) ||
-    (data.totalDays ? `${data.totalDays} Days` : null) ||
-    raw.duration ||
-    (raw.totalNoOfDays ? `${raw.totalNoOfDays} Days` : null) ||
+    toSafeString(data.duration) ||
+    (data.totalNoOfDays ? `${data.totalNoOfDays} Days` : "") ||
+    (data.totalDays ? `${data.totalDays} Days` : "") ||
+    toSafeString(raw.duration) ||
+    (raw.totalNoOfDays ? `${raw.totalNoOfDays} Days` : "") ||
     "3 Days";
 
   // 3. Budget
   const budget =
-    typeof data.budget === "object"
-      ? data.budget?.tier || data.budget?.title || "Moderate"
-      : data.budget || raw.budget || "Moderate";
+    (typeof data.budget === "object"
+      ? toSafeString(data.budget?.tier) || toSafeString(data.budget?.title) || toSafeString(data.budget)
+      : toSafeString(data.budget)) ||
+    toSafeString(raw.budget) ||
+    "Moderate";
 
   // 4. Traveler
   const traveler =
-    data.traveler?.title ||
-    data.traveler ||
-    data.travelers ||
-    raw.traveler ||
+    toSafeString(data.traveler?.title) ||
+    toSafeString(data.traveler) ||
+    toSafeString(data.travelers) ||
+    toSafeString(raw.traveler) ||
     "Explorer";
 
   // 5. Itinerary -> Guaranteed to be an Array of { day, theme, activities: Array }
   let itinerary = [];
 
   if (Array.isArray(rawItin)) {
-    itinerary = rawItin.map((d, idx) => {
-      const dayNum = Number(d.day) || idx + 1;
-      const theme = d.theme || d.title || d.heading || `Day ${dayNum} Exploration`;
-      const rawActs = d.activities || d.plan || d.places || d.schedule || [];
-      const activities = Array.isArray(rawActs)
-        ? rawActs.map((a) => {
-            if (typeof a === "string") {
-              return { time: "Scheduled", placeName: a, details: a, tickets: "" };
-            }
-            return {
-              ...a,
-              time: a?.time || a?.timeSlot || "Scheduled",
-              placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
-              details: a?.details || a?.description || a?.notes || "",
-              tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
-              coordinates: a?.coordinates || a?.geo || null,
-              isVisited: Boolean(a?.isVisited),
-            };
-          })
-        : [];
-      return {
-        day: dayNum,
-        theme,
-        activities,
-      };
-    });
+    itinerary = rawItin
+      .filter((d) => d && typeof d === "object")
+      .map((d, idx) => {
+        const dayNum = Number(d.day) || idx + 1;
+        const theme =
+          toSafeString(d.theme) ||
+          toSafeString(d.title) ||
+          toSafeString(d.heading) ||
+          `Day ${dayNum} Exploration`;
+        const rawActs = d.activities ?? d.plan ?? d.places ?? d.schedule ?? [];
+        return {
+          day: dayNum,
+          theme,
+          activities: normalizeActivitiesList(rawActs),
+        };
+      });
   } else if (rawItin && typeof rawItin === "object") {
     // Handle dictionaries like { "day1": { ... }, "day2": { ... } }
     const keys = Object.keys(rawItin).sort((a, b) => {
@@ -214,51 +301,43 @@ export function normalizeTrip(raw) {
       return numA - numB;
     });
 
-    itinerary = keys.map((k, idx) => {
-      const d = rawItin[k] || {};
-      const dayNum = Number(d.day) || parseInt(k.replace(/\D/g, ""), 10) || idx + 1;
-      const theme = d.theme || d.title || d.heading || `Day ${dayNum} Exploration`;
-      const rawActs = d.activities || d.plan || d.places || d.schedule || [];
-      const activities = Array.isArray(rawActs)
-        ? rawActs.map((a) => {
-            if (typeof a === "string") {
-              return { time: "Scheduled", placeName: a, details: a, tickets: "" };
-            }
-            return {
-              ...a,
-              time: a?.time || a?.timeSlot || "Scheduled",
-              placeName: a?.placeName || a?.name || a?.activity || a?.title || "City Highlight",
-              details: a?.details || a?.description || a?.notes || "",
-              tickets: a?.tickets || a?.ticketPrice || a?.cost || "",
-              coordinates: a?.coordinates || a?.geo || null,
-              isVisited: Boolean(a?.isVisited),
-            };
-          })
-        : [];
-      return {
-        day: dayNum,
-        theme,
-        activities,
-      };
-    });
+    itinerary = keys
+      .filter((k) => rawItin[k] && typeof rawItin[k] === "object")
+      .map((k, idx) => {
+        const d = rawItin[k];
+        const dayNum = Number(d.day) || parseInt(k.replace(/\D/g, ""), 10) || idx + 1;
+        const theme =
+          toSafeString(d.theme) ||
+          toSafeString(d.title) ||
+          toSafeString(d.heading) ||
+          `Day ${dayNum} Exploration`;
+        const rawActs = d.activities ?? d.plan ?? d.places ?? d.schedule ?? [];
+        return {
+          day: dayNum,
+          theme,
+          activities: normalizeActivitiesList(rawActs),
+        };
+      });
   }
 
   // 6. Hotels -> Guaranteed to be an Array
   let hotels = [];
   if (Array.isArray(rawHotels)) {
-    hotels = rawHotels.map((h) => {
-      if (typeof h === "string") {
-        return { name: h, address: destination, price: "Price not listed", rating: "" };
-      }
-      return {
-        name: h?.name || h?.hotelName || "Hotel (name not listed)",
-        address: h?.address || h?.hotelAddress || destination,
-        price: h?.price || h?.hotelPrice || "Price not listed",
-        rating: h?.rating || h?.hotelRating || "",
-        geoCoordinates: h?.geoCoordinates || h?.coordinates || null,
-        description: h?.description || "",
-      };
-    });
+    hotels = rawHotels
+      .filter((h) => h && (typeof h === "string" || typeof h === "object"))
+      .map((h) => {
+        if (typeof h === "string") {
+          return { name: h, address: destination, price: "Price not listed", rating: "" };
+        }
+        return {
+          name: toSafeString(h.name) || toSafeString(h.hotelName) || "Hotel (name not listed)",
+          address: toSafeString(h.address) || toSafeString(h.hotelAddress) || destination,
+          price: toSafeString(h.price) || toSafeString(h.hotelPrice) || "Price not listed",
+          rating: toSafeString(h.rating ?? h.hotelRating),
+          geoCoordinates: h?.geoCoordinates || h?.coordinates || null,
+          description: toSafeString(h.description),
+        };
+      });
   }
 
   // 7. Flights & Weather & PackingList
@@ -376,8 +455,12 @@ export function validateTripPlan(plan, expectedDays = null) {
   const seenThemes = new Map(); // normalizedTheme -> day
 
   itin.forEach((d, idx) => {
+    if (!d || typeof d !== "object") {
+      errors.push(`Day ${idx + 1} is invalid or empty`);
+      return;
+    }
     const dayNum = Number(d.day) || idx + 1;
-    const rawTheme = (d.theme || d.title || "").trim();
+    const rawTheme = toSafeString(d.theme) || toSafeString(d.title);
     const normTheme = rawTheme.toLowerCase();
 
     if (normTheme) {
@@ -398,7 +481,12 @@ export function validateTripPlan(plan, expectedDays = null) {
     }
 
     activities.forEach((act) => {
-      const rawName = act.placeName || act.name || act.activity || act.title || "";
+      if (!act || typeof act !== "object") return;
+      const rawName =
+        toSafeString(act.placeName) ||
+        toSafeString(act.name) ||
+        toSafeString(act.activity) ||
+        toSafeString(act.title);
       const normName = normalizePlaceName(rawName);
 
       // Skip generic placeholder labels

@@ -46,6 +46,7 @@ export const CreateTripProvider = ({ children }) => {
   const hadUserRef = useRef(false);
   const authSeqRef = useRef(0);
   const hydratedTripKeyRef = useRef(null);
+  const prevStorageKeyRef = useRef(tripStorageKey);
   const preferencesHydratedRef = useRef(false);
 
   useEffect(() => {
@@ -99,13 +100,20 @@ export const CreateTripProvider = ({ children }) => {
   // Load saved trip selections (interests, dates, etc.)
   useEffect(() => {
     let cancelled = false;
+    const prevKey = prevStorageKeyRef.current;
+    const keyChanged = prevKey !== tripStorageKey;
+    prevStorageKeyRef.current = tripStorageKey;
+    hydratedTripKeyRef.current = null;
+
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(tripStorageKey);
         if (cancelled) return;
         const parsed = raw ? safeJsonParse(raw) : null;
         if (parsed && typeof parsed === "object") {
-          setTripData((prev) => ({ ...prev, ...parsed }));
+          setTripData(keyChanged ? parsed : (prev) => ({ ...prev, ...parsed }));
+        } else if (keyChanged && prevKey !== "tripData:guest") {
+          setTripData({});
         }
       } catch (e) {
         console.warn("Failed to load tripData from storage:", e);

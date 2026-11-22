@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Image, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, Modal } from "react-native";
+import { Alert, Image, Linking, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, Modal } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
@@ -18,6 +18,7 @@ import { getDestinationImage } from "../../Components/constants/Destinations";
 import { getFavoritePlaces, subscribeToFavorites } from "../../Components/utils/FavoriteService";
 import { getTierInfo, tierCaption } from "../../Components/utils/explorerTier";
 import { APP_SHARE_MESSAGE, APP_SHARE_URL } from "../../Components/constants/appLinks";
+import { clearSessionLocalData } from "../../Components/utils/AccountService";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 export default function Profile() {
@@ -179,52 +180,112 @@ export default function Profile() {
     } catch {}
   };
 
+  const applyPickedAvatar = useCallback(async (asset) => {
+    if (!asset?.uri && !asset?.base64) return false;
+    let nextAvatar = "";
+    let shouldPersistRemote = false;
+
+    if (asset.base64) {
+      const mimeType = typeof asset.mimeType === "string" && asset.mimeType.startsWith("image/")
+        ? asset.mimeType
+        : "image/jpeg";
+      const dataUri = `data:${mimeType};base64,${asset.base64}`;
+      if (dataUri.length > 580000) {
+        Alert.alert("Image Too Large", "Please choose a smaller photo or crop closer.");
+        return false;
+      }
+      nextAvatar = dataUri;
+      shouldPersistRemote = true;
+    } else if (typeof asset.uri === "string" && /^(https?:|data:image\/)/i.test(asset.uri.trim())) {
+      nextAvatar = asset.uri.trim();
+      shouldPersistRemote = true;
+    } else if (typeof asset.uri === "string" && asset.uri.trim()) {
+      // Ephemeral device cache URI: keep local preview only instead of syncing a dead file:// path to Firestore
+      nextAvatar = asset.uri.trim();
+      shouldPersistRemote = false;
+    }
+
+    if (!nextAvatar) return false;
+    triggerHaptic();
+
+    if (setUserData) {
+      setUserData((prev) => ({
+        ...prev,
+        avatar: nextAvatar,
+      }));
+    }
+
+    const currentUid = uid || auth.currentUser?.uid;
+    if (currentUid && shouldPersistRemote) {
+      try {
+        const userRef = doc(db, "users", currentUid);
+        await updateDoc(userRef, {
+          avatar: nextAvatar,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (dbErr) {
+        console.warn("Could not sync avatar to remote database:", dbErr);
+      }
+    }
+    return true;
+  }, [setUserData, uid]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android" || typeof ImagePicker.getPendingResultAsync !== "function") return;
+    let active = true;
+    (async () => {
+      try {
+        const pending = await ImagePicker.getPendingResultAsync();
+        const first = Array.isArray(pending) ? pending[0] : pending;
+        if (!active || !first || first.canceled || !first.assets?.length) return;
+        await applyPickedAvatar(first.assets[0]);
+      } catch {}
+    })();
+    return () => {
+      active = false;
+    };
+  }, [applyPickedAvatar]);
+
   // Pick profile photo from device gallery
   const pickProfilePhotoFromGallery = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Permission to access device photo gallery is needed to set a custom profile photo."
-        );
-        return;
+      // Android 13+ (API 33+) uses the system Photo Picker without runtime storage permissions
+      const skipPermissionPrompt = Platform.OS === "android" && Number(Platform.Version) >= 33;
+      if (!skipPermissionPrompt) {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          if (Platform.OS !== "web" && permission.canAskAgain === false) {
+            Alert.alert(
+              "Permission Required",
+              "Gallery permission is turned off. Open Settings to allow photo access.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Open Settings", onPress: () => Linking.openSettings().catch(() => {}) },
+              ]
+            );
+          } else {
+            Alert.alert(
+              "Permission Required",
+              "Permission to access device photo gallery is needed to set a custom profile photo."
+            );
+          }
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.35,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const pickedUri = result.assets[0].uri;
-        triggerHaptic();
-
-        // Update local state and context
-        if (setUserData) {
-          setUserData((prev) => ({
-            ...prev,
-            avatar: pickedUri,
-          }));
+        const ok = await applyPickedAvatar(result.assets[0]);
+        if (ok) {
+          Alert.alert("Success", "Profile photo updated successfully!");
         }
-
-        // Persist to Firestore if user is authenticated
-        const currentUid = uid || auth.currentUser?.uid;
-        if (currentUid) {
-          try {
-            const userRef = doc(db, "users", currentUid);
-            await updateDoc(userRef, {
-              avatar: pickedUri,
-              updatedAt: new Date().toISOString(),
-            });
-          } catch (dbErr) {
-            console.warn("Could not sync avatar to remote database:", dbErr);
-          }
-        }
-
-        Alert.alert("Success", "Profile photo updated successfully!");
       }
     } catch (e) {
       console.error("Gallery picker error:", e);
@@ -300,17 +361,18 @@ export default function Profile() {
           } catch {}
         }
 
+        const shouldKeepTrip = (t) => {
+          if (tripToDelete?.id && t?.id && String(t.id) === String(tripToDelete.id)) return false;
+          if (tripToDelete?.createdAt && t?.createdAt && String(t.createdAt) === String(tripToDelete.createdAt)) return false;
+          if (targetDestNorm && getTripDestNorm(t) === targetDestNorm) return false;
+          return true;
+        };
+
         const stored1 = await AsyncStorage.getItem("@goguide_user_trips");
         if (stored1) {
           const list1 = JSON.parse(stored1);
           if (Array.isArray(list1)) {
-            const filtered1 = list1.filter(
-              (t) =>
-                t.id !== tripToDelete.id &&
-                t.createdAt !== tripToDelete.createdAt &&
-                (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
-            );
-            await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(filtered1));
+            await AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(list1.filter(shouldKeepTrip)));
           }
         }
 
@@ -318,23 +380,12 @@ export default function Profile() {
         if (stored2) {
           const list2 = JSON.parse(stored2);
           if (Array.isArray(list2)) {
-            const filtered2 = list2.filter(
-              (t) =>
-                t.id !== tripToDelete.id &&
-                t.createdAt !== tripToDelete.createdAt &&
-                (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
-            );
-            await AsyncStorage.setItem("@goguide_local_trips", JSON.stringify(filtered2));
+            await AsyncStorage.setItem("@goguide_local_trips", JSON.stringify(list2.filter(shouldKeepTrip)));
           }
         }
 
         setSavedTripsList((prev) => {
-          const next = prev.filter(
-            (t) =>
-              t.id !== tripToDelete.id &&
-              t.createdAt !== tripToDelete.createdAt &&
-              (!targetDestNorm || getTripDestNorm(t) !== targetDestNorm)
-          );
+          const next = prev.filter(shouldKeepTrip);
           setStats((s) => ({ ...s, trips: next.length }));
           return next;
         });
@@ -393,6 +444,11 @@ export default function Profile() {
   const handleSignOut = () => {
     triggerHaptic();
     const executeSignOut = async () => {
+      const currentUid = uid || auth.currentUser?.uid || null;
+      setTripData({});
+      setSavedTripsList([]);
+      setStats({ trips: 0, places: 0, bookings: 0 });
+      await clearSessionLocalData(currentUid);
       try {
         await signOut(auth);
       } catch (e) {
@@ -793,7 +849,11 @@ export default function Profile() {
             <View style={styles.menuTextContainer}>
               <Text style={[styles.menuTitle, { color: theme.text }]}>Smart Travel Alerts</Text>
               <Text style={[styles.menuSubtitle, { color: theme.subtext }]}>
-                {preferences?.notifications ? "Active: Weather, departures & packing" : "Notifications Muted"}
+                {preferences?.notifications
+                  ? Platform.OS === "web"
+                    ? "Active: Browser & in-app reminders"
+                    : "Active: In-app packing & stay reminders"
+                  : "Notifications Muted"}
               </Text>
             </View>
             <Switch

@@ -85,7 +85,12 @@ export async function loadSavedTrips() {
 export async function deleteSavedTrip(trip) {
   if (!trip) return;
   const destNorm = norm(getTripDestination(trip));
-  const keep = (t) => t?.id !== trip.id && t?.createdAt !== trip.createdAt && (!destNorm || norm(getTripDestination(t)) !== destNorm);
+  const keep = (t) => {
+    if (trip.id && t?.id && String(t.id) === String(trip.id)) return false;
+    if (trip.createdAt && t?.createdAt && String(t.createdAt) === String(trip.createdAt)) return false;
+    if (destNorm && norm(getTripDestination(t)) === destNorm) return false;
+    return true;
+  };
 
   if (auth.currentUser?.email && trip.id) {
     try {

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
-import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -77,10 +77,14 @@ export default function SearchPlace() {
 
   const timeoutRef = useRef(null);
   const searchAbortRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const locatingRef = useRef(false);
   const activeAccent = Colors.PRIMARY || Palette.brand;
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       try {
         searchAbortRef.current?.abort();
@@ -201,59 +205,111 @@ export default function SearchPlace() {
   };
 
   const handleUseCurrentLocation = async () => {
+    if (locatingRef.current) return;
+    locatingRef.current = true;
     triggerHaptic();
     setFromQuery("Detecting location...");
     let reason = "error";
+    let canAskAgain = true;
+
     try {
       const Location = require("expo-location");
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        reason = "denied";
-      } else {
-        // Fresh fix only: no getLastKnownPositionAsync, no cached coordinates.
-        const pos = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        const { latitude, longitude } = pos?.coords || {};
-        const valid =
-          Number.isFinite(latitude) &&
-          Number.isFinite(longitude) &&
-          !(latitude === 0 && longitude === 0);
-        if (valid) {
-          let locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
-              { headers: { "User-Agent": "GoGuideApp/2.0" } }
-            );
-            const data = await res.json();
-            const city = data?.address?.city || data?.address?.town || data?.address?.state;
-            const country = data?.address?.country;
-            if (city || country) locName = [city, country].filter(Boolean).join(", ");
-          } catch {
-            // Reverse-geocode failed; the numeric label keeps the exact fix.
+      if (typeof Location.hasServicesEnabledAsync === "function") {
+        try {
+          const enabled = await Location.hasServicesEnabledAsync();
+          if (enabled === false) {
+            reason = "services_off";
           }
-          setFromQuery(locName);
-          setTripData((prev) => ({
-            ...prev,
-            fromLocation: { name: locName, coordinates: { lat: latitude, lng: longitude } },
-          }));
-          return;
+        } catch {}
+      }
+
+      if (reason !== "services_off") {
+        const perm = await Location.requestForegroundPermissionsAsync();
+        canAskAgain = perm?.canAskAgain !== false;
+        if (perm?.status !== "granted") {
+          reason = "denied";
+        } else {
+          let gpsTimer = null;
+          let pos = null;
+          try {
+            // Fresh fix only: no getLastKnownPositionAsync, bounded by 12s timeout
+            pos = await Promise.race([
+              Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+              }),
+              new Promise((_, reject) => {
+                gpsTimer = setTimeout(() => reject(new Error("GPS timeout")), 12000);
+              }),
+            ]);
+          } finally {
+            if (gpsTimer) clearTimeout(gpsTimer);
+          }
+
+          if (!isMountedRef.current) return;
+          const { latitude, longitude } = pos?.coords || {};
+          const valid =
+            Number.isFinite(latitude) &&
+            Number.isFinite(longitude) &&
+            !(latitude === 0 && longitude === 0);
+          if (valid) {
+            let locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            const revController = new AbortController();
+            const revTimer = setTimeout(() => revController.abort(), 5000);
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&accept-language=en`,
+                {
+                  headers: { "User-Agent": "GoGuideApp/2.0" },
+                  signal: revController.signal,
+                }
+              );
+              const data = await res.json();
+              const city = data?.address?.city || data?.address?.town || data?.address?.state;
+              const country = data?.address?.country;
+              if (city || country) locName = [city, country].filter(Boolean).join(", ");
+            } catch {
+              // Reverse-geocode failed or timed out; the numeric label keeps the exact fix.
+            } finally {
+              clearTimeout(revTimer);
+            }
+            if (!isMountedRef.current) return;
+            setFromQuery(locName);
+            setTripData((prev) => ({
+              ...prev,
+              fromLocation: { name: locName, coordinates: { lat: latitude, lng: longitude } },
+            }));
+            return;
+          }
         }
       }
     } catch {
-      reason = "error";
+      reason = reason === "services_off" ? "services_off" : "error";
+    } finally {
+      locatingRef.current = false;
     }
+
+    if (!isMountedRef.current) return;
 
     // No GPS fix: clear the field and tell the user. Never invent coordinates.
     setFromQuery("");
     setTripData((prev) => ({ ...prev, fromLocation: { name: "", coordinates: null } }));
     const msg =
-      reason === "denied"
-        ? "Location permission was denied. Enable it in Settings or type your departure city."
-        : "Couldn't get your location. Please type your departure city.";
-    if (Platform.OS === "web" && typeof window !== "undefined") window.alert(msg);
-    else Alert.alert("Location unavailable", msg);
+      reason === "services_off"
+        ? "Location services (GPS) are turned off. Enable GPS in Settings or type your departure city."
+        : reason === "denied"
+          ? "Location permission was denied. Enable it in Settings or type your departure city."
+          : "Couldn't get your location. Please type your departure city.";
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.alert(msg);
+    } else if (reason === "services_off" || (reason === "denied" && !canAskAgain)) {
+      Alert.alert("Location unavailable", msg, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings().catch(() => {}) },
+      ]);
+    } else {
+      Alert.alert("Location unavailable", msg);
+    }
   };
 
   const goNext = () => {

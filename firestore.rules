@@ -78,7 +78,7 @@ service cloud.firestore {
     // Shape and size limits for favorite documents (UserFavorites)
     function validFavorite(d) {
       return d.keys().hasOnly(['userEmail', 'placeKey', 'id', 'name', 'title', 'description', 'image',
-          'category', 'rating', 'addedAt', 'updatedAt'])
+          'category', 'rating', 'lat', 'lon', 'addedAt', 'updatedAt'])
         && isShortString(d.userEmail, 320)
         && optString(d, 'placeKey', 2000)
         && optString(d, 'id', 2000)
@@ -88,6 +88,8 @@ service cloud.firestore {
         && optString(d, 'category', 2000)
         && optString(d, 'image', 600000)
         && optStringOrNumber(d, 'rating', 50)
+        && (!('lat' in d) || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+        && (!('lon' in d) || (d.lon is number && d.lon >= -180 && d.lon <= 180))
         && optString(d, 'addedAt', 64)
         && optString(d, 'updatedAt', 64);
     }

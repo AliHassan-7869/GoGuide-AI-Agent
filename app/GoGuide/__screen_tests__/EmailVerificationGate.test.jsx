@@ -16,6 +16,7 @@ const mockUnverifiedUser = () => ({
 jest.mock("firebase/auth", () => ({ sendEmailVerification: jest.fn(async () => {}) }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: mockPush, replace: jest.fn(), canGoBack: () => true }),
+  useFocusEffect: (cb) => require("react").useEffect(cb, [cb]),
   Stack: { Screen: () => null },
 }));
 jest.mock("react-native-safe-area-context", () => ({

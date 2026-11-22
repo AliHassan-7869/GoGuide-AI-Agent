@@ -7,6 +7,7 @@ Knowledge Grounding: Lightweight Curated Data (curated_destinations.py & travel_
 Generative Synthesis: Gemini 2.0 Flash / DeepSeek
 """
 
+import copy
 import os
 import re
 import json
@@ -53,6 +54,7 @@ class TripState(TypedDict, total=False):
     jev_audit: Optional[Dict[str, Any]]
     iterations: int
     is_approved: bool
+    rebalance_exhausted: bool
     
     # Final normalized payload
     final_plan: Optional[Dict[str, Any]]
@@ -148,15 +150,14 @@ def itinerary_worker_node(state: TripState) -> Dict[str, Any]:
     
     itinerary = []
     
-    # If destination has curated daily activities, use them
+    # If destination has curated daily activities, use unique days without modulo cycling
     if grounded and grounded.get("itinerary"):
         curated_days = grounded["itinerary"]
-        for i in range(days_count):
-            base_day = curated_days[i % len(curated_days)]
+        for i, base_day in enumerate(curated_days[:days_count]):
             itinerary.append({
                 "day": i + 1,
                 "theme": base_day.get("theme", f"Exploring {dest_clean} Highlights"),
-                "activities": base_day.get("activities", []),
+                "activities": copy.deepcopy(base_day.get("activities", [])),
             })
     else:
         # Procedural itinerary generation
@@ -212,8 +213,8 @@ def jev_audit_node(state: TripState) -> Dict[str, Any]:
     
     logger.info(f"[JEV Evaluator] Decision: {is_valid}, Confidence: {noul_result['confidence']}, Reason: {noul_result['reasoning']}")
     
-    # If iterations reach 2, force approval to prevent endless loops
-    if iterations >= 2:
+    # Stop if we hit iteration cap or the previous rebalance made no further cost progress
+    if iterations >= 2 or state.get("rebalance_exhausted"):
         is_valid = True
         
     return {
@@ -230,6 +231,7 @@ def budget_rebalancer_node(state: TripState) -> Dict[str, Any]:
     current_hotels = list(state.get("hotels", []))
     current_hotels.sort(key=lambda h: (_nightly_rate(h) is None, _nightly_rate(h) or 0))
 
+    prev_cost = state.get("total_cost")
     days = max(1, state.get("days", 5))
     flight_price = (state.get("flights") or {}).get("priceValue", 320)
     nightly = _nightly_rate(current_hotels[0]) if current_hotels else None
@@ -238,6 +240,7 @@ def budget_rebalancer_node(state: TripState) -> Dict[str, Any]:
     return {
         "hotels": current_hotels,
         "total_cost": new_total,
+        "rebalance_exhausted": bool(prev_cost is not None and new_total >= prev_cost),
     }
 
 

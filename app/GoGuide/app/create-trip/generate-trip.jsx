@@ -279,7 +279,7 @@ export default function GenerateTrip() {
         } else if (tripData?.isDeepPlan) {
           result = await generateDeepTripPlan(
             {
-              destination: tripData?.toLocation?.name || "",
+              destination: destinationName,
               origin: originName,
               traveler: travelerName,
               days: totalDays,
@@ -288,6 +288,7 @@ export default function GenerateTrip() {
               categories: categoriesStr,
             },
             (progress) => {
+              if (cancelledRef.current) return;
               const stepIdx = Math.min(
                 GENERATION_STEPS.length - 1,
                 Math.floor((progress / 100) * GENERATION_STEPS.length)
@@ -299,7 +300,7 @@ export default function GenerateTrip() {
         } else {
           result = await generateTripWithAgent(
             {
-              destination: tripData?.toLocation?.name || "",
+              destination: destinationName,
               origin: originName,
               traveler: travelerName,
               days: totalDays,
@@ -311,17 +312,23 @@ export default function GenerateTrip() {
           );
         }
 
+        if (cancelledRef.current) return;
+
         if (result && typeof result.response?.text === "function") {
           const responseText = await result.response.text();
+          if (cancelledRef.current) return;
           const parsedData = robustParseJson(responseText);
           if (parsedData) {
             plan = normalizeTrip(parsedData) || parsedData.trip || parsedData;
           }
         }
       } catch (apiErr) {
+        if (cancelledRef.current || apiErr?.name === "AbortError") return;
         apiError = apiErr;
         console.warn("[GenerateTrip] Backend AI call note:", apiErr?.message);
       }
+
+      if (cancelledRef.current) return;
 
       // 2. AI failed: fall back to the verified bundled itinerary if this city has one.
       //    This is real, checked data (never invented) and the user is told what they got.
@@ -333,10 +340,14 @@ export default function GenerateTrip() {
         }
       }
 
+      if (cancelledRef.current) return;
+
       // 3. Nothing real available: tell the user and let them retry. Never invent a plan.
       if (!plan || !plan.itinerary || !Array.isArray(plan.itinerary) || plan.itinerary.length === 0) {
         throw apiError || new Error("We couldn't build your plan right now. Please try again.");
       }
+
+      if (cancelledRef.current) return;
 
       if (usedOfflineFallback) {
         const note = wantsCustomPlan
@@ -351,6 +362,7 @@ export default function GenerateTrip() {
         } catch {}
       }
 
+      if (cancelledRef.current) return;
       await handleSaveAndProceed(plan);
     } catch (err) {
       if (cancelledRef.current) return;

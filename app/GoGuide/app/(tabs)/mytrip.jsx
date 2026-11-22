@@ -74,8 +74,9 @@ export default function MyTrip() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const { tripData, setTripData, preferences } = useContext(CreateTripContext);
+  const { tripData, setTripData, preferences, uid } = useContext(CreateTripContext);
   const theme = useTheme();
+  const tripsFetchSeqRef = useRef(0);
   const plan = useMemo(() => normalizeTrip(tripData?.aiTripPlan || tripData), [tripData]);
   const isPlaceVerified = usePlaceVerification(plan);
   const rawDaysList = useMemo(
@@ -378,6 +379,7 @@ export default function MyTrip() {
   }, [tripData]);
 
   const GetMyTrips = async () => {
+    const seq = ++tripsFetchSeqRef.current;
     try {
       let localList = [];
       const storedLocal = await AsyncStorage.getItem("@goguide_user_trips");
@@ -435,17 +437,19 @@ export default function MyTrip() {
         dedupedTrips.push(t);
       });
 
+      if (seq !== tripsFetchSeqRef.current) return;
+
       if (localList.length > dedupedTrips.length) {
         AsyncStorage.setItem("@goguide_user_trips", JSON.stringify(dedupedTrips)).catch(() => {});
       }
 
-      if (dedupedTrips.length > 0) {
-        setUserTripsList(dedupedTrips);
-      }
+      setUserTripsList(dedupedTrips);
     } catch (e) {
       __DEV__ && console.log("Error loading trips:", e);
     } finally {
-      setLoading(false);
+      if (seq === tripsFetchSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -455,8 +459,8 @@ export default function MyTrip() {
       GetMyTrips();
     }, 0);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
-  }, [auth.currentUser]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by reactive uid from CreateTripContext so sign-in/sign-out/account switches reload cleanly
+  }, [uid]);
 
   const handleSelectTrip = (selectedTrip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

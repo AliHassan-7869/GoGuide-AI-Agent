@@ -131,11 +131,12 @@ DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 # Tried in order. If one is down or overloaded, the next one is used.
 GEMINI_MODELS = [m.strip() for m in os.getenv("GEMINI_MODELS", "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3-flash-preview").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-GEMINI_TIMEOUT = (5, 40)  # (connect, read) seconds per model
+GEMINI_TIMEOUT = (5, 25)  # (connect, read) seconds per model
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_TIMEOUT = (5, 30)
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
-NVIDIA_TIMEOUT = (5, 55)
+NVIDIA_TIMEOUT = (5, 30)
 AI_ERROR = "AI service error, please try again"
 
 _google_request = google_requests.Request()
@@ -310,9 +311,6 @@ def check_spend_cap_guard() -> bool:
 
 # -------------------- AI PROVIDERS --------------------
 def call_gemini(contents: list, generation_config: dict, system_instruction: str | None = None) -> str:
-    if not check_spend_cap_guard():
-        raise HTTPException(status_code=429, detail="Daily free-tier quota limit reached. Spend cap active.")
-
     payload = {"contents": contents, "generationConfig": generation_config}
     if system_instruction:
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
@@ -360,7 +358,7 @@ def call_deepseek(messages: list, temperature: float, max_tokens: int, json_mode
             "Content-Type": "application/json"
         },
         json=payload,
-        timeout=60
+        timeout=DEEPSEEK_TIMEOUT
     )
     response.raise_for_status()
     result_data = response.json()
@@ -515,6 +513,20 @@ PLAN_SYSTEM_INSTRUCTION = (
 )
 
 # -------------------- POST /plan (main functionality) --------------------
+def _plan_max_tokens(days: int, deep: bool = False) -> int:
+    base = 4096 if deep else 3072
+    per_day = 750 if deep else 600
+    return min(8192, max(base, int(days) * per_day + 1024))
+
+
+def _has_non_empty_itinerary(plan_data) -> bool:
+    if not isinstance(plan_data, dict):
+        return False
+    trip = plan_data.get("trip") if isinstance(plan_data.get("trip"), dict) else plan_data
+    itin = trip.get("itinerary") if isinstance(trip, dict) else None
+    return isinstance(itin, list) and len(itin) > 0
+
+
 def repair_json_content(raw_text: str):
     """
     Resilient JSON repair for LLM responses. Fixes unquoted keys,
@@ -537,8 +549,18 @@ def repair_json_content(raw_text: str):
 
     # Normalize smart quotes
     s = s.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
-    # Fix unquoted keys
-    s = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', s)
+    # Strip JS/JSON comments outside string literals (preserves https:// URLs)
+    s = re.sub(
+        r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\r\n]*|/\*[\s\S]*?\*/',
+        lambda m: m.group(0) if m.group(0).startswith(('"', "'")) else "",
+        s,
+    )
+    # Fix unquoted keys outside string literals
+    s = re.sub(
+        r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:',
+        lambda m: m.group(0) if m.group(0).startswith(('"', "'")) else f'{m.group(1)}"{m.group(2)}":',
+        s,
+    )
     # Fix single quoted keys
     s = re.sub(r"([{,]\s*)'([^']+)'\s*:", r'\1"\2":', s)
     # Fix single quoted string values
@@ -570,12 +592,10 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
 
     # Check cache first for 200ms instantaneous response
     cache_key = f"{destination.strip().lower()}_{request.days}_{budget.strip().lower()}_{categories}_{interests}"
-    now = time.time()
-    if cache_key in _PLAN_CACHE:
-        entry = _PLAN_CACHE[cache_key]
-        if now - entry.get("timestamp", 0) < _CACHE_TTL_SECONDS:
-            logger.info("Serving cached itinerary for %s (%s days)", destination, request.days)
-            return entry["response"]
+    cached_response = _cached(cache_key)
+    if cached_response:
+        logger.info("Serving cached itinerary for %s (%s days)", destination, request.days)
+        return cached_response
 
     # Check pre-computed curated catalog (Zero-token instantaneous response!)
     # When user searches standard popular destinations without custom niche interests/categories
@@ -626,10 +646,12 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
   }}
 }}"""
 
+    plan_max_tokens = _plan_max_tokens(request.days, deep=False)
+
     raw_content = generate_with_fallback(
         gemini_call=lambda: call_gemini(
             [{"parts": [{"text": prompt}]}],
-            {"temperature": 0.7, "maxOutputTokens": 3072, "responseMimeType": "application/json"},
+            {"temperature": 0.7, "maxOutputTokens": plan_max_tokens, "responseMimeType": "application/json"},
             system_instruction=PLAN_SYSTEM_INSTRUCTION,
         ),
         nvidia_call=lambda: call_nvidia(
@@ -638,7 +660,7 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=4096,
+            max_tokens=max(4096, plan_max_tokens),
             json_mode=True,
         ),
         deepseek_call=lambda: call_deepseek(
@@ -650,7 +672,7 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=4096,
+            max_tokens=max(4096, plan_max_tokens),
             json_mode=True,
         ),
     )
@@ -680,7 +702,8 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_clien
         }
     }
 
-    _cache_put(cache_key, response_payload)
+    if _has_non_empty_itinerary(plan_data):
+        _cache_put(cache_key, response_payload)
 
     return response_payload
 
@@ -697,16 +720,25 @@ def generate_plan_get(x_api_key: str | None = Header(default=None)):
 # -------------------- ASYNC DEEP PLAN ENGINE (100% Free Tier BackgroundTasks) --------------------
 _DEEP_JOBS: dict[str, dict] = {}
 _DEEP_LOCK = threading.Lock()
-_DEEP_JOB_TTL = 7200  # 2 hours in-memory retention
+_DEEP_JOB_TTL = 1800  # 30 minutes in-memory retention
+_DEEP_JOB_MAX_ENTRIES = 200
+
+
+def _prune_deep_jobs_locked(now: float | None = None):
+    """Prunes expired or excess background jobs while _DEEP_LOCK is held."""
+    ts = time.time() if now is None else now
+    expired = [jid for jid, info in _DEEP_JOBS.items() if ts - info.get("created_at", 0) > _DEEP_JOB_TTL]
+    for jid in expired:
+        _DEEP_JOBS.pop(jid, None)
+    while len(_DEEP_JOBS) >= _DEEP_JOB_MAX_ENTRIES:
+        oldest = min(_DEEP_JOBS, key=lambda k: _DEEP_JOBS[k].get("created_at", 0))
+        _DEEP_JOBS.pop(oldest, None)
 
 
 def cleanup_deep_jobs():
     """Prunes expired background jobs to preserve lean memory footprint on Render free tier."""
-    now = time.time()
     with _DEEP_LOCK:
-        expired = [jid for jid, info in _DEEP_JOBS.items() if now - info.get("created_at", 0) > _DEEP_JOB_TTL]
-        for jid in expired:
-            _DEEP_JOBS.pop(jid, None)
+        _prune_deep_jobs_locked()
 
 
 def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
@@ -720,20 +752,18 @@ def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
     traveler = payload.get("traveler", "Solo")
 
     # Stack 5: LangGraph Stateful Multi-Agent Orchestration
-    # Only use the grounded orchestrator for destinations we have verified data for;
-    # otherwise Gemini produces a richer plan than the procedural fallback.
-    if execute_trip_orchestration and get_curated_plan(destination, days, budget):
+    # Only use the grounded orchestrator for destinations we have verified data for
+    # and when no custom interests/themes were requested; otherwise Gemini personalizes better.
+    if execute_trip_orchestration and not interests and not categories and get_curated_plan(destination, days, budget):
         try:
             logger.info("Executing Stack 5 LangGraph Orchestrator for deep plan %s (%s)", job_id, destination)
-            raw_interests = f"{interests or ''},{categories or ''}".strip(',')
-            interest_items = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()]
             orchestrated_plan = execute_trip_orchestration(
                 origin=origin,
                 destination=destination,
                 days=days,
                 budget_tier=budget,
                 traveler_type=traveler,
-                interests=interest_items or ["Sightseeing", "Local Food", "Culture"],
+                interests=["Sightseeing", "Local Food", "Culture"],
             )
             with _DEEP_LOCK:
                 _DEEP_JOBS[job_id] = {
@@ -807,11 +837,13 @@ Return ONLY valid JSON matching this exact structure:
   }}
 }}"""
 
+    deep_max_tokens = _plan_max_tokens(days, deep=True)
+
     try:
         raw_content = generate_with_fallback(
             gemini_call=lambda: call_gemini(
                 [{"parts": [{"text": prompt}]}],
-                {"temperature": 0.65, "maxOutputTokens": 4096, "responseMimeType": "application/json"},
+                {"temperature": 0.65, "maxOutputTokens": deep_max_tokens, "responseMimeType": "application/json"},
                 system_instruction=PLAN_SYSTEM_INSTRUCTION,
             ),
             nvidia_call=lambda: call_nvidia(
@@ -820,7 +852,7 @@ Return ONLY valid JSON matching this exact structure:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.65,
-                max_tokens=4096,
+                max_tokens=max(4096, deep_max_tokens),
                 json_mode=True,
             ),
             deepseek_call=lambda: call_deepseek(
@@ -829,7 +861,7 @@ Return ONLY valid JSON matching this exact structure:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.65,
-                max_tokens=4096,
+                max_tokens=max(4096, deep_max_tokens),
                 json_mode=True,
             ),
         )
@@ -881,11 +913,10 @@ def create_deep_plan(request: TravelRequest, background_tasks: BackgroundTasks, 
             logger.warning("Prompt injection detected in /plan-deep %s", field_name)
             raise HTTPException(status_code=400, detail="Invalid request content detected")
 
-    cleanup_deep_jobs()
-
     job_id = secrets.token_urlsafe(16)
     dest_clean = sanitize_input(request.destination, 100)
     with _DEEP_LOCK:
+        _prune_deep_jobs_locked()
         _DEEP_JOBS[job_id] = {
             "status": "processing",
             "owner": client_id,
@@ -947,6 +978,7 @@ def get_deep_plan_status(job_id: str, client_id: str = Depends(require_client_po
             status_code=500,
             content={
                 "status": "error",
+                "retryable": False,
                 "job_id": job_id,
                 "detail": job.get("error", "Deep plan generation failed")
             }
@@ -974,10 +1006,12 @@ def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(
     budget = sanitize_input(request.budget, 50)
     origin = sanitize_input(request.origin or "Current Location", 100)
     traveler = sanitize_input(request.traveler or "Solo", 50)
-    raw_interests = f"{request.interests or ''},{request.categories or ''}".strip(',')
+    interests_clean = sanitize_input(request.interests, 500)
+    categories_clean = sanitize_input(request.categories, 300)
+    raw_interests = f"{interests_clean},{categories_clean}".strip(",")
     interests_list = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()] or ["Sightseeing", "Culture"]
 
-    if execute_trip_orchestration and get_curated_plan(destination, request.days, budget):
+    if execute_trip_orchestration and not interests_clean and not categories_clean and get_curated_plan(destination, request.days, budget):
         try:
             logger.info("Executing Stack 5 LangGraph orchestration for %s (%s days)", destination, request.days)
             orchestrated_plan = execute_trip_orchestration(
@@ -1144,9 +1178,11 @@ def _generate_json(prompt: str, max_tokens: int = 3072):
 
 
 def _cached(key: str):
-    entry = _PLAN_CACHE.get(key)
-    if entry and time.time() - entry["timestamp"] < _CACHE_TTL_SECONDS:
-        return entry["response"]
+    now = time.time()
+    with _CACHE_LOCK:
+        entry = _PLAN_CACHE.get(key)
+        if entry and now - entry.get("timestamp", 0) < _CACHE_TTL_SECONDS:
+            return entry.get("response")
     return None
 
 

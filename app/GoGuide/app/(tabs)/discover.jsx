@@ -187,6 +187,41 @@ export default function Discover() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStep, setAiStep] = useState(1);
   const [aiError, setAiError] = useState(null);
+  const aiAbortRef = useRef(null);
+  const aiCancelledRef = useRef(false);
+  const aiTimersRef = useRef([]);
+  const isMountedRef = useRef(true);
+
+  const clearAiTimers = () => {
+    aiTimersRef.current.forEach((t) => clearTimeout(t));
+    aiTimersRef.current = [];
+  };
+
+  const cancelAiTrip = () => {
+    aiCancelledRef.current = true;
+    clearAiTimers();
+    try {
+      aiAbortRef.current?.abort();
+    } catch {}
+    aiAbortRef.current = null;
+    if (isMountedRef.current) {
+      setAiLoading(false);
+      setAiError(null);
+    }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      aiCancelledRef.current = true;
+      clearAiTimers();
+      try {
+        aiAbortRef.current?.abort();
+      } catch {}
+      aiAbortRef.current = null;
+    };
+  }, []);
   const [selectedDatePreset, setSelectedDatePreset] = useState("today");
   const [customDateInput, setCustomDateInput] = useState("");
   const [searchStatus, setSearchStatus] = useState("idle"); // idle | loading | empty | error
@@ -546,13 +581,26 @@ export default function Discover() {
   ) => {
     if (aiLoading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    aiCancelledRef.current = false;
+    clearAiTimers();
+    try {
+      aiAbortRef.current?.abort();
+    } catch {}
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+
     setAiLoading(true);
     setAiError(null);
     setAiStep(1);
 
-    // Step progression animation timer
-    const stepTimer1 = setTimeout(() => setAiStep(2), 1400);
-    const stepTimer2 = setTimeout(() => setAiStep(3), 2800);
+    // Step progression animation timers
+    const stepTimer1 = setTimeout(() => {
+      if (!aiCancelledRef.current && isMountedRef.current) setAiStep(2);
+    }, 1400);
+    const stepTimer2 = setTimeout(() => {
+      if (!aiCancelledRef.current && isMountedRef.current) setAiStep(3);
+    }, 2800);
+    aiTimersRef.current = [stepTimer1, stepTimer2];
 
     try {
       const cleanDest = normalizePlaceName(destination) || destination;
@@ -578,20 +626,27 @@ export default function Discover() {
       if (curated) {
         parsedData = curated;
       } else {
-        const result = await generateTripWithAgent({
-          destination: cleanDest,
-          days: days,
-          budget: budget,
-          interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
-        });
+        const result = await generateTripWithAgent(
+          {
+            destination: cleanDest,
+            days: days,
+            budget: budget,
+            interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
+          },
+          { signal: controller.signal }
+        );
+        if (aiCancelledRef.current || !isMountedRef.current) return;
 
         const responseText = await result.response.text();
+        if (aiCancelledRef.current || !isMountedRef.current) return;
         try {
           parsedData = robustParseJson(responseText);
         } catch (parseErr) {
           console.warn("[Discover] Robust parse note:", parseErr?.message);
         }
       }
+
+      if (aiCancelledRef.current || !isMountedRef.current) return;
 
       let completePlan = parsedData ? (normalizeTrip(parsedData) || parsedData.trip || parsedData) : null;
       if (!completePlan || !completePlan.itinerary || !Array.isArray(completePlan.itinerary) || completePlan.itinerary.length === 0) {
@@ -634,6 +689,8 @@ export default function Discover() {
         createdAt: new Date().toISOString(),
       };
 
+      if (aiCancelledRef.current || !isMountedRef.current) return;
+
       setTripData(completeTripData);
 
       // Cache active itinerary preview without creating duplicate saved entries before user clicks Save
@@ -644,14 +701,19 @@ export default function Discover() {
         console.warn("Could not cache active trip preview:", cacheErr);
       }
 
+      if (aiCancelledRef.current || !isMountedRef.current) return;
+
+      clearAiTimers();
+      aiAbortRef.current = null;
       setAiLoading(false);
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
       router.push({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
     } catch (err) {
+      clearAiTimers();
+      aiAbortRef.current = null;
+      if (aiCancelledRef.current || !isMountedRef.current || err?.name === "AbortError") {
+        return;
+      }
       console.error("[AI-Copilot] Generation error:", err);
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
       setAiLoading(false);
       setAiError(err.message || "Failed to generate AI trip. Please try again.");
     }
@@ -1280,7 +1342,7 @@ export default function Discover() {
       </ScrollView>
 
       {/* Live AI thinking modal */}
-      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => setAiLoading(false)}>
+      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={cancelAiTrip}>
         <View style={styles.aiModalOverlay}>
           <View style={[styles.aiModalContent, { backgroundColor: themeStyles.cardBg }]}>
             <View style={[styles.aiPulseCircle, { backgroundColor: accent + "26" }]}>
@@ -1321,7 +1383,7 @@ export default function Discover() {
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Cancel trip generation"
-              onPress={() => setAiLoading(false)}
+              onPress={cancelAiTrip}
               style={{ marginTop: Spacing.md, minHeight: 48, justifyContent: "center", paddingHorizontal: Spacing.lg }}
             >
               <Text style={{ color: themeStyles.subTextColor, fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium }}>
