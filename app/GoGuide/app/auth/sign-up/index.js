@@ -7,14 +7,16 @@ import { useNavigation, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
 import { goBack } from "../../../Components/utils/navigation";
-import { Palette } from "../../../Components/constants/theme";
+import { Palette, useTheme } from "../../../Components/constants/theme";
 export default function Signup() {
   const navigation = useNavigation();
   const router = useRouter();
+  const theme = useTheme();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -99,20 +101,6 @@ export default function Signup() {
       return;
     }
 
-    // Instant local check for already registered emails on this device
-    try {
-      const cachedEmailsRaw = await AsyncStorage.getItem("@goguide_registered_emails");
-      if (cachedEmailsRaw) {
-        const cachedEmails = JSON.parse(cachedEmailsRaw);
-        if (Array.isArray(cachedEmails) && cachedEmails.includes(cleanEmail.toLowerCase())) {
-          setErrorTitle("Email Already In Use ❌");
-          setErrorMessage("This email is already registered on this device. You cannot create another account with this email. Please enter a new email address or sign in.");
-          setErrorField("email");
-          return;
-        }
-      }
-    } catch {}
-
     try {
       setLoading(true);
 
@@ -125,16 +113,6 @@ export default function Signup() {
       await updateProfile(userCredential.user, {
         displayName: fullName.trim(),
       });
-
-      // Cache this email so duplicate registration attempts are instantly recognized
-      try {
-        const cachedEmailsRaw = await AsyncStorage.getItem("@goguide_registered_emails");
-        const list = cachedEmailsRaw ? JSON.parse(cachedEmailsRaw) : [];
-        if (!list.includes(cleanEmail.toLowerCase())) {
-          list.push(cleanEmail.toLowerCase());
-          await AsyncStorage.setItem("@goguide_registered_emails", JSON.stringify(list));
-        }
-      } catch {}
 
       // Send official Firebase Email Verification link
       try {
@@ -168,23 +146,24 @@ export default function Signup() {
   };
 
   return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top", "bottom"]}>
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: theme.isDark ? 1 : 0 }]}>
         {/* Back */}
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => goBack(router, "/auth/sign-in")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={26} color={Colors.PRIMARY} />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start your journey with GoGuide</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
+        <Text style={[styles.subtitle, { color: theme.subtext }]}>Start your journey with GoGuide</Text>
 
         {/* Prominent Error Banner */}
         {errorMessage ? (
@@ -211,11 +190,12 @@ export default function Signup() {
 
         {/* Full Name */}
         <View style={styles.inputWrap}>
-          <Text style={styles.label}>First Name</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Full Name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
             placeholder="Your name"
             {...AUTH_INPUT_PROPS}
+            placeholderTextColor={theme.subtext}
             value={fullName}
             onChangeText={setFullName}
           />
@@ -223,14 +203,16 @@ export default function Signup() {
 
         {/* Email */}
         <View style={styles.inputWrap}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Email Address</Text>
           <TextInput
             style={[
               styles.input,
+              { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText },
               (errorField === "email" || errorField === "both") && styles.inputError,
             ]}
             placeholder="example@email.com"
             {...AUTH_INPUT_PROPS}
+            placeholderTextColor={theme.subtext}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
@@ -250,16 +232,18 @@ export default function Signup() {
 
         {/* Password */}
         <View style={styles.inputWrap}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Password</Text>
 
           <View style={styles.passwordWrap}>
             <TextInput
               style={[
                 styles.input,
+                { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText, paddingRight: 48 },
                 (errorField === "password" || errorField === "both") && styles.inputError,
               ]}
               placeholder="Create a password"
               {...AUTH_INPUT_PROPS}
+              placeholderTextColor={theme.subtext}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={(v) => {
@@ -273,11 +257,12 @@ export default function Signup() {
               accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               onPress={() => setShowPassword(!showPassword)}
               style={styles.eye}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons
                 name={showPassword ? "eye-off" : "eye"}
                 size={22}
-                color={Colors.GRAY}
+                color={theme.subtext}
               />
             </TouchableOpacity>
           </View>
@@ -286,16 +271,17 @@ export default function Signup() {
         {/* Terms & Privacy Agreement Checkbox */}
         <View style={styles.termsRow}>
           <TouchableOpacity
-            style={[styles.checkbox, termsAccepted && styles.checkboxActive]}
+            style={[styles.checkbox, { borderColor: theme.border }, termsAccepted && styles.checkboxActive]}
             onPress={() => setTermsAccepted(!termsAccepted)}
             activeOpacity={0.8}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
             accessibilityLabel="Accept Terms and Conditions"
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: termsAccepted }}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: termsAccepted }}
           >
             {termsAccepted && <Ionicons name="checkmark" size={14} color={Palette.white} />}
           </TouchableOpacity>
-          <Text style={styles.termsText}>
+          <Text style={[styles.termsText, { color: theme.subtext }]}>
             I agree to GoGuide&apos;s{" "}
             <Text
               style={styles.termsLink}
@@ -343,6 +329,7 @@ export default function Signup() {
     </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

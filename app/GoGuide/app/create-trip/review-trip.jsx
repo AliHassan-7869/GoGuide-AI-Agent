@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import moment from "moment";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { sendEmailVerification } from "firebase/auth";
@@ -31,6 +31,13 @@ export default function ReviewTrip() {
 
   const [weather, setWeather] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Reset CTA lock whenever user returns from generate-trip via Back or Cancel
+  useFocusEffect(
+    useCallback(() => {
+      setIsGenerating(false);
+    }, [])
+  );
 
   const activeAccent = Colors.PRIMARY || Palette.brand;
 
@@ -186,12 +193,14 @@ export default function ReviewTrip() {
   let formattedHomeTotal = "";
 
   if (tripData?.isCustomBudget && tripData?.customBudgetAmount) {
-    const customAmtHome = Number(tripData.customBudgetAmount);
-    formattedHomeTotal = formatCurrencyAmount(customAmtHome, homeCurrency);
-    // Convert to dest currency
-    const rateHome = CURRENCY_RATES[homeCurrency]?.rate || 278;
+    const customAmt = Number(tripData.customBudgetAmount);
+    const customCurr = tripData.customBudgetCurrency || homeCurrency;
+    const rateCustom = CURRENCY_RATES[customCurr]?.rate || 1;
+    const rateHome = CURRENCY_RATES[homeCurrency]?.rate || 1;
     const rateDest = CURRENCY_RATES[destCurrency]?.rate || 1;
-    const customAmtDest = rateHome > 0 ? (customAmtHome / rateHome) * rateDest : customAmtHome;
+    const customAmtHome = customCurr === homeCurrency ? customAmt : (customAmt / rateCustom) * rateHome;
+    const customAmtDest = customCurr === destCurrency ? customAmt : (customAmt / rateCustom) * rateDest;
+    formattedHomeTotal = formatCurrencyAmount(customAmtHome, homeCurrency);
     formattedDestTotal = formatCurrencyAmount(customAmtDest, destCurrency);
   } else {
     const dailyBaseUSD = budgetTier.toLowerCase().includes("econ")
@@ -209,29 +218,33 @@ export default function ReviewTrip() {
     tripData?.interestsDetails?.length ||
     tripData?.interests?.length ||
     tripData?.selectedCategories?.length ||
-    3;
+    0;
+
+  const destLat = tripData?.toLocation?.coordinates?.lat;
+  const destLng = tripData?.toLocation?.coordinates?.lng;
 
   useEffect(() => {
+    if (!destLat || !destLng) return;
+    const controller = new AbortController();
     const fetchWeather = async () => {
-      const lat = tripData?.toLocation?.coordinates?.lat;
-      const lng = tripData?.toLocation?.coordinates?.lng;
-
-      if (lat && lng) {
-        try {
-          const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`
-          );
-          const data = await res.json();
-          if (data && data.current_weather) {
-            setWeather(data.current_weather);
-          }
-        } catch (error) {
+      try {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${destLat}&longitude=${destLng}&current_weather=true`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (data && data.current_weather) {
+          setWeather(data.current_weather);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
           __DEV__ && console.log("Error fetching weather:", error);
         }
       }
     };
     fetchWeather();
-  }, [tripData]);
+    return () => controller.abort();
+  }, [destLat, destLng]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
@@ -298,7 +311,7 @@ export default function ReviewTrip() {
                   { color: theme.isDark ? Palette.slate50 : Palette.slate900 },
                 ]}
               >
-                EXP-AI-2026
+                EXP-AI-{new Date().getFullYear()}
               </Text>
             </View>
             <View style={styles.vipTag}>

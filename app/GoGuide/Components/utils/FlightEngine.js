@@ -56,12 +56,21 @@ const AIRPORT_DIRECTORY = [
   { keys: ["patagonia", "buenos aires", "argentina"], city: "Buenos Aires", country: "Argentina", iata: "EZE", airport: "Ezeiza International Airport", region: "americas" },
 ];
 
+function matchesAirportKey(lowerText, key) {
+  if (lowerText === key) return true;
+  if (key.length <= 3) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(lowerText);
+  }
+  return lowerText.includes(key);
+}
+
 export function resolveAirportInfo(placeName, fallbackCity = "International") {
   const raw = String(placeName || "").trim();
   const lower = raw.toLowerCase();
 
   for (const entry of AIRPORT_DIRECTORY) {
-    if (entry.keys.some((k) => lower === k || lower.includes(k))) {
+    if (entry.keys.some((k) => matchesAirportKey(lower, k))) {
       return entry;
     }
   }
@@ -199,7 +208,11 @@ function formatSkyscannerDate(dateObj) {
 
 function formatIsoDate(dateObj) {
   try {
-    return dateObj.toISOString().split("T")[0];
+    if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) return "2026-11-15";
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   } catch {
     return "2026-11-15";
   }

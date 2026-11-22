@@ -8,15 +8,17 @@ import { useNavigation, useRouter } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
-import { Palette } from "../../../Components/constants/theme";
+import { Palette, useTheme } from "../../../Components/constants/theme";
 import { purgeLegacyLoginData } from "../../../Components/utils/legacyLoginCleanup";
 import { resetOutcome, validateResetEmail } from "../../../Components/utils/passwordReset";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
+  const theme = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -188,9 +190,9 @@ export default function SignIn() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -198,9 +200,9 @@ export default function SignIn() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.card}>
-            <Text style={styles.title}>Sign In</Text>
-            <Text style={styles.subtitle}>Sign in to plan, save and sync your trips</Text>
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: theme.isDark ? 1 : 0 }]}>
+            <Text style={[styles.title, { color: theme.text }]}>Sign In</Text>
+            <Text style={[styles.subtitle, { color: theme.subtext }]}>Sign in to plan, save and sync your trips</Text>
 
             {/* Prominent Error Banner */}
             {errorMessage ? (
@@ -225,14 +227,16 @@ export default function SignIn() {
 
             {/* Email */}
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={[styles.label, { color: theme.text }]}>Email Address</Text>
               <TextInput
                 style={[
                   styles.input,
+                  { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText },
                   (errorField === "email" || errorField === "both") && styles.inputError,
                 ]}
                 placeholder="Enter your email"
                 {...AUTH_INPUT_PROPS}
+                placeholderTextColor={theme.subtext}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -248,15 +252,17 @@ export default function SignIn() {
 
             {/* Password */}
             <View style={styles.inputWrap}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={[styles.label, { color: theme.text }]}>Password</Text>
               <View style={{ position: "relative" }}>
                 <TextInput
                   style={[
                     styles.input,
+                    { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText, paddingRight: 48 },
                     (errorField === "password" || errorField === "both") && styles.inputError,
                   ]}
                   placeholder="Enter your password"
                   {...AUTH_INPUT_PROPS}
+                  placeholderTextColor={theme.subtext}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(val) => {
@@ -272,9 +278,9 @@ export default function SignIn() {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   <Feather
-                    name={showPassword ? "eye" : "eye-off"}
+                    name={showPassword ? "eye-off" : "eye"}
                     size={20}
-                    color={Colors.GRAY}
+                    color={theme.subtext}
                   />
                 </TouchableOpacity>
               </View>
@@ -341,7 +347,7 @@ export default function SignIn() {
         type={policyModal.type}
         onClose={() => setPolicyModal({ visible: false, type: "terms" })}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -8,6 +8,7 @@ import { downloadItineraryPDF } from "../utils/PdfDownloadService";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 export default function PrintableItineraryModal({
   visible,
   plan,
@@ -16,6 +17,7 @@ export default function PrintableItineraryModal({
   theme,
 }) {
   const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const [downloading, setDownloading] = React.useState(false);
 
   if (!plan) return null;
@@ -57,7 +59,7 @@ export default function PrintableItineraryModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200, paddingTop: Math.max(insets.top, 16) + 4 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Export Itinerary & Pass</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>

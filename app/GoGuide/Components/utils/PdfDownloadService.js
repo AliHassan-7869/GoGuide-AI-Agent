@@ -39,6 +39,10 @@ async function getJsPDFConstructor() {
         script = document.createElement("script");
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
         script.async = true;
+        script.onerror = () => {
+          clearInterval(pollTimer);
+          resolve(null);
+        };
         document.head.appendChild(script);
       }
 
@@ -64,26 +68,35 @@ async function getJsPDFConstructor() {
   return null;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /**
  * Universal Fallback: Formats and opens an ultra-crisp, printable HTML itinerary pass
  * and triggers window.print() so the user can directly 'Save as PDF' from their browser.
  */
 export function buildPrintableHtml(data) {
-  const dest = data.destination || "Trip Destination";
+  const dest = escapeHtml(data.destination || "Trip Destination");
   const daysHtml = (data.itinerary || [])
     .map(
       (day) => `
     <div style="margin-bottom: 24px; border-left: 4px solid #0A7EA4; padding-left: 14px;">
-      <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 17px; font-weight: 700;">Day ${day.day}: ${day.theme}</h3>
+      <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 17px; font-weight: 700;">Day ${escapeHtml(day.day)}: ${escapeHtml(day.theme)}</h3>
       ${(day.activities || [])
         .map(
           (act) => `
         <div style="margin-bottom: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px;">
           <div style="display: flex; justify-content: space-between; font-weight: 600; color: #0A7EA4; font-size: 13px;">
-            <span>⏰ ${act.time} — ${act.placeName}</span>
-            <span style="color: #10B981;">${act.tickets || ""}</span>
+            <span>⏰ ${escapeHtml(act.time)} — ${escapeHtml(act.placeName)}</span>
+            <span style="color: #10B981;">${escapeHtml(act.tickets || "")}</span>
           </div>
-          <p style="margin: 5px 0 0 0; color: #475569; font-size: 12.5px; line-height: 1.5;">${act.details}</p>
+          <p style="margin: 5px 0 0 0; color: #475569; font-size: 12.5px; line-height: 1.5;">${escapeHtml(act.details)}</p>
         </div>
       `
         )
@@ -98,12 +111,12 @@ export function buildPrintableHtml(data) {
       (h) => `
     <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <div style="font-weight: 600; color: #0F172A; font-size: 14px;">${h.name}</div>
-        <div style="font-size: 12px; color: #64748B;">${h.address}</div>
+        <div style="font-weight: 600; color: #0F172A; font-size: 14px;">${escapeHtml(h.name)}</div>
+        <div style="font-size: 12px; color: #64748B;">${escapeHtml(h.address)}</div>
       </div>
       <div style="text-align: right;">
-        <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${h.price}</div>
-        ${h.rating ? `<div style="font-size: 11px; color: #EA580C;">★ ${h.rating}</div>` : ""}
+        <div style="font-weight: 600; color: #16A34A; font-size: 13px;">${escapeHtml(h.price)}</div>
+        ${h.rating ? `<div style="font-size: 11px; color: #EA580C;">★ ${escapeHtml(h.rating)}</div>` : ""}
       </div>
     </div>
   `
@@ -113,8 +126,12 @@ export function buildPrintableHtml(data) {
   const packingHtml = (data.packingList || []).length > 0
     ? `<h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;">Packing Essentials</h2>
        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px;">
-         ${data.packingList.map(p => `<div style="background: #F1F5F9; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #334155;">✓ ${typeof p === "string" ? p : p.item || p.name}</div>`).join("")}
+         ${data.packingList.map(p => `<div style="background: #F1F5F9; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #334155;">✓ ${escapeHtml(typeof p === "string" ? p : p.item || p.name)}</div>`).join("")}
        </div>`
+    : "";
+
+  const flightsText = data.flights
+    ? escapeHtml(typeof data.flights === "object" ? data.flights.details || data.flights.airline : data.flights)
     : "";
 
   return `<!DOCTYPE html>
@@ -138,17 +155,15 @@ export function buildPrintableHtml(data) {
       <h1 style="margin: 0; font-size: 24px; letter-spacing: 0.5px;">GoGuide.AI Official Itinerary Pass</h1>
       <p style="margin: 6px 0 0 0; opacity: 0.95; font-size: 18px; font-weight: 600;">${dest}</p>
       <div class="badges">
-        <span class="badge">📅 ${data.duration}</span>
-        <span class="badge">💰 ${data.budget}</span>
-        <span class="badge">👤 ${data.traveler}</span>
+        <span class="badge">📅 ${escapeHtml(data.duration)}</span>
+        <span class="badge">💰 ${escapeHtml(data.budget)}</span>
+        <span class="badge">👤 ${escapeHtml(data.traveler)}</span>
         <span class="badge" style="background: rgba(16, 185, 129, 0.4);">VERIFIED PASS</span>
       </div>
     </div>
     ${
-      data.flights
-        ? `<div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;"><strong>✈️ Flight / Transit:</strong> ${
-            typeof data.flights === "object" ? data.flights.details || data.flights.airline : data.flights
-          }</div>`
+      flightsText
+        ? `<div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;"><strong>✈️ Flight / Transit:</strong> ${flightsText}</div>`
         : ""
     }
     <h2 style="font-size: 18px; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 16px;">Day-by-Day Itinerary Schedule</h2>
@@ -169,12 +184,30 @@ export function buildPrintableHtml(data) {
 function openPrintableHtmlItinerary(data) {
   if (typeof window === "undefined") return;
   try {
-    const printWin = window.open("", "_blank");
+    const html = buildPrintableHtml(data);
+    if (typeof Blob !== "undefined" && typeof URL !== "undefined" && URL.createObjectURL) {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWin = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!printWin) {
+        URL.revokeObjectURL(blobUrl);
+        window.alert("Please allow popups to download or print your itinerary.");
+        return;
+      }
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(blobUrl);
+        } catch {}
+      }, 60000);
+      return;
+    }
+    const printWin = window.open("", "_blank", "noopener,noreferrer");
     if (!printWin) {
       window.alert("Please allow popups to download or print your itinerary.");
       return;
     }
-    printWin.document.write(buildPrintableHtml(data));
+    printWin.opener = null;
+    printWin.document.write(html);
     printWin.document.close();
     setTimeout(() => {
       try {

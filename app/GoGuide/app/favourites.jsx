@@ -97,12 +97,18 @@ export default function Favourites() {
 
   const handlePlanTrip = (place) => {
     tapHaptic();
+    const hasValidCoords =
+      Number.isFinite(Number(place.lat)) &&
+      Number.isFinite(Number(place.lon)) &&
+      (Number(place.lat) !== 0 || Number(place.lon) !== 0);
     if (setTripData) {
       setTripData((prev) => ({
         ...prev,
         toLocation: {
           name: place.name || place.title,
-          coordinates: { lat: place.lat || 0, lng: place.lon || 0 },
+          coordinates: hasValidCoords
+            ? { lat: Number(place.lat), lng: Number(place.lon) }
+            : null,
         },
         toLocationImage: place.image,
         toLocationRating: place.rating,

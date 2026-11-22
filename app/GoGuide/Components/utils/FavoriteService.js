@@ -115,6 +115,8 @@ export async function toggleFavoritePlace(place) {
       isNowFav = false;
     } else {
       // Add
+      const latVal = Number(place.lat ?? place.coordinates?.lat);
+      const lonVal = Number(place.lon ?? place.lng ?? place.coordinates?.lng ?? place.coordinates?.lon);
       const itemToAdd = {
         id: placeKey,
         name: place.name || place.title || "Scenic Place",
@@ -123,6 +125,9 @@ export async function toggleFavoritePlace(place) {
         image: safeImageUri(place.image || place.img || place.photoRef),
         category: typeof (place.category || place.tag) === "string" ? place.category || place.tag : "Must Visit",
         rating: typeof place.rating === "string" || typeof place.rating === "number" ? place.rating : "",
+        ...(Number.isFinite(latVal) && Number.isFinite(lonVal) && (latVal !== 0 || lonVal !== 0)
+          ? { lat: latVal, lon: lonVal }
+          : {}),
         addedAt: new Date().toISOString(),
       };
       updated = [itemToAdd, ...favorites];

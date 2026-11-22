@@ -130,10 +130,15 @@ export default function Preferences() {
           onPress: async () => {
             setClearingCache(true);
             try {
-              await AsyncStorage.removeItem("goguide_ai_copilot_chat_v1");
+              await AsyncStorage.multiRemove([
+                "goguide_ai_copilot_chat_v1",
+                "@goguide_cached_trip",
+                "@goguide_active_draft",
+              ]);
               Alert.alert("Success", "Temporary cache cleared successfully.");
             } catch (e) {
               console.warn("Could not clear cache:", e);
+              Alert.alert("Error", "Could not clear temporary cache. Please try again.");
             } finally {
               setClearingCache(false);
             }

@@ -1,5 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import { Alert, Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Animated, BackHandler, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../Components/constants/constants";
 import { Typography, useTheme, Palette } from "../../Components/constants/theme";
@@ -42,6 +42,7 @@ export default function GenerateTrip() {
   const router = useRouter();
   const hasGenerated = useRef(false);
   const cancelledRef = useRef(false);
+  const abortControllerRef = useRef(null);
   const reduceMotion = useReduceMotion();
 
   // Animations
@@ -100,9 +101,31 @@ export default function GenerateTrip() {
 
   const handleCancel = () => {
     cancelledRef.current = true;
+    try {
+      abortControllerRef.current?.abort();
+    } catch {}
+    abortControllerRef.current = null;
     setLoading(false);
     goBack(router);
   };
+
+  // Abort any in-flight AI request on unmount or Android hardware Back so it cannot hijack navigation later
+  useEffect(() => {
+    const onBackPress = () => {
+      handleCancel();
+      return true;
+    };
+    const sub = Platform.OS === "android" ? BackHandler.addEventListener("hardwareBackPress", onBackPress) : null;
+    return () => {
+      sub?.remove();
+      cancelledRef.current = true;
+      try {
+        abortControllerRef.current?.abort();
+      } catch {}
+      abortControllerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveAndProceed = async (plan) => {
     if (cancelledRef.current) return;
@@ -182,15 +205,32 @@ export default function GenerateTrip() {
   const GenerateAiTrip = async (forceInstant = Boolean(tripData?.useInstant)) => {
     cancelledRef.current = false;
     setCurrentStepIndex(0);
+    if (!reduceMotion) {
+      progressAnim.setValue(0);
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: STEP_INTERVAL_MS * GENERATION_STEPS.length,
+        useNativeDriver: false,
+      }).start();
+    }
     try {
       setLoading(true);
       setError(null);
 
-      // Calculate Days
-      const start = new Date(tripData?.startDate);
-      const end = new Date(tripData?.endDate);
-      const diffTime = Math.abs(end - start);
-      const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 || 3;
+      // Prefer canonical totalNoOfDays; otherwise compute midnight-normalized inclusive day diff
+      let totalDays = Number(tripData?.totalNoOfDays);
+      if (!Number.isFinite(totalDays) || totalDays < 1) {
+        const start = tripData?.startDate ? new Date(tripData.startDate) : null;
+        const end = tripData?.endDate ? new Date(tripData.endDate) : null;
+        if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+          const a = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+          const b = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+          totalDays = Math.round(Math.abs(b - a) / (1000 * 60 * 60 * 24)) + 1;
+        } else {
+          totalDays = 3;
+        }
+      }
+      totalDays = Math.min(30, Math.max(1, totalDays));
 
       const interestNames = Array.isArray(tripData?.interestsDetails) && tripData.interestsDetails.length > 0
         ? tripData.interestsDetails.map((x) => x?.name).filter(Boolean).join(", ")
@@ -225,12 +265,23 @@ export default function GenerateTrip() {
 
       try {
         let result = null;
+        try {
+          abortControllerRef.current?.abort();
+        } catch {}
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        const originName = tripData?.fromLocation?.name || preferences?.originCountry || undefined;
+        const travelerName = tripData?.traveler?.title || tripData?.traveler || undefined;
+
         if (plan) {
           result = null;
         } else if (tripData?.isDeepPlan) {
           result = await generateDeepTripPlan(
             {
               destination: tripData?.toLocation?.name || "",
+              origin: originName,
+              traveler: travelerName,
               days: totalDays,
               budget: tripData?.budget || "Moderate",
               interests: interestNames || undefined,
@@ -242,16 +293,22 @@ export default function GenerateTrip() {
                 Math.floor((progress / 100) * GENERATION_STEPS.length)
               );
               setCurrentStepIndex(stepIdx);
-            }
+            },
+            { signal: controller.signal }
           );
         } else {
-          result = await generateTripWithAgent({
-            destination: tripData?.toLocation?.name || "",
-            days: totalDays,
-            budget: tripData?.budget || "Moderate",
-            interests: interestNames || undefined,
-            categories: categoriesStr,
-          });
+          result = await generateTripWithAgent(
+            {
+              destination: tripData?.toLocation?.name || "",
+              origin: originName,
+              traveler: travelerName,
+              days: totalDays,
+              budget: tripData?.budget || "Moderate",
+              interests: interestNames || undefined,
+              categories: categoriesStr,
+            },
+            { signal: controller.signal }
+          );
         }
 
         if (result && typeof result.response?.text === "function") {
@@ -466,10 +523,10 @@ export default function GenerateTrip() {
                         const { sendEmailVerification } = require("firebase/auth");
                         if (auth.currentUser) {
                           await sendEmailVerification(auth.currentUser);
-                          alert("Verification email sent! Please check your inbox.");
+                          Alert.alert("Email Sent", "Verification email sent! Please check your inbox.");
                         }
                       } catch (e) {
-                        alert(e.message || "Failed to send link");
+                        Alert.alert("Error", e.message || "Failed to send link");
                       }
                     }}
                     activeOpacity={0.8}

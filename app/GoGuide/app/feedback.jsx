@@ -120,7 +120,7 @@ export default function Feedback() {
 
               {error ? (
                 <View style={styles.errorBox} accessibilityRole="alert">
-                  <Text style={styles.errorText} maxFontSizeMultiplier={1.3}>
+                  <Text style={[styles.errorText, { color: theme.isDark ? Palette.dangerLight : Palette.dangerDark }]} maxFontSizeMultiplier={1.3}>
                     {error}
                   </Text>
                 </View>

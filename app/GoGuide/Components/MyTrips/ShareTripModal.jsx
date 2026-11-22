@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Alert, Modal, Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, setDoc } from "firebase/firestore";
@@ -9,6 +10,7 @@ import { Colors } from "../constants/constants";
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
 import { copyText } from "../utils/clipboard";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 export default function ShareTripModal({
   visible,
   tripId,
@@ -18,6 +20,8 @@ export default function ShareTripModal({
   onClose,
   theme,
 }) {
+  const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const [copied, setCopied] = useState(false);
 
   if (!plan) return null;
@@ -101,7 +105,7 @@ export default function ShareTripModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200, paddingTop: Math.max(insets.top, 16) + 4 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Share & Collaborate</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
@@ -226,7 +230,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     alignItems: "center",
-    textAlign: "center",
   },
   cardIconCircle: {
     width: 48,

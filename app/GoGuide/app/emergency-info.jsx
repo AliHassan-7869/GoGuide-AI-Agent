@@ -256,7 +256,7 @@ export default function EmergencyInfo() {
           {problems.length ? (
             <View style={styles.problemBox} accessibilityRole="alert">
               {problems.map((p) => (
-                <Text key={p} style={styles.problemText} maxFontSizeMultiplier={1.3}>
+                <Text key={p} style={[styles.problemText, { color: theme.isDark ? Palette.dangerLight : Palette.dangerDark }]} maxFontSizeMultiplier={1.3}>
                   • {p}
                 </Text>
               ))}

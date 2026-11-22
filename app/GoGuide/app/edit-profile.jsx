@@ -142,6 +142,14 @@ export default function EditProfile() {
       Alert.alert("Error", "You must be logged in to update your profile.");
       return;
     }
+    if (!name.trim()) {
+      Alert.alert("Name Required", "Please enter your display name before saving.");
+      return;
+    }
+    if (password.trim().length > 0 && password.length < 6) {
+      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -163,11 +171,6 @@ export default function EditProfile() {
 
       // Update password if provided
       if (password.trim().length > 0) {
-        if (password.length < 6) {
-          Alert.alert("Weak Password", "Password must be at least 6 characters.");
-          setLoading(false);
-          return;
-        }
         const currentUser = auth.currentUser;
         if (currentUser) {
           await updatePassword(currentUser, password);
@@ -345,7 +348,7 @@ export default function EditProfile() {
         subtitle="Manage your credentials, privacy & profile"
         onBack={() => goBack(router)}
       />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

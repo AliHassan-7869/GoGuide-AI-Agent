@@ -175,8 +175,14 @@ export default function SharedTripView() {
           setBookedActivities(actMap);
         }
       } catch {}
-      // 0. Check local persistent trips list (@goguide_user_trips) first for targetId
-      if (targetId && targetId !== "current-trip" && targetId !== "shared" && targetId !== "cached") {
+      const isSpecificTripId =
+        Boolean(targetId) &&
+        targetId !== "current-trip" &&
+        targetId !== "shared" &&
+        targetId !== "cached";
+
+      // 0. Check local persistent trips list (@goguide_user_trips) first for matching targetId
+      if (isSpecificTripId) {
         try {
           const storedTripsRaw = await AsyncStorage.getItem("@goguide_user_trips");
           if (storedTripsRaw) {
@@ -185,8 +191,7 @@ export default function SharedTripView() {
               const found = userTrips.find(
                 (t) =>
                   String(t.id) === String(targetId) ||
-                  String(t?.tripData?.id) === String(targetId) ||
-                  (t?.destination && targetId.includes && targetId.includes(t.destination))
+                  String(t?.tripData?.id) === String(targetId)
               );
               if (found) {
                 const normalized = normalizeTrip(found);
@@ -201,36 +206,9 @@ export default function SharedTripView() {
         } catch (localErr) {
           __DEV__ && console.log("Local trip find notice:", localErr);
         }
-      }
 
-      // 1. Check local AsyncStorage cached trip (@goguide_cached_trip & @goguide_active_draft)
-      try {
-        const cached = await AsyncStorage.getItem("@goguide_cached_trip");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          const normalized = normalizeTrip(parsed);
-          if (normalized) {
-            setTripPlan(normalized);
-            setLoading(false);
-            return;
-          }
-        }
-        const draft = await AsyncStorage.getItem("@goguide_active_draft");
-        if (draft) {
-          const parsedDraft = JSON.parse(draft);
-          const normalized = normalizeTrip(parsedDraft);
-          if (normalized) {
-            setTripPlan(normalized);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (cErr) {
-        __DEV__ && console.log("Cached trip read notice:", cErr);
-      }
-
-      // 2. Try fetching from Firestore UserTrips or SharedTrips
-      if (targetId && targetId !== "current-trip" && targetId !== "shared" && targetId !== "cached") {
+        // 1. For a specific shared/user trip ID, fetch from Firestore BEFORE touching local cache
+        //    so a friend's shared link never shows the viewer's own cached trip.
         try {
           const userSnap = await getDoc(doc(db, "UserTrips", String(targetId)));
           if (userSnap.exists()) {
@@ -242,7 +220,7 @@ export default function SharedTripView() {
               return;
             }
           }
-        } catch { }
+        } catch {}
 
         try {
           const snap = await getDoc(doc(db, "SharedTrips", String(targetId)));
@@ -258,6 +236,37 @@ export default function SharedTripView() {
         } catch (fbErr) {
           __DEV__ && console.log("SharedTrips load notice:", fbErr?.message);
         }
+      }
+
+      // 2. Local cached trip fallback ONLY when no specific remote ID was requested (e.g. /trip/current-trip)
+      //    or when the cached record's ID matches targetId.
+      try {
+        const cached = await AsyncStorage.getItem("@goguide_cached_trip");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (!isSpecificTripId || String(parsed?.id) === String(targetId)) {
+            const normalized = normalizeTrip(parsed);
+            if (normalized) {
+              setTripPlan(normalized);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+        const draft = await AsyncStorage.getItem("@goguide_active_draft");
+        if (draft) {
+          const parsedDraft = JSON.parse(draft);
+          if (!isSpecificTripId || String(parsedDraft?.id) === String(targetId)) {
+            const normalized = normalizeTrip(parsedDraft);
+            if (normalized) {
+              setTripPlan(normalized);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (cErr) {
+        __DEV__ && console.log("Cached trip read notice:", cErr);
       }
 
       // 3. Nothing found: say so. Never show someone else's (or a made-up) trip as if it were this one.
@@ -780,7 +789,7 @@ export default function SharedTripView() {
           return (
             <View style={styles.section}>
               <View style={styles.sectionTitleRow}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>🧭 Destination Essentials</Text>
+                <Text style={[styles.sectionTitle, { color: darkTheme.text }]}>🧭 Destination Essentials</Text>
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="shield-checkmark" size={12} color={Palette.teal} />
                   <Text style={styles.verifiedBadgeText}>Verified Intel</Text>
@@ -798,8 +807,8 @@ export default function SharedTripView() {
                           style={[
                             styles.essentialCard,
                             {
-                              backgroundColor: theme.card,
-                              borderColor: theme.border,
+                              backgroundColor: darkTheme.card,
+                              borderColor: darkTheme.border,
                             },
                           ]}
                         >
@@ -1065,7 +1074,7 @@ export default function SharedTripView() {
 
         {/* 3. THIRD: Day-by-Day Timeline Schedule */}
         <View style={[styles.section, { marginTop: Spacing.xl }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>🗓️ Day-by-Day Schedule</Text>
+          <Text style={[styles.sectionTitle, { color: darkTheme.text }]}>🗓️ Day-by-Day Schedule</Text>
 
           {/* Day Filter Tabs (Filter in place, never scrolls page) */}
           {itinerary.length >= 1 && (

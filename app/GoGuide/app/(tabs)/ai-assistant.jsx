@@ -19,7 +19,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 const CHAT_STORAGE_KEY = "goguide_ai_copilot_chat_v1";
-const AI_ACCENT = "#7C3AED"; // AI feature highlight (UI_GUIDELINES)
+const AI_ACCENT = Palette.purple; // AI feature highlight (theme token)
 const INPUT_MAX_HEIGHT = 112; // ~4 lines of 20px text plus padding
 
 const nowTime = () => new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -189,6 +189,8 @@ export default function AiAssistant() {
   });
 
   const activeDestination =
+    tripData?.aiTripPlan?.destination ||
+    tripData?.toLocation?.name ||
     tripData?.locationInfo?.name ||
     tripData?.destination ||
     tripData?.tripPlan?.trip?.destination ||
@@ -310,10 +312,12 @@ export default function AiAssistant() {
   useEffect(() => {
     if (prompt && handledPromptRef.current !== prompt) {
       handledPromptRef.current = prompt;
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         handleSend(String(prompt));
       }, 500);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [prompt]);
 

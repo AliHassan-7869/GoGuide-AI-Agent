@@ -1,23 +1,28 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { BackHandler, Platform, ToastAndroid } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useTheme } from "../../Components/constants/theme";
+import { Palette, useTheme } from "../../Components/constants/theme";
 
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
   const lastBack = useRef(0);
 
-  // Android: back on a root tab needs a second press within 2s to exit (modals handle their own back first)
+  // Android: back on a secondary tab returns to My Trip first; back on My Trip needs a 2nd press within 2s to exit
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (router.canGoBack()) return false; // let navigation / modals handle it
+      if (pathname && !pathname.endsWith("/mytrip") && pathname !== "/mytrip") {
+        router.replace("/(tabs)/mytrip");
+        return true;
+      }
       const now = Date.now();
       if (now - lastBack.current < 2000) return false;
       lastBack.current = now;
@@ -25,7 +30,7 @@ export default function TabLayout() {
       return true;
     });
     return () => sub.remove();
-  }, [router]);
+  }, [router, pathname]);
 
   const bottomInset = Platform.select({
     ios: Math.max(insets.bottom, 20),
@@ -38,11 +43,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: theme.primary,
+        tabBarActiveTintColor: theme.isDark ? Palette.skyLight : theme.primary,
         tabBarInactiveTintColor: theme.subtext,
         sceneStyle: {
           flex: 1,
           overflow: "hidden",
+          backgroundColor: theme.bg,
         },
         tabBarStyle: {
           backgroundColor: theme.tabBar,
@@ -98,7 +104,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "sparkles" : "sparkles-outline"}
               size={22}
-              color={focused ? "#7C3AED" : color}
+              color={color}
             />
           ),
         }}

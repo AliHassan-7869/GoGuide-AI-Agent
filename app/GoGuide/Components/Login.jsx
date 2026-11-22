@@ -2,22 +2,31 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo } from 'react';
 import { Animated, Image, Platform, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "./constants/constants";
 
 import { TouchableOpacity } from "./ui/Touchable";
 import { Palette } from "./constants/theme";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 export default function Login() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
 
   // Animation values for a premium entrance effect
-  const fadeAnim = useMemo(() => new Animated.Value(0), []);
-  const slideAnim = useMemo(() => new Animated.Value(50), []);
+  const fadeAnim = useMemo(() => new Animated.Value(reduceMotion ? 1 : 0), [reduceMotion]);
+  const slideAnim = useMemo(() => new Animated.Value(reduceMotion ? 0 : 50), [reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) {
+      fadeAnim.setValue(1);
+      slideAnim.setValue(0);
+      return;
+    }
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1200,
+        duration: 900,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
@@ -27,8 +36,8 @@ export default function Login() {
         useNativeDriver: true,
       }),
     ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references
+  }, [reduceMotion]);
 
   return (
     <View style={styles.mainContainer}>
@@ -53,6 +62,7 @@ export default function Login() {
         style={[
           styles.contentContainer,
           {
+            paddingBottom: Math.max(insets.bottom, 20) + 28,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }
@@ -69,17 +79,14 @@ export default function Login() {
 
         {/* Premium Get Started Button */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Get Started"
           style={styles.buttonContainer}
           activeOpacity={0.8}
           onPress={() => router.push("/auth/sign-in")}
         >
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
-
-        {/* Subtle footer */}
-        <Text style={styles.footerText}>
-
-        </Text>
       </Animated.View>
     </View>
   );

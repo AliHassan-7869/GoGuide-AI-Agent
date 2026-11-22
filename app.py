@@ -233,6 +233,25 @@ def require_client(
     return client_id
 
 
+def require_client_poll(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+) -> str:
+    """Authenticate polling requests using a dedicated higher-ceiling bucket so status polls never exhaust AI quota."""
+    check_ip_rate_limit(request, bucket="poll_ip", limit=max(IP_RATE_LIMIT_PER_HOUR * 12, 720))
+    if authorization and authorization.startswith("Bearer "):
+        client_id = f"user:{verify_firebase_user(authorization[len('Bearer '):].strip())}"
+    elif x_api_key is not None and ALLOW_API_KEY_AUTH:
+        verify_api_key(x_api_key)
+        client_id = f"key:{get_client_ip(request)}"
+    else:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    check_rate_limit(f"poll:{client_id}", limit=max(RATE_LIMIT_PER_HOUR * 12, 360))
+    return client_id
+
+
 # -------------------- SECURITY & GUARDRAILS --------------------
 # Patterns commonly used in prompt injection, jailbreaking, and system prompt exfiltration
 INJECTION_PATTERN = re.compile(
@@ -393,6 +412,9 @@ def generate_with_fallback(gemini_call=None, deepseek_call=None, nvidia_call=Non
         logger.error("No AI provider key configured on server (Gemini/NVIDIA/DeepSeek)")
         raise HTTPException(status_code=503, detail="Service not configured")
 
+    if not check_spend_cap_guard():
+        raise HTTPException(status_code=429, detail="Daily free-tier quota limit reached. Spend cap active.")
+
     chain = [
         ("gemini", "Gemini", GEMINI_API_KEY, gemini_call),
         ("nvidia", "NVIDIA", NVIDIA_API_KEY, nvidia_call),
@@ -469,18 +491,20 @@ async def health():
 # -------------------- ITINERARY CACHE --------------------
 # In-memory TTL cache for generated travel plans (24-hour TTL)
 _PLAN_CACHE: dict[str, dict] = {}
+_CACHE_LOCK = threading.Lock()
 _CACHE_TTL_SECONDS = 86400
 _CACHE_MAX_ENTRIES = 500
 
 
 def _cache_put(key: str, response: dict):
     now = time.time()
-    if len(_PLAN_CACHE) >= _CACHE_MAX_ENTRIES:
-        for k in [k for k, v in _PLAN_CACHE.items() if now - v["timestamp"] >= _CACHE_TTL_SECONDS]:
-            _PLAN_CACHE.pop(k, None)
-        while len(_PLAN_CACHE) >= _CACHE_MAX_ENTRIES:  # still full: drop oldest
-            _PLAN_CACHE.pop(min(_PLAN_CACHE, key=lambda k: _PLAN_CACHE[k]["timestamp"]), None)
-    _PLAN_CACHE[key] = {"timestamp": now, "response": response}
+    with _CACHE_LOCK:
+        if len(_PLAN_CACHE) >= _CACHE_MAX_ENTRIES:
+            for k in [k for k, v in _PLAN_CACHE.items() if now - v["timestamp"] >= _CACHE_TTL_SECONDS]:
+                _PLAN_CACHE.pop(k, None)
+            while len(_PLAN_CACHE) >= _CACHE_MAX_ENTRIES:  # still full: drop oldest
+                _PLAN_CACHE.pop(min(_PLAN_CACHE, key=lambda k: _PLAN_CACHE[k]["timestamp"]), None)
+        _PLAN_CACHE[key] = {"timestamp": now, "response": response}
 
 PLAN_SYSTEM_INSTRUCTION = (
     "You are an expert travel planning assistant for the GoGuide application. "
@@ -894,7 +918,7 @@ def create_deep_plan(request: TravelRequest, background_tasks: BackgroundTasks, 
 
 # -------------------- GET /plan-deep/{job_id} --------------------
 @app.get("/plan-deep/{job_id}")
-def get_deep_plan_status(job_id: str, client_id: str = Depends(require_client)):
+def get_deep_plan_status(job_id: str, client_id: str = Depends(require_client_poll)):
     with _DEEP_LOCK:
         job = _DEEP_JOBS.get(job_id)
 

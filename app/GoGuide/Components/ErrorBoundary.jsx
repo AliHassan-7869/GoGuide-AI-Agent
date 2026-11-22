@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, StatusBar, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, StatusBar, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { reportError } from "./utils/errorTelemetry";
@@ -87,8 +88,8 @@ export class ErrorBoundary extends React.Component {
               </TouchableOpacity>
             </View>
 
-            {/* Developer Trace Toggle */}
-            {this.state.error && (
+            {/* Developer Trace Toggle (Dev builds only) */}
+            {__DEV__ && this.state.error && (
               <View style={styles.debugSection}>
                 <TouchableOpacity
                   onPress={() =>

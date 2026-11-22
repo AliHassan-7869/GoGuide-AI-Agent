@@ -2,7 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../Components/constants/constants';
 import { Radius, Spacing, Typography, useTheme } from '../Components/constants/theme';
 import EmptyState from '../Components/ui/EmptyState';
@@ -53,7 +53,7 @@ export default function SafetyAlerts() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
-  const { tripData } = useContext(CreateTripContext);
+  const { tripData, preferences } = useContext(CreateTripContext);
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
@@ -139,7 +139,9 @@ export default function SafetyAlerts() {
 
   const handleCall = (number) => {
     if (!number) return;
-    Linking.openURL(`tel:${number}`);
+    Linking.openURL(`tel:${number}`).catch(() => {
+      Alert.alert("Emergency Number", `Please dial ${number} from your phone.`);
+    });
   };
 
   const list = alerts && alerts.length > 0 ? alerts : safetyMockData;
@@ -185,7 +187,11 @@ export default function SafetyAlerts() {
           ) : weather ? (
             <View style={styles.weatherInfoRow}>
               <View style={styles.weatherItem}>
-                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>{weather.temperature}°C</Text>
+                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                  {preferences?.temperatureUnit === "F"
+                    ? `${Math.round((weather.temperature * 9) / 5 + 32)}°F`
+                    : `${Math.round(weather.temperature)}°C`}
+                </Text>
                 <Text style={[styles.weatherLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Temp</Text>
               </View>
               <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
@@ -195,7 +201,17 @@ export default function SafetyAlerts() {
               </View>
               <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
               <View style={styles.weatherItem}>
-                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Stable</Text>
+                <Text style={[styles.weatherValue, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                  {weather.weathercode >= 95
+                    ? "Storm"
+                    : weather.weathercode >= 71
+                      ? "Snow"
+                      : weather.weathercode >= 51
+                        ? "Rainy"
+                        : weather.windspeed >= 40
+                          ? "Windy"
+                          : "Calm"}
+                </Text>
                 <Text style={[styles.weatherLabel, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>Status</Text>
               </View>
             </View>

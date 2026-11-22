@@ -35,7 +35,7 @@ const DEFAULT_PACKING_ITEMS = [
   { id: "doc_4", name: "Travel Insurance Card", category: "documents", packed: false, essential: true },
 
   // Electronics
-  { id: "tech_1", name: "Phone & High-Speed Charger", category: "electronics", packed: true, essential: true },
+  { id: "tech_1", name: "Phone & High-Speed Charger", category: "electronics", packed: false, essential: true },
   { id: "tech_2", name: "Universal Travel Power Adapter", category: "electronics", packed: false, essential: true },
   { id: "tech_3", name: "High-Capacity Power Bank", category: "electronics", packed: false, essential: false },
   { id: "tech_4", name: "Noise-Cancelling Headphones", category: "electronics", packed: false, essential: false },
@@ -65,6 +65,8 @@ export default function PackingChecklist() {
   const { tripData } = useContext(CreateTripContext);
 
   const destinationName =
+    tripData?.toLocation?.name ||
+    tripData?.aiTripPlan?.destination ||
     tripData?.locationInfo?.name ||
     tripData?.destination ||
     tripData?.tripPlan?.trip?.destination ||
@@ -368,7 +370,7 @@ export default function PackingChecklist() {
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Add Luggage Item" subtitle={destinationName} onBack={() => setModalVisible(false)} />
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"

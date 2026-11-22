@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 
 import { Colors } from "../constants/constants";
 import {
@@ -43,6 +45,8 @@ export default function ExpenseTrackerModal({
   theme,
   initialDay = "",
 }) {
+  const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const [expenseTitle, setExpenseTitle] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Food");
@@ -50,8 +54,8 @@ export default function ExpenseTrackerModal({
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [expenseDay, setExpenseDay] = useState(initialDay || "");
 
-  const destCurrency = detectCurrencyFromLocation(destination) || "GBP";
-  const originCurrency = detectCurrencyFromLocation(origin) || "PKR";
+  const destCurrency = detectCurrencyFromLocation(destination) || currency || "USD";
+  const originCurrency = detectCurrencyFromLocation(origin) || currency || "USD";
 
   // Build unique list of smart currencies for this trip (Destination + Home/Origin + USD + PKR/EUR/GBP)
   const currencyOptions = Array.from(
@@ -241,9 +245,9 @@ export default function ExpenseTrackerModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200, paddingTop: Math.max(insets.top, 16) + 4 }]}>
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Trip Budget & Expenses</Text>
             <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>
@@ -539,10 +543,12 @@ export default function ExpenseTrackerModal({
                 const targetSym = getCurrencySymbol(targetConvCode);
                 const converted = convertBetweenCurrencies(num, inputCurrency, targetConvCode);
                 const unitRate = convertBetweenCurrencies(1, inputCurrency, targetConvCode);
+                const rateTarget = CURRENCY_RATES[targetConvCode]?.rate || 1;
+                const rateInput = CURRENCY_RATES[inputCurrency]?.rate || 1;
                 const unitRateStr =
                   unitRate >= 1
                     ? unitRate.toLocaleString()
-                    : (CURRENCY_RATES[targetConvCode]?.rate / CURRENCY_RATES[inputCurrency]?.rate).toFixed(2);
+                    : (rateTarget / rateInput).toFixed(2);
 
                 return (
                   <View
@@ -685,27 +691,30 @@ export default function ExpenseTrackerModal({
 
                   <View style={styles.itemActionGroup}>
                     {/* Quick Edit */}
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit"
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit expense"
                       onPress={() => handleStartEdit(item)}
-                      style={styles.iconBtn}
+                      style={[styles.iconBtn, { minWidth: 40, minHeight: 40 }]}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="pencil-outline" size={16} color={Colors.PRIMARY} />
                     </TouchableOpacity>
 
                     {/* Quick Renew / Repeat */}
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Regenerate"
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Repeat expense"
                       onPress={() => handleQuickRenew(item)}
-                      style={[styles.iconBtn, { marginHorizontal: 2 }]}
+                      style={[styles.iconBtn, { minWidth: 40, minHeight: 40, marginHorizontal: 2 }]}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="repeat-outline" size={16} color={Palette.success} />
                     </TouchableOpacity>
 
                     {/* Delete */}
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete"
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delete expense"
                       onPress={() => handleDeleteExpense(item.id)}
-                      style={styles.iconBtn}
+                      style={[styles.iconBtn, { minWidth: 40, minHeight: 40 }]}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="trash-outline" size={16} color={Palette.danger} />

@@ -1,16 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/constants';
 import { useTheme, Palette } from '../constants/theme';
+import { CreateTripContext } from '../../context/CreateTripContext';
+
+function formatTemp(celsius, unit) {
+  if (celsius == null || Number.isNaN(celsius)) return "";
+  if (unit === "F") return `${Math.round((celsius * 9) / 5 + 32)}°F`;
+  return `${Math.round(celsius)}°C`;
+}
 
 export default function WeatherCard({ weatherBrief: weatherBriefProp, destination = "" }) {
   const theme = useTheme();
+  const ctx = useContext(CreateTripContext);
+  const tempUnit = ctx?.preferences?.temperatureUnit === "F" ? "F" : "C";
   const [liveWeather, setLiveWeather] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    setLiveWeather(null);
     async function fetchLiveWeather() {
       if (!destination) return;
       const cleanCity = destination.split(",")[0].trim();
@@ -19,14 +30,16 @@ export default function WeatherCard({ weatherBrief: weatherBriefProp, destinatio
         setLoading(true);
         // Step 1: Geocode city name to lat/lng via open-meteo geocoding (100% free, no key)
         const geoRes = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&count=1&language=en&format=json`
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&count=1&language=en&format=json`,
+          { signal: controller.signal }
         );
         const geoData = await geoRes.json();
         if (geoData?.results?.[0]) {
           const { latitude, longitude } = geoData.results[0];
           // Step 2: Fetch current weather + daily max/min
           const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`,
+            { signal: controller.signal }
           );
           const weatherJson = await weatherRes.json();
           if (isMounted && weatherJson?.current) {
@@ -46,7 +59,10 @@ export default function WeatherCard({ weatherBrief: weatherBriefProp, destinatio
       }
     }
     fetchLiveWeather();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [destination]);
 
   // Decode WMO weather code
@@ -80,11 +96,11 @@ export default function WeatherCard({ weatherBrief: weatherBriefProp, destinatio
         {liveWeather ? (
           <>
             <View style={styles.tempRow}>
-              <Text style={[styles.tempValue, { color: theme.text }]}>{liveWeather.temp}°C</Text>
+              <Text style={[styles.tempValue, { color: theme.text }]}>{formatTemp(liveWeather.temp, tempUnit)}</Text>
               <Text style={[styles.conditionText, { color: Colors.PRIMARY }]}>• {weatherInfo.condition}</Text>
               {liveWeather.tempMax != null && liveWeather.tempMin != null && (
                 <Text style={[styles.rangeText, { color: theme.subtext }]}>
-                  ({liveWeather.tempMin}° / {liveWeather.tempMax}°)
+                  ({formatTemp(liveWeather.tempMin, tempUnit)} / {formatTemp(liveWeather.tempMax, tempUnit)})
                 </Text>
               )}
             </View>

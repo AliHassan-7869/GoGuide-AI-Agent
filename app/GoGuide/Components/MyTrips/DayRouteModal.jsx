@@ -11,6 +11,7 @@ import { coordsOf, directionsUrl, routeUrl } from "../utils/mapsLinks";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 // Haversine formula to compute distance between coordinates in km
 function computeDistanceKm(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
@@ -36,6 +37,7 @@ export default function DayRouteModal({
   theme,
 }) {
   const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const [selectedStopIdx, setSelectedStopIdx] = useState(0);
   const [activeDayObj, setActiveDayObj] = useState(day || allDays?.[0] || null);
 
@@ -109,7 +111,7 @@ export default function DayRouteModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Modal Header */}
-        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200 }]}>
+        <View style={[styles.header, { borderBottomColor: theme.isDark ? Palette.charcoal : Palette.gray200, paddingTop: Math.max(insets.top, 16) + 4 }]}>
           <View style={{ flex: 1 }}>
             <View style={styles.badgeRow}>
               <View style={styles.dayPill}>

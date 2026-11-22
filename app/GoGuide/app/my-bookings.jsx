@@ -290,14 +290,14 @@ export default function MyBookings() {
                           img: item.image,
                           desc: item.subtitle || item.details || "Saved from My Bookings",
                         }}
-                        size={14}
+                        size={18}
                         style={{
                           position: "relative",
                           top: 0,
                           right: 0,
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
                         }}
                       />
                     </View>

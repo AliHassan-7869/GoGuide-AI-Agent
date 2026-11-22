@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { openExternalUrl } from "../Components/utils/openExternalUrl";
-import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -35,9 +36,10 @@ const getWeatherMeta = (code) => {
 };
 
 export default function LocationPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
-  const { userData, setUserData, uid } = useContext(CreateTripContext);
+  const { userData, setUserData, uid, preferences } = useContext(CreateTripContext);
 
 
   const initialLoc = userData?.userLocation || {
@@ -113,15 +115,15 @@ export default function LocationPage() {
       setLoading(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${text}&addressdetails=1&accept-language=en`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text.trim())}&addressdetails=1&accept-language=en`,
           {
             headers: {
-              "User-Agent": "GoGuideApp/1.0",
+              "User-Agent": "GoGuideApp/2.0",
             },
           }
         );
         const data = await response.json();
-        setResults(data);
+        setResults(Array.isArray(data) ? data : []);
       } catch (error) {
         __DEV__ && console.log("Search error:", error);
       } finally {
@@ -172,8 +174,9 @@ export default function LocationPage() {
         }}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 84 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -207,7 +210,11 @@ export default function LocationPage() {
                   color={weatherMeta?.color || Palette.warning}
                   style={{ marginRight: 12 }}
                 />
-                <Text style={[styles.temp, { color: theme.text }]}>{Math.round(weather.temperature)}°C</Text>
+                <Text style={[styles.temp, { color: theme.text }]}>
+                  {preferences?.temperatureUnit === "F"
+                    ? `${Math.round((weather.temperature * 9) / 5 + 32)}°F`
+                    : `${Math.round(weather.temperature)}°C`}
+                </Text>
               </View>
 
               <View
@@ -401,6 +408,7 @@ export default function LocationPage() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

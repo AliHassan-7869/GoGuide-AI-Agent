@@ -1,8 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
-import { useContext, useRef, useState } from "react";
-import { Alert, FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
@@ -76,7 +76,17 @@ export default function SearchPlace() {
   const [activeField, setActiveField] = useState("to");
 
   const timeoutRef = useRef(null);
+  const searchAbortRef = useRef(null);
   const activeAccent = Colors.PRIMARY || Palette.brand;
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      try {
+        searchAbortRef.current?.abort();
+      } catch {}
+    };
+  }, []);
 
   const triggerHaptic = () => {
     try {
@@ -96,28 +106,37 @@ export default function SearchPlace() {
     }
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    try {
+      searchAbortRef.current?.abort();
+    } catch {}
 
     timeoutRef.current = setTimeout(async () => {
-      if (text.length < 3) {
+      if (text.trim().length < 3) {
         setResults([]);
         return;
       }
 
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
       try {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            text
+            text.trim()
           )}&addressdetails=1&accept-language=en&limit=6`,
           {
             headers: {
               "User-Agent": "GoGuideApp/2.0",
             },
+            signal: controller.signal,
           }
         );
         const data = await response.json();
-        setResults(data || []);
+        setResults(Array.isArray(data) ? data : []);
       } catch (error) {
-        __DEV__ && console.log("Search error:", error);
+        if (error?.name !== "AbortError") {
+          __DEV__ && console.log("Search error:", error);
+        }
       }
     }, 450);
   };
@@ -248,9 +267,11 @@ export default function SearchPlace() {
       return;
     }
 
-    const cleanFrom = fromQuery.trim() || "Pakistan (Current Location)";
+    const cleanFrom = fromQuery.trim() || "Current Location";
     const destinationImage =
-      tripData?.toLocationImage || getDestinationImage(cleanTo);
+      tripData?.toLocation?.name === cleanTo && tripData?.toLocationImage
+        ? tripData.toLocationImage
+        : getDestinationImage(cleanTo);
 
     // Fallback coordinates resolver for top destinations if user typed directly
     const matchedDest = POPULAR_DESTINATIONS.find(
@@ -260,6 +281,8 @@ export default function SearchPlace() {
         cleanTo.toLowerCase().includes(d.name.toLowerCase())
     );
 
+    const sameDest =
+      String(tripData?.toLocation?.name || "").trim().toLowerCase() === cleanTo.toLowerCase();
     setTripData((prev) => ({
       ...prev,
       fromLocation:
@@ -271,7 +294,7 @@ export default function SearchPlace() {
           ? prev.toLocation
           : {
               name: cleanTo,
-              coordinates: prev?.toLocation?.coordinates || matchedDest?.coordinates || null,
+              coordinates: (sameDest ? prev?.toLocation?.coordinates : null) || matchedDest?.coordinates || null,
             },
       locationInfo: {
         ...(prev?.locationInfo || {}),
@@ -385,7 +408,7 @@ export default function SearchPlace() {
           </View>
         </View>
 
-        {/* SEARCH SUGGESTIONS LIST */}
+        {/* SEARCH SUGGESTIONS LIST (rendered directly inside ScrollView — no nested FlatList) */}
         {results.length > 0 && (
           <View
             style={[
@@ -393,27 +416,23 @@ export default function SearchPlace() {
               { backgroundColor: theme.card, borderColor: theme.border },
             ]}
           >
-            <FlatList
-              data={results}
-              keyExtractor={(item) => item.place_id.toString()}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => selectPlace(item)}
-                  style={[styles.resultItem, { borderBottomColor: theme.border }]}
-                >
-                  <Ionicons
-                    name="location-outline"
-                    size={18}
-                    color={activeAccent}
-                    style={{ marginRight: 10 }}
-                  />
-                  <Text style={[styles.resultText, { color: theme.text }]} numberOfLines={2}>
-                    {item.display_name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
+            {results.map((item) => (
+              <TouchableOpacity
+                key={String(item.place_id)}
+                onPress={() => selectPlace(item)}
+                style={[styles.resultItem, { borderBottomColor: theme.border }]}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={18}
+                  color={activeAccent}
+                  style={{ marginRight: 10 }}
+                />
+                <Text style={[styles.resultText, { color: theme.text }]} numberOfLines={2}>
+                  {item.display_name}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 

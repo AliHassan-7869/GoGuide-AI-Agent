@@ -83,6 +83,7 @@ export default function TripSummer() {
     }
     setTripData((prev) => ({
       ...prev,
+      toLocation: prev?.toLocation?.name ? prev.toLocation : { name: destination, coordinates: null },
       toLocationImage: imageUri,
       locationInfo: {
         name: destination,
@@ -98,6 +99,7 @@ export default function TripSummer() {
     }
     setTripData((prev) => ({
       ...prev,
+      toLocation: prev?.toLocation?.name ? prev.toLocation : { name: destination, coordinates: null },
       toLocationImage: imageUri,
       locationInfo: {
         name: destination,
@@ -120,18 +122,23 @@ export default function TripSummer() {
             style={styles.image}
             onError={() => setImgFailed(true)}
           />
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => goBack(router)}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={[styles.backBtn, { top: Math.max(insets.top, 16) + 8 }]}
+            onPress={() => goBack(router)}
+          >
             <Ionicons name="arrow-back" size={24} color={Palette.white} />
           </TouchableOpacity>
 
           <FavoriteHeartButton
             size={20}
             style={{
-              top: Platform.OS === "ios" ? 54 : 36,
+              top: Math.max(insets.top, 16) + 8,
               right: 18,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
             }}
             item={{
               id: destination,

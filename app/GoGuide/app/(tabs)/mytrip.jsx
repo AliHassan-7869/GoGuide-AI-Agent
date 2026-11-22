@@ -244,16 +244,20 @@ export default function MyTrip() {
 
   useEffect(() => {
     AsyncStorage.getItem("@goguide_user_trips").then((raw) => {
-      if (raw) {
-        try {
-          const list = JSON.parse(raw);
-          const found = list.some(
-            (t) =>
-              (activeTripId && (String(t.id) === String(activeTripId) || String(t?.tripData?.id) === String(activeTripId))) ||
-              (plan?.destination && (t.destination === plan.destination || t.aiTripPlan?.destination === plan.destination))
-          );
-          if (found) setIsSavedToTripsLocal(true);
-        } catch {}
+      if (!raw) {
+        setIsSavedToTripsLocal(false);
+        return;
+      }
+      try {
+        const list = JSON.parse(raw);
+        const found = Array.isArray(list) && list.some(
+          (t) =>
+            (activeTripId && (String(t.id) === String(activeTripId) || String(t?.tripData?.id) === String(activeTripId))) ||
+            (plan?.destination && (t.destination === plan.destination || t.aiTripPlan?.destination === plan.destination))
+        );
+        setIsSavedToTripsLocal(Boolean(found));
+      } catch {
+        setIsSavedToTripsLocal(false);
       }
     });
   }, [activeTripId, plan?.destination]);
@@ -1097,18 +1101,22 @@ export default function MyTrip() {
     const transportAmount = Math.round(totalEst * 0.32);
     const diningAmount = Math.round(totalEst * 0.23);
 
-    const symbol = preferences?.currency === "EUR" ? "€" : preferences?.currency === "GBP" ? "£" : "$";
+    const curr = preferences?.currency || "USD";
+    const totalFormatted = convertPriceString(`$${totalEst}`, curr);
+    const staysFormatted = convertPriceString(`$${staysAmount}`, curr);
+    const transportFormatted = convertPriceString(`$${transportAmount}`, curr);
+    const diningFormatted = convertPriceString(`$${diningAmount}`, curr);
 
     return {
       total: totalEst,
       dailyRate,
-      totalFormatted: `${symbol}${totalEst.toLocaleString()}`,
-      stays: `${symbol}${staysAmount.toLocaleString()}`,
-      staysFormatted: `${symbol}${staysAmount.toLocaleString()}`,
-      transport: `${symbol}${transportAmount.toLocaleString()}`,
-      transportFormatted: `${symbol}${transportAmount.toLocaleString()}`,
-      dining: `${symbol}${diningAmount.toLocaleString()}`,
-      diningFormatted: `${symbol}${diningAmount.toLocaleString()}`,
+      totalFormatted,
+      stays: staysFormatted,
+      staysFormatted,
+      transport: transportFormatted,
+      transportFormatted,
+      dining: diningFormatted,
+      diningFormatted,
     };
   }, [plan?.budget, plan?.duration, daysList.length, preferences?.currency]);
 
@@ -2279,12 +2287,12 @@ export default function MyTrip() {
                             </View>
                           </View>
 
-                          {/* Reserved Travel-Time Slot between activities (ready for Part 4) */}
+                          {/* Subtle connector between consecutive activities */}
                           {!isLast && (
                             <View style={styles.travelTimeSlot}>
-                              <Ionicons name="time-outline" size={11} color={theme.subtext} />
+                              <Ionicons name="arrow-down-outline" size={11} color={theme.subtext} />
                               <Text style={[styles.travelTimeSlotText, { color: theme.subtext }]}>
-                                ~15-20 min transit
+                                Next stop
                               </Text>
                             </View>
                           )}
@@ -2325,7 +2333,9 @@ export default function MyTrip() {
             >
               {plan.hotels.map((hotel, idx) => {
                 const cardWidth = Math.min(340, Math.round(width * 0.82));
-                const totalStaysEst = parseInt(hotel.price || "120", 10) * (daysList.length || 3);
+                const nightsCount = Math.max(1, (daysList.length || 3) - 1);
+                const parsedNightly = parseFloat(String(hotel.price || "120").replace(/[^0-9.]/g, "")) || 120;
+                const totalStaysEst = Math.round(parsedNightly * nightsCount);
 
                 return (
                   <View 
@@ -2371,7 +2381,7 @@ export default function MyTrip() {
                           {hotelPriceLabel(hotel.price, preferences?.currency)}
                         </Text>
                         <Text style={[styles.hotelPriceTotal, { color: theme.subtext }]}>
-                          Est. Total ({daysList.length || 3}N): {convertPriceString(totalStaysEst, preferences?.currency)}
+                          Est. Total ({nightsCount}N): {convertPriceString(`$${totalStaysEst}`, preferences?.currency)}
                         </Text>
                       </View>
 
@@ -2715,13 +2725,14 @@ export default function MyTrip() {
       <Modal visible={showMoreMenu} transparent animationType="fade" onRequestClose={() => setShowMoreMenu(false)} statusBarTranslucent>
         <View style={styles.moreOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setShowMoreMenu(false)} accessibilityRole="button" accessibilityLabel="Close menu" />
-          <View style={[styles.moreSheet, { backgroundColor: theme.card, borderColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
+          <View style={[styles.moreSheet, { backgroundColor: theme.card, borderColor: theme.border, maxHeight: "85%", paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.moreHandle, { backgroundColor: theme.border }]} />
             <Text style={[styles.moreTitle, { color: theme.text }]}>Trip actions</Text>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             {[
               { icon: "download-outline", label: "Download PDF", color: Palette.success, onPress: handleDirectDownloadPDF },
-              { icon: "document-text-outline", label: "Printable itinerary", color: theme.text, onPress: () => setShowExportModal(true) },
-              { icon: "share-social-outline", label: "Share trip", color: Palette.sky, onPress: handleNativeShare },
+              { icon: "document-text-outline", label: "Printable itinerary", color: theme.text, onPress: () => setShowPrintModal(true) },
+              { icon: "share-social-outline", label: "Share trip", color: Palette.sky, onPress: () => setShowShareModal(true) },
               { icon: "calendar-outline", label: "Add to calendar", color: Palette.skyDark, onPress: addToCalendar },
               { icon: "ticket-outline", label: "Save to My Bookings", color: Palette.purple, onPress: handleSaveToBookings },
               { icon: "bag-check-outline", label: "Packing list", color: Palette.purple, onPress: () => router.push("/packing-checklist") },
@@ -2745,6 +2756,7 @@ export default function MyTrip() {
                 <Text style={[styles.moreRowText, { color: item.danger ? Palette.danger : theme.text }]} maxFontSizeMultiplier={1.3}>{item.label}</Text>
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>

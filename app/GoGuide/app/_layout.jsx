@@ -14,7 +14,9 @@ import { installErrorTelemetry } from "../Components/utils/errorTelemetry";
 import { warmUpBackend } from "../Configs/AiModel";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-LogBox.ignoreAllLogs(true);
+if (!__DEV__) {
+  LogBox.ignoreAllLogs(true);
+}
 
 installAndroidTextDefaults();
 installWebAlert();
@@ -35,7 +37,7 @@ function AppContent() {
     if (Platform.OS === "web" && typeof document !== "undefined") document.title = titleForPath(pathname);
   }, [pathname]);
 
-  const isDesktopWeb = Platform.OS === "web" && width > 520;
+  const isDesktopWeb = Platform.OS === "web" && width >= 1024;
 
   const stack = (
     <>
@@ -44,25 +46,12 @@ function AppContent() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="create-trip/search-place" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="create-trip/select-traveler"
-          options={{
-            headerShown: true,
-            title: "Select Traveler",
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen name="create-trip/interest-page" options={{ headerShown: true, title: "Interests" }} />
-        <Stack.Screen
-          name="create-trip/select-dates"
-          options={{
-            headerShown: true,
-            title: "Select Dates",
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen name="create-trip/select-budget" options={{ headerShown: true, title: "Budget" }} />
-        <Stack.Screen name="create-trip/review-trip" options={{ headerShown: true, title: "Review Trip" }} />
+        <Stack.Screen name="create-trip/select-traveler" options={{ headerShown: false }} />
+        <Stack.Screen name="create-trip/interest-page" options={{ headerShown: false }} />
+        <Stack.Screen name="create-trip/select-dates" options={{ headerShown: false }} />
+        <Stack.Screen name="create-trip/select-budget" options={{ headerShown: false }} />
+        <Stack.Screen name="create-trip/review-trip" options={{ headerShown: false }} />
+        <Stack.Screen name="create-trip/trip-summer" options={{ headerShown: false }} />
         <Stack.Screen name="create-trip/generate-trip" options={{ headerShown: false }} />
         <Stack.Screen name="auth/sign-in/index" options={{ headerShown: false }} />
         <Stack.Screen name="auth/sign-up/index" options={{ headerShown: false }} />
@@ -160,7 +149,7 @@ const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
     width: "100%",
-    maxWidth: 460,
+    maxWidth: 1200,
     height: "100%",
     maxHeight: "100dvh",
     overflow: "hidden",

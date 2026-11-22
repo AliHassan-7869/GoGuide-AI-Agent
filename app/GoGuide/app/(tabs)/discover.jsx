@@ -526,7 +526,10 @@ export default function Discover() {
       return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
     if (preset === "custom" && customDateInput.trim()) {
-      const parsed = new Date(customDateInput.trim());
+      const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(customDateInput.trim());
+      const parsed = isoMatch
+        ? new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]))
+        : new Date(customDateInput.trim());
       if (!isNaN(parsed.getTime())) return parsed;
     }
     return now;
@@ -541,6 +544,7 @@ export default function Discover() {
     origin = null,
     customStartDate = null
   ) => {
+    if (aiLoading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setAiLoading(true);
     setAiError(null);
@@ -717,10 +721,10 @@ export default function Discover() {
 
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${text}&addressdetails=1&accept-language=en`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text.trim())}&addressdetails=1&accept-language=en`,
           {
             headers: {
-              "User-Agent": "TripPlannerApp/1.0",
+              "User-Agent": "GoGuideApp/2.0",
             },
           }
         );
@@ -975,6 +979,7 @@ export default function Discover() {
                   style={styles.clearBtn}
                   hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   onPress={() => {
+                    if (timeoutRef.current) clearTimeout(timeoutRef.current);
                     setSearchQuery("");
                     setResults([]);
                     setSearchStatus("idle");
@@ -1275,7 +1280,7 @@ export default function Discover() {
       </ScrollView>
 
       {/* Live AI thinking modal */}
-      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => {}}>
+      <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={() => setAiLoading(false)}>
         <View style={styles.aiModalOverlay}>
           <View style={[styles.aiModalContent, { backgroundColor: themeStyles.cardBg }]}>
             <View style={[styles.aiPulseCircle, { backgroundColor: accent + "26" }]}>
@@ -1313,6 +1318,16 @@ export default function Discover() {
             </View>
 
             <ActivityIndicator size="small" color={accent} style={{ marginTop: Spacing.lg }} />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Cancel trip generation"
+              onPress={() => setAiLoading(false)}
+              style={{ marginTop: Spacing.md, minHeight: 48, justifyContent: "center", paddingHorizontal: Spacing.lg }}
+            >
+              <Text style={{ color: themeStyles.subTextColor, fontSize: Typography.sizeMd, fontFamily: Typography.fontMedium }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

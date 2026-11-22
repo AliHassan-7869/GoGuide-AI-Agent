@@ -2,8 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme, Palette } from "../../Components/constants/theme";
@@ -20,6 +20,7 @@ import {
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 import { goBack } from "../../Components/utils/navigation";
 export default function SelectBudget() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { tripData, setTripData } = useContext(CreateTripContext);
@@ -166,8 +167,10 @@ export default function SelectBudget() {
         <View style={{ width: 40 }} />
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
       >
         <StepProgressBar currentStep={4} totalSteps={5} stepTitle="Travellers & Budget" />
@@ -475,6 +478,7 @@ export default function SelectBudget() {
               placeholder="e.g. 150000"
               placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
               keyboardType="numeric"
+              maxLength={9}
               selectionColor={activeAccent}
               value={customAmount}
               onChangeText={handleCustomAmountChange}
@@ -529,7 +533,7 @@ export default function SelectBudget() {
       <View
         style={[
           styles.footerContainer,
-          { backgroundColor: theme.bg, borderTopColor: theme.border },
+          { backgroundColor: theme.bg, borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 14) + 8 },
         ]}
       >
         <TouchableOpacity
@@ -560,6 +564,7 @@ export default function SelectBudget() {
           />
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* CURRENCY SELECTION MODAL */}
       <Modal

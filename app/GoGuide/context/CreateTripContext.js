@@ -44,8 +44,14 @@ export const CreateTripProvider = ({ children }) => {
 
   // Load user profile from Firestore when auth state changes
   const hadUserRef = useRef(false);
+  const authSeqRef = useRef(0);
+  const hydratedTripKeyRef = useRef(null);
+  const preferencesHydratedRef = useRef(false);
+
   useEffect(() => {
+    let active = true;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const seq = ++authSeqRef.current;
       if (user) hadUserRef.current = true;
       if (user && user.isAnonymous) {
         // Anonymous guests (used for AI access) have no profile document; keep them local-only.
@@ -56,6 +62,7 @@ export const CreateTripProvider = ({ children }) => {
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
+          if (!active || seq !== authSeqRef.current) return;
           if (userSnap.exists()) {
             setUserData(userSnap.data());
           } else {
@@ -66,6 +73,7 @@ export const CreateTripProvider = ({ children }) => {
               avatar: user.photoURL || DEFAULT_AVATAR,
             };
             await setDoc(userRef, initialData);
+            if (!active || seq !== authSeqRef.current) return;
             setUserData(initialData);
           }
         } catch (error) {
@@ -82,7 +90,10 @@ export const CreateTripProvider = ({ children }) => {
         }
       }
     });
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   // Load saved trip selections (interests, dates, etc.)
@@ -98,6 +109,10 @@ export const CreateTripProvider = ({ children }) => {
         }
       } catch (e) {
         console.warn("Failed to load tripData from storage:", e);
+      } finally {
+        if (!cancelled) {
+          hydratedTripKeyRef.current = tripStorageKey;
+        }
       }
     })();
     return () => {
@@ -105,8 +120,9 @@ export const CreateTripProvider = ({ children }) => {
     };
   }, [tripStorageKey]);
 
-  // Persist trip selections so Review Trip always has them
+  // Persist trip selections only after the active storage key has hydrated (prevents write-before-read wipes)
   useEffect(() => {
+    if (hydratedTripKeyRef.current !== tripStorageKey) return;
     let cancelled = false;
     (async () => {
       try {
@@ -123,9 +139,11 @@ export const CreateTripProvider = ({ children }) => {
 
   // Load saved preferences
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const saved = await AsyncStorage.getItem("@goguide_preferences");
+        if (cancelled) return;
         if (saved) {
           const parsed = safeJsonParse(saved);
           if (parsed && typeof parsed === "object") {
@@ -134,15 +152,23 @@ export const CreateTripProvider = ({ children }) => {
         }
       } catch (e) {
         console.warn("Could not load preferences:", e);
+      } finally {
+        if (!cancelled) {
+          preferencesHydratedRef.current = true;
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Persist preferences
+  // Persist preferences only after initial hydration completes
   useEffect(() => {
-    try {
-      AsyncStorage.setItem("@goguide_preferences", JSON.stringify(preferences));
-    } catch {}
+    if (!preferencesHydratedRef.current) return;
+    AsyncStorage.setItem("@goguide_preferences", JSON.stringify(preferences)).catch((e) => {
+      console.warn("Could not persist preferences:", e);
+    });
   }, [preferences]);
 
   return (

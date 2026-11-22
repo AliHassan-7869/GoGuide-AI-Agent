@@ -29,9 +29,14 @@ async function ensureUserAuth() {
 }
 
 // Calls the backend with the signed-in user's Firebase ID token.
-async function callBackend(path, body = null, method = "POST", timeoutMs = REQUEST_TIMEOUT_MS) {
+async function callBackend(path, body = null, method = "POST", timeoutMs = REQUEST_TIMEOUT_MS, externalSignal = null) {
   if (!API_URL) {
     throw new Error(`The app has no backend configured for the "${APP_ENV}" environment. ${ENV_HELP}`);
+  }
+  if (externalSignal?.aborted) {
+    const abortErr = new Error("Request cancelled");
+    abortErr.name = "AbortError";
+    throw abortErr;
   }
 
   let user = auth.currentUser;
@@ -49,6 +54,15 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
   const idToken = await user.getIdToken();
 
   const controller = new AbortController();
+  const onExternalAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      const abortErr = new Error("Request cancelled");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
+    externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+  }
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let response;
@@ -67,10 +81,18 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
 
     response = await fetch(`${API_URL}${path}`, options);
   } catch (networkError) {
+    if (externalSignal?.aborted) {
+      const abortErr = new Error("Request cancelled");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
     console.warn(`[Backend] Network error on ${path}:`, networkError.message);
     throw new Error("Could not reach GoGuide server, please check your connection");
   } finally {
     clearTimeout(timer);
+    if (externalSignal) {
+      externalSignal.removeEventListener("abort", onExternalAbort);
+    }
   }
 
   let data = null;
@@ -81,7 +103,13 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
   }
 
   if (!response.ok || data?.status !== "success") {
-    const detail = typeof data?.detail === "string" ? data.detail : `Server error ${response.status}`;
+    const rawDetail = data?.detail;
+    const detail =
+      typeof rawDetail === "string"
+        ? rawDetail
+        : Array.isArray(rawDetail) && rawDetail[0]?.msg
+          ? String(rawDetail[0].msg)
+          : `Server error ${response.status}`;
     console.warn(`[Backend] ${path} failed:`, response.status, detail);
     throw new Error(detail);
   }
@@ -91,17 +119,37 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
 
 // Retries only failures that are likely temporary (server waking up, network blip, AI hiccup).
 const isTransient = (e) =>
+  e?.name !== "AbortError" &&
   /reach GoGuide server|Server error 5|AI service error|Auth service unavailable/i.test(String(e?.message || ""));
 
-async function withRetry(fn, delaysMs = [3000, 7000]) {
+async function withRetry(fn, delaysMs = [3000, 7000], signal = null) {
   let lastError;
   for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+    if (signal?.aborted) {
+      const abortErr = new Error("Request cancelled");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
     try {
       return await fn();
     } catch (e) {
       lastError = e;
-      if (!isTransient(e) || attempt === delaysMs.length) break;
-      await new Promise((r) => setTimeout(r, delaysMs[attempt]));
+      if (!isTransient(e) || attempt === delaysMs.length || signal?.aborted) break;
+      await new Promise((resolve, reject) => {
+        const t = setTimeout(resolve, delaysMs[attempt]);
+        if (signal) {
+          signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(t);
+              const abortErr = new Error("Request cancelled");
+              abortErr.name = "AbortError";
+              reject(abortErr);
+            },
+            { once: true }
+          );
+        }
+      });
     }
   }
   throw lastError;
@@ -131,7 +179,7 @@ export const fetchDestinationInterests = async (destination) => {
   return { interests: data.interests || [], transports: data.transports || [] };
 };
 
-export const generateTripWithAgent = async (params) => {
+export const generateTripWithAgent = async (params, { signal = null } = {}) => {
   __DEV__ && console.log("[Agent] Generating trip for:", params.destination);
 
   const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
@@ -140,13 +188,19 @@ export const generateTripWithAgent = async (params) => {
     days,
     budget: String(params.budget || "Moderate").slice(0, 50),
   };
+  if (params.origin) {
+    payload.origin = String(params.origin).slice(0, 100);
+  }
+  if (params.traveler) {
+    payload.traveler = String(params.traveler).slice(0, 50);
+  }
   if (params.interests) {
     payload.interests = String(params.interests).slice(0, 500);
   }
   if (params.categories) {
     payload.categories = String(params.categories).slice(0, 300);
   }
-  const data = await withRetry(() => callBackend("/plan", payload));
+  const data = await withRetry(() => callBackend("/plan", payload, "POST", REQUEST_TIMEOUT_MS, signal), [3000, 7000], signal);
 
   const plan = data.plan;
   return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));
@@ -206,7 +260,7 @@ export const fetchDestinationSafety = async (destination) => {
 };
 
 // Premium Deep Plan (Async background polling with zero timeout risk)
-export const generateDeepTripPlan = async (params, onProgress) => {
+export const generateDeepTripPlan = async (params, onProgress, { signal = null } = {}) => {
   __DEV__ && console.log("[DeepAgent] Enqueueing deep trip for:", params.destination);
   const days = Math.min(30, Math.max(1, parseInt(params.days, 10) || 1));
   const payload = {
@@ -214,24 +268,54 @@ export const generateDeepTripPlan = async (params, onProgress) => {
     days,
     budget: String(params.budget || "Moderate").slice(0, 50),
   };
+  if (params.origin) payload.origin = String(params.origin).slice(0, 100);
+  if (params.traveler) payload.traveler = String(params.traveler).slice(0, 50);
   if (params.interests) payload.interests = String(params.interests).slice(0, 500);
   if (params.categories) payload.categories = String(params.categories).slice(0, 300);
 
   // 1. Kick off background task
-  const initData = await callBackend("/plan-deep", payload, "POST");
+  const initData = await callBackend("/plan-deep", payload, "POST", REQUEST_TIMEOUT_MS, signal);
   const jobId = initData.job_id;
 
-  // 2. Poll until complete (maximum 30 polls = ~90 seconds)
+  // 2. Poll until complete (maximum 30 polls = ~90 seconds), tolerating transient network blips
   const maxAttempts = 30;
+  let consecutivePollErrors = 0;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    if (signal?.aborted) {
+      const abortErr = new Error("Request cancelled");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(resolve, 3000);
+      if (signal) {
+        signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(t);
+            const abortErr = new Error("Request cancelled");
+            abortErr.name = "AbortError";
+            reject(abortErr);
+          },
+          { once: true }
+        );
+      }
+    });
     if (onProgress) {
       onProgress(Math.min(95, Math.round(((attempt + 1) / maxAttempts) * 100)));
     }
-    const statusData = await callBackend(`/plan-deep/${jobId}`, null, "GET");
-    if (statusData.status === "ready" && statusData.plan) {
-      const plan = statusData.plan;
-      return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));
+    try {
+      const statusData = await callBackend(`/plan-deep/${jobId}`, null, "GET", 30000, signal);
+      consecutivePollErrors = 0;
+      if (statusData.status === "ready" && statusData.plan) {
+        const plan = statusData.plan;
+        return asResult(typeof plan === "string" ? plan : JSON.stringify(plan));
+      }
+    } catch (pollErr) {
+      if (pollErr?.name === "AbortError" || signal?.aborted) throw pollErr;
+      if (!isTransient(pollErr) || ++consecutivePollErrors >= 3) {
+        throw pollErr;
+      }
     }
   }
 

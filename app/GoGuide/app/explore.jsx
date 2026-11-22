@@ -41,6 +41,12 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");
   const [topRatedFirst, setTopRatedFirst] = useState(false);
 
+  React.useEffect(() => {
+    if (isKnownCategory(category)) {
+      setActiveCategory(category);
+    }
+  }, [category]);
+
   const activeInfo = DESTINATION_CATEGORIES.find((c) => c.id === activeCategory);
 
   const visibleDestinations = useMemo(() => {
@@ -122,7 +128,7 @@ export default function Explore() {
       <FlatList
         data={visibleDestinations}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 84 }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: theme.subtext }]}>No places in this category yet.</Text>
@@ -151,6 +157,8 @@ export default function Explore() {
                   image: item.image,
                   category: item.category || "Explore",
                   rating: item.rating,
+                  lat: item.lat,
+                  lon: item.lon,
                 }}
               />
             </View>

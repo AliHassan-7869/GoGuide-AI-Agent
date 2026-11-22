@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 const TIME_SLOTS = ["Morning", "Afternoon", "Evening", "Night"];
 
 const PRESETS = [
@@ -23,6 +25,8 @@ export default function AddActivityModal({
   onAddActivity,
   theme,
 }) {
+  const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const [placeName, setPlaceName] = useState("");
   const [selectedTime, setSelectedTime] = useState("Morning");
   const [details, setDetails] = useState("");
@@ -78,10 +82,10 @@ export default function AddActivityModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.modalOverlay}
       >
-        <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.border, paddingBottom: Math.max(insets.bottom, 16) + 12 }]}>
           {/* Header */}
           <View style={styles.headerRow}>
             <View>

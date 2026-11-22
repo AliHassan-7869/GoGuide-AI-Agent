@@ -41,8 +41,8 @@ export default function ScreenHeader({
         styles.header,
         {
           paddingTop: Math.max(insets.top, 0) + 4,
-          backgroundColor: theme.header || (theme.isDark ? "#0B0F17" : Palette.white),
-          borderBottomColor: theme.headerBorder || (theme.isDark ? "#20202F" : Palette.slate200),
+          backgroundColor: theme.header || (theme.isDark ? Palette.slate950 : Palette.white),
+          borderBottomColor: theme.headerBorder || (theme.isDark ? Palette.slate800 : Palette.slate200),
         },
         style,
       ]}

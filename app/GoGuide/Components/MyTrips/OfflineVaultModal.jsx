@@ -1,5 +1,6 @@
 import React from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View, Linking } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Colors } from "../constants/constants";
@@ -7,6 +8,7 @@ import { Colors } from "../constants/constants";
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
 import { copyText } from "../utils/clipboard";
+import { useBackDismiss } from "../../hooks/useBackDismiss";
 // Country emergency numbers lookup
 const EMERGENCY_LOOKUP = {
   japan: { police: "110", ambulance: "119", touristHelp: "050-3816-2787" },
@@ -61,24 +63,80 @@ const OFFLINE_PHRASES = {
   ],
 };
 
-function getOfflinePhrases(destination = "") {
-  const lower = (destination || "").toLowerCase();
-  for (const key of Object.keys(OFFLINE_PHRASES)) {
-    if (key !== "default" && lower.includes(key)) {
-      return OFFLINE_PHRASES[key];
+const CITY_TO_COUNTRY_KEY = {
+  tokyo: "japan",
+  kyoto: "japan",
+  osaka: "japan",
+  fukuoka: "japan",
+  sapporo: "japan",
+  dubai: "uae",
+  "abu dhabi": "uae",
+  sharjah: "uae",
+  rome: "italy",
+  milan: "italy",
+  venice: "italy",
+  florence: "italy",
+  paris: "france",
+  nice: "france",
+  lyon: "france",
+  bali: "indonesia",
+  jakarta: "indonesia",
+  ubud: "indonesia",
+  lahore: "pakistan",
+  karachi: "pakistan",
+  islamabad: "pakistan",
+  hunza: "pakistan",
+  skardu: "pakistan",
+  london: "uk",
+  manchester: "uk",
+  edinburgh: "uk",
+  "united kingdom": "uk",
+  england: "uk",
+  scotland: "uk",
+  "new york": "usa",
+  "los angeles": "usa",
+  chicago: "usa",
+  miami: "usa",
+  "united states": "usa",
+  istanbul: "turkey",
+  cappadocia: "turkey",
+  antalya: "turkey",
+  ankara: "turkey",
+  turkiye: "turkey",
+  madrid: "spain",
+  barcelona: "spain",
+  seville: "spain",
+};
+
+function matchesWord(haystack, needle) {
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(haystack);
+}
+
+function resolveCountryKey(destination = "", lookup = EMERGENCY_LOOKUP) {
+  const text = String(destination || "").trim().toLowerCase();
+  if (!text) return "default";
+  for (const key of Object.keys(lookup)) {
+    if (key !== "default" && matchesWord(text, key)) {
+      return key;
     }
   }
-  return OFFLINE_PHRASES.default;
+  for (const [city, countryKey] of Object.entries(CITY_TO_COUNTRY_KEY)) {
+    if (lookup[countryKey] && matchesWord(text, city)) {
+      return countryKey;
+    }
+  }
+  return "default";
+}
+
+function getOfflinePhrases(destination = "") {
+  const key = resolveCountryKey(destination, OFFLINE_PHRASES);
+  return OFFLINE_PHRASES[key] || OFFLINE_PHRASES.default;
 }
 
 function getEmergencyNumbers(destination = "") {
-  const lower = (destination || "").toLowerCase();
-  for (const key of Object.keys(EMERGENCY_LOOKUP)) {
-    if (key !== "default" && lower.includes(key)) {
-      return EMERGENCY_LOOKUP[key];
-    }
-  }
-  return EMERGENCY_LOOKUP.default;
+  const key = resolveCountryKey(destination, EMERGENCY_LOOKUP);
+  return EMERGENCY_LOOKUP[key] || EMERGENCY_LOOKUP.default;
 }
 
 export default function OfflineVaultModal({
@@ -88,6 +146,8 @@ export default function OfflineVaultModal({
   onClose,
   theme,
 }) {
+  const insets = useSafeAreaInsets();
+  useBackDismiss(visible, onClose);
   const triggerHaptic = () => {
     try {
       if (Platform.OS !== "web") {
@@ -124,7 +184,7 @@ export default function OfflineVaultModal({
     >
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: Math.max(insets.top, 16) + 4 }]}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View style={styles.vaultIconWrap}>
               <Ionicons name="shield-checkmark" size={20} color={Palette.success} />

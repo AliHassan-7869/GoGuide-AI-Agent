@@ -15,8 +15,15 @@ import { TouchableOpacity } from "../../Components/ui/Touchable";
 import { goBack } from "../../Components/utils/navigation";
 const getTomorrow = () => {
   const d = new Date();
+  d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + 1);
   return d;
+};
+
+const inclusiveDaysBetween = (start, end) => {
+  const a = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const b = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.round(Math.abs(b - a) / (1000 * 60 * 60 * 24)) + 1;
 };
 
 // Lightweight, cross-platform calendar component (eliminates date-fns web bundler bug)
@@ -410,15 +417,28 @@ export default function SelectDates() {
 
     if (type === "END_DATE") {
       const eDate = date ? new Date(date) : null;
-      setEndDate(eDate);
+      if (eDate) eDate.setHours(0, 0, 0, 0);
       if (startDate && eDate) {
-        const diff = Math.abs(eDate.getTime() - startDate.getTime());
-        const days = Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
-        setSelectedDuration(days);
-        setManualDaysInput(String(days));
+        const rawDays = inclusiveDaysBetween(startDate, eDate);
+        if (rawDays > 30) {
+          Alert.alert("Maximum 30 Days", "Trips can be up to 30 days long. Clamped to 30 days.");
+          const clampedEnd = new Date(startDate);
+          clampedEnd.setHours(0, 0, 0, 0);
+          clampedEnd.setDate(clampedEnd.getDate() + 29);
+          setEndDate(clampedEnd);
+          setSelectedDuration(30);
+          setManualDaysInput("30");
+          return;
+        }
+        setEndDate(eDate);
+        setSelectedDuration(rawDays);
+        setManualDaysInput(String(rawDays));
+      } else {
+        setEndDate(eDate);
       }
     } else {
       const sDate = date ? new Date(date) : null;
+      if (sDate) sDate.setHours(0, 0, 0, 0);
       setStartDate(sDate);
       setEndDate(null);
     }
