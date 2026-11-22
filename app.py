@@ -136,7 +136,7 @@ DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEEPSEEK_TIMEOUT = (5, 30)
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
-NVIDIA_TIMEOUT = (5, 30)
+NVIDIA_TIMEOUT = (5, 65)
 AI_ERROR = "AI service error, please try again"
 
 _google_request = google_requests.Request()

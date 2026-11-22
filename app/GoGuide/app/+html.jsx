@@ -106,7 +106,13 @@ export default function Root({ children }) {
             border: none;
           }
           input::placeholder, textarea::placeholder {
-            opacity: 0.7;
+            -webkit-text-fill-color: currentColor;
+            opacity: 0.75;
+          }
+          input:-webkit-autofill,
+          input:-webkit-autofill:hover,
+          input:-webkit-autofill:focus {
+            transition: background-color 9999s ease-in-out 0s;
           }
         ` }} />
         {headNodes}

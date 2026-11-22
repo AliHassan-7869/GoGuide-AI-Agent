@@ -8,15 +8,37 @@ import { Palette } from "./theme";
  */
 export const AUTH_INPUT_COLOR = "#111827";
 
+export function getAuthInputStyle(theme) {
+  const textColor = theme?.inputText || AUTH_INPUT_COLOR;
+  const bgColor = theme?.input || Palette.white;
+  const borderColor = theme?.border || Palette.gray200;
+  return {
+    color: textColor,
+    backgroundColor: bgColor,
+    borderColor,
+    ...Platform.select({
+      web: {
+        WebkitTextFillColor: textColor,
+        caretColor: textColor,
+        colorScheme: theme?.isDark ? "dark" : "light",
+      },
+      default: {},
+    }),
+  };
+}
+
+export function getAuthInputProps(theme) {
+  const textColor = theme?.inputText || AUTH_INPUT_COLOR;
+  return {
+    placeholderTextColor: theme?.subtext || Palette.slate500,
+    cursorColor: textColor,
+    selectionColor: "rgba(10, 126, 164, 0.30)",
+    underlineColorAndroid: "transparent",
+  };
+}
+
 /** Merge into the `input` style of every auth TextInput. */
-export const authInputTextStyle = {
-  color: AUTH_INPUT_COLOR,
-  backgroundColor: Palette.white,
-  ...Platform.select({
-    web: { WebkitTextFillColor: AUTH_INPUT_COLOR, caretColor: AUTH_INPUT_COLOR, colorScheme: "light" },
-    default: {},
-  }),
-};
+export const authInputTextStyle = getAuthInputStyle(null);
 
 /** Spread onto every auth <TextInput />. */
 export const AUTH_INPUT_PROPS = {

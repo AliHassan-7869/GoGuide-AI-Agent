@@ -11,7 +11,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Te
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
-import { AUTH_INPUT_PROPS, authInputTextStyle } from "../../../Components/constants/authInput";
+import { getAuthInputProps, getAuthInputStyle } from "../../../Components/constants/authInput";
 import { Palette, useTheme } from "../../../Components/constants/theme";
 import { purgeLegacyLoginData } from "../../../Components/utils/legacyLoginCleanup";
 import { resetOutcome, validateResetEmail } from "../../../Components/utils/passwordReset";
@@ -231,12 +231,14 @@ export default function SignIn() {
               <TextInput
                 style={[
                   styles.input,
-                  { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText },
-                  (errorField === "email" || errorField === "both") && styles.inputError,
+                  getAuthInputStyle(theme),
+                  (errorField === "email" || errorField === "both") && [
+                    styles.inputError,
+                    { backgroundColor: theme.isDark ? "rgba(239, 68, 68, 0.14)" : "#FFF5F5" },
+                  ],
                 ]}
                 placeholder="Enter your email"
-                {...AUTH_INPUT_PROPS}
-                placeholderTextColor={theme.subtext}
+                {...getAuthInputProps(theme)}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -257,12 +259,15 @@ export default function SignIn() {
                 <TextInput
                   style={[
                     styles.input,
-                    { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText, paddingRight: 48 },
-                    (errorField === "password" || errorField === "both") && styles.inputError,
+                    getAuthInputStyle(theme),
+                    { paddingRight: 48 },
+                    (errorField === "password" || errorField === "both") && [
+                      styles.inputError,
+                      { backgroundColor: theme.isDark ? "rgba(239, 68, 68, 0.14)" : "#FFF5F5" },
+                    ],
                   ]}
                   placeholder="Enter your password"
-                  {...AUTH_INPUT_PROPS}
-                  placeholderTextColor={theme.subtext}
+                  {...getAuthInputProps(theme)}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(val) => {
@@ -300,12 +305,23 @@ export default function SignIn() {
 
             {/* Sign In Button */}
             <TouchableOpacity
-              style={[styles.primaryBtn, isDisabled && styles.disabledBtn]}
+              style={[
+                styles.primaryBtn,
+                isDisabled && [
+                  styles.disabledBtn,
+                  { backgroundColor: theme.isDark ? Palette.slate700 : Palette.slate300 },
+                ],
+              ]}
               onPress={handleSignIn}
               disabled={isDisabled}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryText}>
+              <Text
+                style={[
+                  styles.primaryText,
+                  isDisabled && { color: theme.isDark ? Palette.slate400 : Palette.slate600 },
+                ]}
+              >
                 {loading ? "Signing in..." : "Sign In"}
               </Text>
             </TouchableOpacity>
@@ -445,9 +461,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    ...authInputTextStyle,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Palette.gray200,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 14,
@@ -456,7 +471,6 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: Palette.danger,
-    backgroundColor: "#FFF5F5",
     borderWidth: 1.5,
   },
   fieldErrorHint: {

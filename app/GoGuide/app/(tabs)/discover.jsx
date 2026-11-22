@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, Keyboard } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, Platform, Modal, ActivityIndicator, Keyboard, KeyboardAvoidingView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -9,6 +9,7 @@ import { CreateTripContext } from "../../context/CreateTripContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { generateTripWithAgent } from "../../Configs/AiModel";
+import { useKeyboardOverlap } from "../../hooks/useKeyboardOverlap";
 
 
 import {
@@ -164,8 +165,11 @@ export default function Discover() {
   const [results, setResults] = useState([]);
   const timeoutRef = useRef(null);
   const scrollViewRef = useRef(null);
+  const keyboardAreaRef = useRef(null);
+  const aiCardYRef = useRef(0);
   const searchBarYRef = useRef(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const { overlap: keyboardOverlap, onLayout: onKeyboardAreaLayout } = useKeyboardOverlap(keyboardAreaRef);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -850,14 +854,28 @@ export default function Discover() {
 
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor, paddingTop: safeTopPadding }]}>
-      <ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 84, keyboardHeight + 30) }]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+      <View
+        ref={keyboardAreaRef}
+        onLayout={onKeyboardAreaLayout}
+        collapsable={false}
+        style={{ flex: 1, paddingBottom: keyboardOverlap }}
       >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? safeTopPadding : 0}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: keyboardOverlap > 0 || keyboardHeight > 0 ? 24 : insets.bottom + 84 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
         {/* Top Header */}
         <FadeInView index={0} style={styles.header}>
           <Text style={[styles.title, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3} accessibilityRole="header">Discover</Text>
@@ -867,7 +885,12 @@ export default function Discover() {
         </FadeInView>
 
         {/* AI generator card (teal system, purple only as a small sparkle accent) */}
-        <FadeInView index={1}>
+        <FadeInView
+          index={1}
+          onLayout={(e) => {
+            aiCardYRef.current = e.nativeEvent.layout.y;
+          }}
+        >
           <LinearGradient colors={heroGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.aiHeroCard, { borderColor: accent + "66" }]}>
             <View style={styles.aiBadgeRow}>
               <View style={[styles.aiGlowBadge, { backgroundColor: accent + "26" }]}>
@@ -899,6 +922,14 @@ export default function Discover() {
                 returnKeyType="go"
                 accessibilityLabel="Describe a trip for AI to plan"
                 maxFontSizeMultiplier={1.3}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({
+                      y: Math.max(0, aiCardYRef.current - 8),
+                      animated: true,
+                    });
+                  }, 120);
+                }}
               />
               {aiPrompt.length > 0 && (
                 <TouchableOpacity
@@ -972,6 +1003,14 @@ export default function Discover() {
                     accessibilityLabel="Custom departure date"
                     maxFontSizeMultiplier={1.3}
                     style={[styles.customDateInput, { color: themeStyles.textColor }]}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        scrollViewRef.current?.scrollTo({
+                          y: Math.max(0, aiCardYRef.current + 140),
+                          animated: true,
+                        });
+                      }, 120);
+                    }}
                   />
                 </View>
               )}
@@ -1003,13 +1042,13 @@ export default function Discover() {
         </FadeInView>
 
         {/* Search places: a plain lookup, visually separate from the AI generator */}
-        <FadeInView index={2}>
-          <View
-            onLayout={(e) => {
-              searchBarYRef.current = e.nativeEvent.layout.y;
-            }}
-            style={styles.searchBlock}
-          >
+        <FadeInView
+          index={2}
+          onLayout={(e) => {
+            searchBarYRef.current = e.nativeEvent.layout.y;
+          }}
+        >
+          <View style={styles.searchBlock}>
             <View style={styles.searchLabelRow}>
               <Ionicons name="location-outline" size={18} color={themeStyles.subTextColor} />
               <Text style={[styles.searchLabel, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>Search places</Text>
@@ -1028,7 +1067,7 @@ export default function Discover() {
                 onFocus={() => {
                   setTimeout(() => {
                     scrollViewRef.current?.scrollTo({
-                      y: Math.max(0, searchBarYRef.current - 16),
+                      y: Math.max(0, searchBarYRef.current - 12),
                       animated: true,
                     });
                   }, 120);
@@ -1339,7 +1378,9 @@ export default function Discover() {
             )}
           </>
         )}
-      </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
 
       {/* Live AI thinking modal */}
       <Modal statusBarTranslucent visible={aiLoading} transparent={true} animationType="fade" onRequestClose={cancelAiTrip}>
