@@ -41,11 +41,13 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState(isKnownCategory(category) ? category : "all");
   const [topRatedFirst, setTopRatedFirst] = useState(false);
 
-  React.useEffect(() => {
-    if (isKnownCategory(category)) {
-      setActiveCategory(category);
-    }
-  }, [category]);
+  // Follow the ?category= link when it changes (e.g. arriving from a category tile). Adjusting state
+  // while rendering, keyed on the previous value, avoids an extra render pass from an effect.
+  const [seenCategoryParam, setSeenCategoryParam] = useState(category);
+  if (category !== seenCategoryParam) {
+    setSeenCategoryParam(category);
+    if (isKnownCategory(category)) setActiveCategory(category);
+  }
 
   const activeInfo = DESTINATION_CATEGORIES.find((c) => c.id === activeCategory);
 

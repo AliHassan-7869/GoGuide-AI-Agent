@@ -47,6 +47,11 @@ import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
 import { useHotelImages } from "../../Components/utils/HotelImages";
 
+// Values that depend on "now". Kept outside the component so they are only ever evaluated from event
+// handlers (save, add to calendar), never as part of rendering.
+const makeTripId = () => `trip_${Date.now()}`;
+const defaultTripEnd = () => new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
 function SafeTripImage({ uri, style, fallbackUri = DEFAULT_HD_TRAVEL_IMAGE }) {
   const [hasError, setHasError] = useState(false);
   const imgSrc = hasError ? fallbackUri : (uri ? sanitizeImageUrl(uri, fallbackUri) : fallbackUri);
@@ -275,7 +280,7 @@ export default function MyTrip() {
       return;
     }
     try {
-      const initialId = activeTripId || tripData?.id || `trip_${Date.now()}`;
+      const initialId = activeTripId || tripData?.id || makeTripId();
       let finalTripId = initialId;
       const user = auth.currentUser;
       const email = user?.email || "traveler@goguide.com";
@@ -628,7 +633,7 @@ export default function MyTrip() {
       let endStr = "";
       try {
         const s = tripData?.startDate ? new Date(tripData.startDate) : new Date();
-        const e = tripData?.endDate ? new Date(tripData.endDate) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        const e = tripData?.endDate ? new Date(tripData.endDate) : defaultTripEnd();
         const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
         startStr = fmt(s);
         const nextDay = new Date(e.getTime() + 24 * 60 * 60 * 1000);
@@ -760,6 +765,24 @@ export default function MyTrip() {
     }
   };
 
+
+  // "Trip actions" sheet: the rows are plain data and the chosen action runs from the tap handler
+  // (never while rendering), so none of these handlers is created or read during render.
+  const runMoreAction = (action) => {
+    switch (action) {
+      case "pdf": return handleDirectDownloadPDF();
+      case "print": return setShowPrintModal(true);
+      case "share": return setShowShareModal(true);
+      case "calendar": return addToCalendar();
+      case "bookings": return handleSaveToBookings();
+      case "packing": return router.push("/packing-checklist");
+      case "safety": return router.push("/safety-alerts");
+      case "explore": return router.push("/(tabs)/discover");
+      case "newtrip": return createNewTrip();
+      case "delete": return handleDeleteTrip(tripData);
+      default: return undefined;
+    }
+  };
 
   // 4. Direct Turn-by-Turn Navigation for an activity or hotel item
   const getDirectDirections = (item) => {
@@ -2734,16 +2757,16 @@ export default function MyTrip() {
             <Text style={[styles.moreTitle, { color: theme.text }]}>Trip actions</Text>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             {[
-              { icon: "download-outline", label: "Download PDF", color: Palette.success, onPress: handleDirectDownloadPDF },
-              { icon: "document-text-outline", label: "Printable itinerary", color: theme.text, onPress: () => setShowPrintModal(true) },
-              { icon: "share-social-outline", label: "Share trip", color: Palette.sky, onPress: () => setShowShareModal(true) },
-              { icon: "calendar-outline", label: "Add to calendar", color: Palette.skyDark, onPress: addToCalendar },
-              { icon: "ticket-outline", label: "Save to My Bookings", color: Palette.purple, onPress: handleSaveToBookings },
-              { icon: "bag-check-outline", label: "Packing list", color: Palette.purple, onPress: () => router.push("/packing-checklist") },
-              { icon: "shield-checkmark-outline", label: "Live safety alerts", color: Palette.danger, onPress: () => router.push("/safety-alerts") },
-              { icon: "compass-outline", label: "Explore destinations", color: Colors.PRIMARY, onPress: () => router.push("/(tabs)/discover") },
-              { icon: "add-circle-outline", label: "Plan a new trip", color: Colors.PRIMARY, onPress: createNewTrip },
-              { icon: "trash-outline", label: "Delete this trip", color: Palette.danger, danger: true, onPress: () => handleDeleteTrip(tripData) },
+              { icon: "download-outline", label: "Download PDF", color: Palette.success, action: "pdf" },
+              { icon: "document-text-outline", label: "Printable itinerary", color: theme.text, action: "print" },
+              { icon: "share-social-outline", label: "Share trip", color: Palette.sky, action: "share" },
+              { icon: "calendar-outline", label: "Add to calendar", color: Palette.skyDark, action: "calendar" },
+              { icon: "ticket-outline", label: "Save to My Bookings", color: Palette.purple, action: "bookings" },
+              { icon: "bag-check-outline", label: "Packing list", color: Palette.purple, action: "packing" },
+              { icon: "shield-checkmark-outline", label: "Live safety alerts", color: Palette.danger, action: "safety" },
+              { icon: "compass-outline", label: "Explore destinations", color: Colors.PRIMARY, action: "explore" },
+              { icon: "add-circle-outline", label: "Plan a new trip", color: Colors.PRIMARY, action: "newtrip" },
+              { icon: "trash-outline", label: "Delete this trip", color: Palette.danger, danger: true, action: "delete" },
             ].map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -2753,7 +2776,7 @@ export default function MyTrip() {
                 onPress={() => {
                   setShowMoreMenu(false);
                   // let the sheet close before opening another modal or navigating
-                  setTimeout(() => item.onPress?.(), 150);
+                  setTimeout(() => runMoreAction(item.action), 150);
                 }}
               >
                 <Ionicons name={item.icon} size={20} color={item.color} />
