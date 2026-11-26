@@ -4,7 +4,7 @@ import { openExternalUrl } from "../../Components/utils/openExternalUrl";
 import { directionsUrl, placeUrl } from "../../Components/utils/mapsLinks";
 import { formatRating } from "../../Components/utils/rating";
 import { useCallback, useContext, useEffect, useState, useRef, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View, Image, Linking, Share, Platform, Animated, Modal, Alert, useWindowDimensions } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Image, Share, Platform, Animated, Modal, Alert, useWindowDimensions } from "react-native";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { useBackDismiss } from "../../hooks/useBackDismiss";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -645,7 +645,9 @@ export default function MyTrip() {
       }
 
       const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
-      Linking.openURL(calUrl);
+      openExternalUrl(calUrl).then((opened) => {
+        if (!opened) Alert.alert("Calendar Sync", "Unable to open calendar application. Try copying your itinerary text instead.");
+      });
     } catch (e) {
       __DEV__ && console.log("Error syncing calendar:", e);
       Alert.alert("Calendar Sync", "Unable to open calendar application. Try copying your itinerary text instead.");
@@ -2553,7 +2555,7 @@ export default function MyTrip() {
                 <View style={styles.flightButtonsRow}>
                   <TouchableOpacity
                     style={[styles.flightActionBtn, { backgroundColor: Palette.skyDark }]}
-                    onPress={() => Linking.openURL(flightInfo.skyscannerUrl)}
+                    onPress={() => openExternalUrl(flightInfo.skyscannerUrl)}
                     activeOpacity={0.85}
                   >
                     <Ionicons name="airplane-outline" size={13} color={Palette.white} style={{ marginRight: 4 }} />
@@ -2561,7 +2563,7 @@ export default function MyTrip() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.flightActionBtn, { backgroundColor: Colors.PRIMARY }]}
-                    onPress={() => Linking.openURL(flightInfo.bookingUrl)}
+                    onPress={() => openExternalUrl(flightInfo.bookingUrl)}
                     activeOpacity={0.85}
                   >
                     <Ionicons name="search-outline" size={13} color={Palette.white} style={{ marginRight: 4 }} />

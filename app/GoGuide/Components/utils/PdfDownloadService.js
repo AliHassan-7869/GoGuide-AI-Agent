@@ -5,7 +5,7 @@ import { shareLocalFile } from "./fileDownloader";
  * Robust, cross-platform jsPDF resolver:
  * 1. Resolves locally installed npm 'jspdf' package via dynamic import (works in client browser & zero SSR breakage).
  * 2. Checks global window.jspdf / window.jsPDF objects.
- * 3. Falls back to fast CDN injection with active interval polling.
+ * 3. Falls back to injecting the copy hosted with the site with active interval polling.
  */
 async function getJsPDFConstructor() {
   if (typeof window !== "undefined") {
@@ -37,7 +37,7 @@ async function getJsPDFConstructor() {
       let script = document.querySelector("script[src*='jspdf']");
       if (!script) {
         script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        script.src = "/jspdf.umd.min.js";
         script.async = true;
         script.onerror = () => {
           clearInterval(pollTimer);

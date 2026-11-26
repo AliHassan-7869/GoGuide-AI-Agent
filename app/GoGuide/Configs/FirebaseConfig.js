@@ -1,10 +1,10 @@
 
 import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+import { secureStorage } from "../Components/utils/secureStorage";
 import { APP_ENV, ENV_HELP, FIREBASE } from "./env";
 
 // Which Firebase project this build uses depends on the environment (see Configs/env.js).
@@ -32,10 +32,10 @@ if (Platform.OS === "web") {
   // On Web, use standard web auth with browser persistence
   authInstance = getAuth(app);
 } else {
-  // On Native (Android / iOS), use AsyncStorage persistence
+  // On Native (Android / iOS), persist the session encrypted (key in Keystore / Keychain)
   try {
     authInstance = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+      persistence: getReactNativePersistence(secureStorage),
     });
   } catch {
     authInstance = getAuth(app);

@@ -118,6 +118,8 @@ function FormattedMarkdownText({ text, isAi, theme }) {
   );
 }
 
+const makeMessageId = (prefix) => `${prefix}_${Date.now()}`;
+
 export default function AiAssistant() {
   const router = useRouter();
   const theme = useTheme();
@@ -254,7 +256,7 @@ export default function AiAssistant() {
     }
 
     const userMsg = {
-      id: "user_" + Date.now(),
+      id: makeMessageId("user"),
       sender: "user",
       text: textToSend,
       time: nowTime(),
@@ -280,7 +282,7 @@ export default function AiAssistant() {
       const aiReplyText = await askTravelAssistant(textToSend, updatedWithUser, activeTrip);
 
       const aiMsg = {
-        id: "ai_" + Date.now(),
+        id: makeMessageId("ai"),
         sender: "ai",
         text: aiReplyText,
         time: nowTime(),
@@ -292,7 +294,7 @@ export default function AiAssistant() {
       persistMessages(finalMsgs);
     } catch (err) {
       const errorMsg = {
-        id: "err_" + Date.now(),
+        id: makeMessageId("err"),
         sender: "ai",
         text: isEmailVerificationError(err)
           ? `✉️ ${EMAIL_VERIFY_MESSAGE} Then send your message again.`
@@ -308,17 +310,13 @@ export default function AiAssistant() {
     }
   };
 
-  // Handle incoming prompt from recommendations or other screens
+  // A prompt in the link (aitravelagent://ai-assistant?prompt=...) can come from anyone, so it only fills
+  // the input box. Nothing is sent until the person taps Send.
   useEffect(() => {
     if (prompt && handledPromptRef.current !== prompt) {
       handledPromptRef.current = prompt;
-      const timer = setTimeout(() => {
-        handleSend(String(prompt));
-      }, 500);
-      return () => clearTimeout(timer);
+      setInputText(String(prompt).slice(0, 2000));
     }
-    return undefined;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs on mount only / depends on stable references; adding the flagged dependency would re-run it on every render
   }, [prompt]);
 
   const hasUserMessages = messages.some((m) => m.sender === "user");
@@ -574,6 +572,7 @@ export default function AiAssistant() {
             placeholderTextColor={theme.subtext}
             value={inputText}
             onChangeText={setInputText}
+            maxLength={2000}
             multiline
             scrollEnabled
             maxFontSizeMultiplier={1.3}

@@ -61,6 +61,14 @@ These create real cloud resources, so they are deliberately not automated here.
 | `ALLOWED_ORIGINS` | The web origin(s) allowed to call this backend. |
 | `FIREBASE_PROJECT_ID` | Which Firebase project's login tokens this backend accepts. Must match the app. |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` by default; unverified email accounts cannot use AI features. |
+| `RATE_LIMIT_PER_HOUR` / `IP_RATE_LIMIT_PER_HOUR` | Requests per hour per account (`30`) and per address (`120`). |
+| `PLAN_RATE_LIMIT_PER_HOUR` | Trip generation requests per hour per account (`15`). |
+| `USER_DAILY_LIMIT` | Requests per day per account (`150`). |
+| `ANON_RATE_LIMIT_PER_HOUR` / `ANON_DAILY_LIMIT` | Lower limits for guest accounts (`15` per hour, `40` per day). |
+| `ANON_IP_DAILY_LIMIT` | Daily requests from all guest accounts at one address (`100`). |
+| `MAX_BODY_BYTES` | Largest request accepted; bigger ones get `413` (`524288`). |
+
+In production, an empty `ALLOWED_ORIGINS` allows only the live website.
 
 The keep-alive heartbeat inside the backend pings only its own address (`RENDER_EXTERNAL_URL`), so a
 staging service can never keep production awake or report on it.

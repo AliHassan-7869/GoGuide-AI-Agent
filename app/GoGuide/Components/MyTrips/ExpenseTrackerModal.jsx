@@ -33,6 +33,9 @@ const QUICK_PRESETS = [
   { title: "Shopping / Gifts", amount: 25, category: "Shopping", icon: "bag-handle-outline" },
 ];
 
+// Far above any real travel expense in any supported currency; blocks typos and values like 1e999.
+const MAX_EXPENSE_AMOUNT = 1_000_000_000;
+
 export default function ExpenseTrackerModal({
   visible,
   expenses = [],
@@ -160,7 +163,7 @@ export default function ExpenseTrackerModal({
       showAlert("Input Required", "Please enter an expense name.");
       return;
     }
-    if (isNaN(rawNum) || rawNum <= 0) {
+    if (!Number.isFinite(rawNum) || rawNum <= 0 || rawNum > MAX_EXPENSE_AMOUNT) {
       showAlert("Invalid Amount", "Please enter a valid expense amount.");
       return;
     }
@@ -404,6 +407,7 @@ export default function ExpenseTrackerModal({
                 placeholderTextColor={theme.subtext}
                 value={expenseTitle}
                 onChangeText={setExpenseTitle}
+                maxLength={80}
                 style={[
                   styles.input,
                   {
@@ -523,6 +527,7 @@ export default function ExpenseTrackerModal({
                 placeholderTextColor={theme.subtext}
                 value={expenseAmount}
                 onChangeText={setExpenseAmount}
+                  maxLength={12}
                 keyboardType="numeric"
                 style={[
                   styles.input,

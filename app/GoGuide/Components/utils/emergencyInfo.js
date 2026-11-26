@@ -1,4 +1,4 @@
-// Personal emergency contacts and medical info. Kept ONLY on the device (AsyncStorage), never uploaded.
+// Personal emergency contacts and medical info. Kept ONLY on the device (encrypted on native), never uploaded.
 // Pure module (unit-tested): cleaning, validation and the phone link.
 
 export const STORAGE_KEY = "@goguide_emergency_info";

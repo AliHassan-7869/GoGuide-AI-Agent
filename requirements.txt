@@ -8,6 +8,6 @@ uvicorn
 requests
 google-auth
 pydantic
-sentry-sdk[fastapi]
+sentry-sdk[fastapi]>=2.0.0,<3
 gradio
 

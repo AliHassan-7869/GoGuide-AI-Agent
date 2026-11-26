@@ -2,6 +2,7 @@ import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import EmergencyInfo from "../app/emergency-info";
+import { secureStorage } from "../Components/utils/secureStorage";
 import Feedback from "../app/feedback";
 import { addDoc } from "firebase/firestore";
 
@@ -33,7 +34,8 @@ describe("Emergency Info screen", () => {
     await fireEvent.changeText(screen.getByLabelText("Allergies"), "Peanuts");
     await fireEvent.press(screen.getByLabelText("Save emergency info"));
     expect(await screen.findByText("Saved on this device")).toBeTruthy();
-    const stored = JSON.parse(await AsyncStorage.getItem("@goguide_emergency_info"));
+    expect(await AsyncStorage.getItem("@goguide_emergency_info")).not.toContain("Peanuts"); // encrypted at rest
+    const stored = JSON.parse(await secureStorage.getItem("@goguide_emergency_info"));
     expect(stored.contacts[0]).toEqual({ name: "Ali Khan", phone: "+92 300 1234567", relation: "" });
     expect(stored.bloodType).toBe("O+");
     expect(stored.allergies).toBe("Peanuts");

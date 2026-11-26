@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Modal, Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, setDoc } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 import { auth, db } from "../../Configs/FirebaseConfig";
 import { Colors } from "../constants/constants";
 
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
 import { copyText } from "../utils/clipboard";
+import { publicPlan, resolveShareId } from "../utils/shareTrip";
 import { useBackDismiss } from "../../hooks/useBackDismiss";
 export default function ShareTripModal({
   visible,
@@ -24,6 +27,20 @@ export default function ShareTripModal({
   useBackDismiss(visible, onClose);
   const [copied, setCopied] = useState(false);
 
+  const [shareId, setShareId] = useState("");
+  const getShareId = useCallback(
+    () => resolveShareId(tripId, { storage: AsyncStorage, randomBytes: (n) => Crypto.getRandomBytes(n) }),
+    [tripId]
+  );
+  useEffect(() => {
+    if (!visible) return undefined;
+    let alive = true;
+    getShareId().then((id) => alive && setShareId(id));
+    return () => {
+      alive = false;
+    };
+  }, [visible, getShareId]);
+
   if (!plan) return null;
 
   const triggerHaptic = () => {
@@ -34,20 +51,21 @@ export default function ShareTripModal({
     } catch {}
   };
 
-  const cleanTripId = tripId || "current-trip";
-  const shareableUrl = `https://dist-seven-tau-79.vercel.app/trip/${cleanTripId}`;
+  const linkFor = (id) => `https://dist-seven-tau-79.vercel.app/trip/${id}`;
+  const shareableUrl = shareId ? linkFor(shareId) : "Preparing link…";
 
-  const syncPublicShare = async () => {
+  const syncPublicShare = async (id) => {
     try {
       const uid = auth.currentUser?.uid;
-      if (cleanTripId && plan && uid) {
-        await setDoc(doc(db, "SharedTrips", String(cleanTripId)), {
-          id: String(cleanTripId),
+      if (id && plan && uid) {
+        // A full write (no merge), so fields shared by an older version of the app are removed.
+        await setDoc(doc(db, "SharedTrips", id), {
+          id,
           userId: uid,
           destination: plan.destination || destination || "Destination",
-          plan: plan,
+          plan: publicPlan(plan),
           updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        });
       }
     } catch (e) {
       __DEV__ && console.log("SharedTrips sync notice:", e?.message);
@@ -56,11 +74,13 @@ export default function ShareTripModal({
 
   const handleCopyLink = async () => {
     triggerHaptic();
-    syncPublicShare();
+    const id = await getShareId();
+    const url = linkFor(id);
+    syncPublicShare(id);
 
     // Only say "Copied" when the text really reached the clipboard.
-    if (!(await copyText(shareableUrl))) {
-      Alert.alert("Couldn't copy the link", `Please copy it by hand: ${shareableUrl}`);
+    if (!(await copyText(url))) {
+      Alert.alert("Couldn't copy the link", `Please copy it by hand: ${url}`);
       return;
     }
 
@@ -71,7 +91,8 @@ export default function ShareTripModal({
 
   const handleNativeShare = async () => {
     triggerHaptic();
-    syncPublicShare();
+    const id = await getShareId();
+    syncPublicShare(id);
     try {
       const dest = plan.destination || destination || "Destination";
       const shareMessage = `✈️ Check out our trip to ${dest} on GoGuide AI!\n\n` +
@@ -79,7 +100,7 @@ export default function ShareTripModal({
         `👥 Travelers: ${plan.traveler || "Explorer"}\n` +
         `💰 Budget: ${plan.budget || "Curated"}\n\n` +
         `🔗 View Full Interactive Itinerary & Hotels:\n` +
-        `${shareableUrl}\n\n` +
+        `${linkFor(id)}\n\n` +
         `Plan your trip with GoGuide AI 🌍`;
 
       await Share.share({

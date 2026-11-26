@@ -1,16 +1,22 @@
 import { Linking, Platform } from "react-native";
 
-const SAFE_WEB_PROTOCOLS = new Set(["https:", "http:"]);
+// The only sites the app sends people to (each also covers its subdomains).
+const TRUSTED_HOSTS = ["booking.com", "google.com", "skyscanner.com"];
 const EXTRA_CONTACT_PROTOCOLS = new Set(["tel:", "mailto:"]);
 
-/** Validates that a URL uses an allowed scheme before passing it to the browser or OS handler. */
+/** Allows https links to trusted sites (and tel/mailto when asked) before passing them to the browser or OS. */
 export function isSafeExternalUrl(url, { allowContact = false } = {}) {
   if (typeof url !== "string") return false;
   const trimmed = url.trim();
   if (!trimmed) return false;
   try {
     const parsed = new URL(trimmed);
-    if (SAFE_WEB_PROTOCOLS.has(parsed.protocol)) return true;
+    if (parsed.protocol === "https:") {
+      // "https://google.com@evil.example" style credentials are never legitimate here.
+      if (parsed.username || parsed.password) return false;
+      const host = parsed.hostname.toLowerCase();
+      return TRUSTED_HOSTS.some((trusted) => host === trusted || host.endsWith(`.${trusted}`));
+    }
     if (allowContact && EXTRA_CONTACT_PROTOCOLS.has(parsed.protocol)) return true;
     return false;
   } catch {

@@ -78,7 +78,7 @@ def grounding_node(state: TripState) -> Dict[str, Any]:
     dest = state.get("destination", "Tokyo, Japan")
     days = max(1, int(state.get("days", 5)))
     budget = state.get("budget_tier", "moderate")
-    logger.info(f"[Orchestrator] Grounding destination: {dest} (days={days}, budget={budget})")
+    logger.info(f"[Orchestrator] Grounding destination (days={days})")
     
     curated_resp = get_curated_plan(dest, days, budget)
     # get_curated_plan returns {"data": {"plan": {"trip": {...}}}}; unwrap to the trip itself

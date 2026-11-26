@@ -36,3 +36,17 @@ node_modules
 
 # Keep the documented example (real .env files above stay ignored)
 !.env.example
+
+# Signing keys and service account credentials
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+*service-account*.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json

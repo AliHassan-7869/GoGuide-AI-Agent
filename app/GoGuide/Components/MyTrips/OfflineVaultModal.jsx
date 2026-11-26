@@ -8,6 +8,7 @@ import { Colors } from "../constants/constants";
 import { TouchableOpacity } from "../ui/Touchable";
 import { Palette } from "../constants/theme";
 import { copyText } from "../utils/clipboard";
+import { openExternalUrl } from "../utils/openExternalUrl";
 import { useBackDismiss } from "../../hooks/useBackDismiss";
 // Country emergency numbers lookup
 const EMERGENCY_LOOKUP = {
@@ -282,7 +283,7 @@ export default function OfflineVaultModal({
                   <TouchableOpacity
                     onPress={() => {
                       const q = encodeURIComponent(`${h.name} ${destination || ""}`.trim());
-                      Linking.openURL(`https://www.booking.com/searchresults.html?ss=${q}`);
+                      openExternalUrl(`https://www.booking.com/searchresults.html?ss=${q}`);
                     }}
                     style={[styles.copyPill, { backgroundColor: "#00358018", borderColor: "#00358040", marginLeft: 6 }]}
                     activeOpacity={0.7}

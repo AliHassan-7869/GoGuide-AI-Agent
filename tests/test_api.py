@@ -10,6 +10,9 @@ CHAT_BODY = {"message": "Lahore mein kya khaun?"}
 
 
 # -------------------- Basics --------------------
+VALID_PLAN = '{"trip": {"itinerary": [{"day": 1, "activities": []}]}}'
+
+
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
 
@@ -26,7 +29,8 @@ def test_rejects_bad_api_key(client, key):
     assert client.post("/plan", json=PLAN_BODY, headers={"X-API-Key": key}).status_code == 401
 
 
-def test_accepts_api_key(client):
+def test_accepts_api_key(client, providers):
+    providers.handlers["gemini-primary"] = lambda: gemini_ok(VALID_PLAN)
     assert client.post("/plan", json=PLAN_BODY, headers=API_HEADERS).status_code == 200
 
 
@@ -205,10 +209,15 @@ def test_chat_sends_trip_context_and_trimmed_history(client, providers):
     contents = payload["contents"]
 
     assert contents[0]["role"] == "user"
-    assert contents[-1] == {"role": "user", "parts": [{"text": "Next?"}]}
+    assert contents[-1]["role"] == "user"
+    assert contents[-1]["parts"][-1] == {"text": "Next?"}
     assert len(contents) <= 7
     system_text = payload["systemInstruction"]["parts"][0]["text"]
-    assert "Hunza" in system_text and "5 days" in system_text and "Luxury" in system_text
+    # Trip details are user input: delimited in the user turn, kept out of the system instruction
+    assert "Hunza" not in system_text
+    context = contents[-1]["parts"][0]["text"]
+    assert context.startswith("<user_data>") and context.endswith("</user_data>")
+    assert "Hunza" in context and '"duration_days": 5' in context and "Luxury" in context
 
 
 def test_chat_without_trip(client, providers):
@@ -251,6 +260,7 @@ def test_cors_closed_by_default(client):
 
 
 def test_deep_job_not_readable_by_other_user(client, providers):
+    providers.handlers["gemini-primary"] = lambda: gemini_ok(VALID_PLAN)
     res = client.post("/plan-deep", json=PLAN_BODY, headers=USER_HEADERS)
     job_id = res.json()["data"]["job_id"]
     other = {"Authorization": "Bearer other-user-token"}

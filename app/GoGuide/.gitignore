@@ -42,3 +42,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Signing keys and service account credentials
+*.keystore
+google-services.json
+GoogleService-Info.plist
+*service-account*.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json

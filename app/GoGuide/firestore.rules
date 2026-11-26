@@ -20,6 +20,11 @@ service cloud.firestore {
       return signedInUid() && uidField == request.auth.uid;
     }
 
+    // Matching data by email is only safe once the address is proven to belong to the caller.
+    function isOwnerByVerifiedEmail(emailField) {
+      return isOwnerByEmail(emailField) && request.auth.token.email_verified == true;
+    }
+
     // Size/shape guards so open "create" endpoints cannot be used to flood the database
     function isShortString(v, max) {
       return v is string && v.size() <= max;
@@ -158,10 +163,13 @@ service cloud.firestore {
         && isShortString(request.resource.data.userEmail, 320)
         && isShortString(request.resource.data.userId, 128)
         && request.resource.data.status == 'open'
+        && optString(request.resource.data, 'platform', 40)
+        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp
+            || isShortString(request.resource.data.createdAt, 64))
         && (!signedIn() || request.resource.data.userId == request.auth.uid || request.resource.data.userId == 'guest');
       allow read: if signedIn() && (
         (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
-        (resource.data.userEmail != null && request.auth.token.email != null && resource.data.userEmail == request.auth.token.email)
+        (resource.data.userEmail != null && isOwnerByVerifiedEmail(resource.data.userEmail))
       );
       // No client-side modification or deletion of support tickets
       allow update, delete: if false;
@@ -202,7 +210,9 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly(['message', 'stack', 'componentStack', 'platform', 'timestamp'])
         && isShortString(request.resource.data.message, 1000)
         && isShortString(request.resource.data.stack, 2000)
-        && isShortString(request.resource.data.componentStack, 2000);
+        && isShortString(request.resource.data.componentStack, 2000)
+        && optString(request.resource.data, 'platform', 40)
+        && optString(request.resource.data, 'timestamp', 64);
       allow read, update, delete: if false;
     }
 

@@ -95,7 +95,7 @@ describe("Copy buttons really copy", () => {
     Clipboard.setStringAsync.mockResolvedValue(true);
     await render(<ShareTripModal visible tripId="trip_1" destination="Rome" plan={{ destination: "Rome" }} onClose={jest.fn()} theme={theme} />);
     await fireEvent.press(await screen.findByText("Copy"));
-    await waitFor(() => expect(Clipboard.setStringAsync).toHaveBeenCalledWith(expect.stringContaining("/trip/trip_1")));
+    await waitFor(() => expect(Clipboard.setStringAsync).toHaveBeenCalledWith(expect.stringMatching(/\/trip\/s_[0-9a-f]{32}$/)));
     expect(await screen.findByText("Copied")).toBeTruthy();
   });
 

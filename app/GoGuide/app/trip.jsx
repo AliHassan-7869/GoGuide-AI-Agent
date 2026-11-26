@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ActivityIndicator, Alert, Animated, Image, Linking, Platform, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Animated, Image, Platform, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -9,6 +9,7 @@ import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db, auth } from "../Configs/FirebaseConfig";
 import { addHotelBooking, addActivityBooking } from "../Components/utils/BookingService";
 import AddActivityModal from "../Components/MyTrips/AddActivityModal";
+import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import ExpenseTrackerModal from "../Components/MyTrips/ExpenseTrackerModal";
 import { Colors } from "../Components/constants/constants";
 import { styles } from "../Components/MyTrips/trip.styles";
@@ -307,17 +308,17 @@ export default function SharedTripView() {
     triggerHaptic();
     const dest = tripPlan?.destination || "";
     const query = encodeURIComponent(`${hotelName} ${dest}`.trim());
-    Linking.openURL(`https://www.booking.com/searchresults.html?ss=${query}`);
+    openExternalUrl(`https://www.booking.com/searchresults.html?ss=${query}`);
   };
 
   const openInMaps = (item) => {
     triggerHaptic();
-    Linking.openURL(placeUrl(item, tripPlan?.destination));
+    openExternalUrl(placeUrl(item, tripPlan?.destination));
   };
 
   const openDirections = (item) => {
     triggerHaptic();
-    Linking.openURL(directionsUrl(item, tripPlan?.destination));
+    openExternalUrl(directionsUrl(item, tripPlan?.destination));
   };
 
   const handleCopyLink = async () => {
@@ -1046,7 +1047,7 @@ export default function SharedTripView() {
                         paddingVertical: 8,
                         borderRadius: 10,
                       }}
-                      onPress={() => Linking.openURL(flightInfo.skyscannerUrl)}
+                      onPress={() => openExternalUrl(flightInfo.skyscannerUrl)}
                       activeOpacity={0.85}
                     >
                       <Text style={{ color: Palette.white, fontSize: 12, fontWeight: "700" }}>Skyscanner</Text>
@@ -1058,7 +1059,7 @@ export default function SharedTripView() {
                         paddingVertical: 8,
                         borderRadius: 10,
                       }}
-                      onPress={() => Linking.openURL(flightInfo.bookingUrl)}
+                      onPress={() => openExternalUrl(flightInfo.bookingUrl)}
                       activeOpacity={0.85}
                     >
                       <Text style={{ color: Palette.white, fontSize: 12, fontWeight: "700" }}>

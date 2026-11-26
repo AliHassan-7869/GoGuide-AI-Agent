@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -18,6 +17,7 @@ import {
   validateEmergencyInfo,
 } from "../Components/utils/emergencyInfo";
 import { goBack } from "../Components/utils/navigation";
+import { secureStorage } from "../Components/utils/secureStorage";
 
 /**
  * Personal emergency contacts and medical details. Saved ONLY on this device (never uploaded),
@@ -36,7 +36,7 @@ export default function EmergencyInfo() {
 
   useEffect(() => {
     let alive = true;
-    AsyncStorage.getItem(STORAGE_KEY)
+    secureStorage.getItem(STORAGE_KEY)
       .then((raw) => {
         if (alive && raw) setInfo(sanitizeEmergencyInfo(JSON.parse(raw)));
       })
@@ -65,7 +65,7 @@ export default function EmergencyInfo() {
     setProblems(found);
     if (found.length) return;
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      await secureStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
       setInfo(clean);
       setSaved(true);
     } catch {
@@ -75,7 +75,7 @@ export default function EmergencyInfo() {
 
   const clearAll = async () => {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await secureStorage.removeItem(STORAGE_KEY);
     } catch {}
     setInfo(emptyEmergencyInfo());
     setProblems([]);
