@@ -15,13 +15,13 @@ export default function WeatherCard({ weatherBrief: weatherBriefProp, destinatio
   const theme = useTheme();
   const ctx = useContext(CreateTripContext);
   const tempUnit = ctx?.preferences?.temperatureUnit === "F" ? "F" : "C";
-  const [liveWeather, setLiveWeather] = useState(null);
+  const [weatherState, setWeatherState] = useState(null);
   const [loading, setLoading] = useState(false);
+  const liveWeather = weatherState?.destination === destination ? weatherState.data : null;
 
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
-    setLiveWeather(null);
     async function fetchLiveWeather() {
       if (!destination) return;
       const cleanCity = destination.split(",")[0].trim();
@@ -43,12 +43,15 @@ export default function WeatherCard({ weatherBrief: weatherBriefProp, destinatio
           );
           const weatherJson = await weatherRes.json();
           if (isMounted && weatherJson?.current) {
-            setLiveWeather({
-              temp: Math.round(weatherJson.current.temperature_2m),
-              tempMax: weatherJson.daily?.temperature_2m_max?.[0] != null ? Math.round(weatherJson.daily.temperature_2m_max[0]) : null,
-              tempMin: weatherJson.daily?.temperature_2m_min?.[0] != null ? Math.round(weatherJson.daily.temperature_2m_min[0]) : null,
-              code: weatherJson.current.weather_code,
-              wind: Math.round(weatherJson.current.wind_speed_10m),
+            setWeatherState({
+              destination,
+              data: {
+                temp: Math.round(weatherJson.current.temperature_2m),
+                tempMax: weatherJson.daily?.temperature_2m_max?.[0] != null ? Math.round(weatherJson.daily.temperature_2m_max[0]) : null,
+                tempMin: weatherJson.daily?.temperature_2m_min?.[0] != null ? Math.round(weatherJson.daily.temperature_2m_min[0]) : null,
+                code: weatherJson.current.weather_code,
+                wind: Math.round(weatherJson.current.wind_speed_10m),
+              },
             });
           }
         }

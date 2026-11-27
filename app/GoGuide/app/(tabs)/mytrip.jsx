@@ -464,7 +464,6 @@ export default function MyTrip() {
       GetMyTrips();
     }, 0);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by reactive uid from CreateTripContext so sign-in/sign-out/account switches reload cleanly
   }, [uid]);
 
   const handleSelectTrip = (selectedTrip) => {
@@ -964,25 +963,6 @@ export default function MyTrip() {
       if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
     };
   }, [undoSnackbar]);
-
-  // Native Share Sheet Handler
-  const handleNativeShare = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const destName = plan?.destination || "Trip Destination";
-      const duration = plan?.duration || "Multi-Day";
-      const shareMessage = `🌟 Check out my ${duration} travel itinerary for ${destName} on GoGuide AI!\n\n` +
-        `🏨 Stays: ${plan?.hotels?.length || 0} curated stays\n` +
-        `🗓️ Plan: ${daysList.length} days of verified sightseeing\n\n` +
-        `Explore on GoGuide AI: https://goguide.ai/trip`;
-      await Share.share({
-        title: `${duration} in ${destName} • GoGuide AI`,
-        message: shareMessage,
-      });
-    } catch (e) {
-      console.warn("Share failed:", e);
-    }
-  };
 
   // Compute exact live scroll offset for any section
   const getSectionScrollY = (sectionId) => {

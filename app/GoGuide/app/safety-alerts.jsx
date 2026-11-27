@@ -2,7 +2,8 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { openExternalUrl } from '../Components/utils/openExternalUrl';
 import { Colors } from '../Components/constants/constants';
 import { Radius, Spacing, Typography, useTheme } from '../Components/constants/theme';
 import EmptyState from '../Components/ui/EmptyState';
@@ -137,11 +138,12 @@ export default function SafetyAlerts() {
   };
   const emergencyContacts = emergency.contacts.map((c) => ({ ...c, ...(CONTACT_STYLE[c.key] || CONTACT_STYLE.all) }));
 
-  const handleCall = (number) => {
+  const handleCall = async (number) => {
     if (!number) return;
-    Linking.openURL(`tel:${number}`).catch(() => {
+    const opened = await openExternalUrl(`tel:${number}`, { allowContact: true });
+    if (!opened) {
       Alert.alert("Emergency Number", `Please dial ${number} from your phone.`);
-    });
+    }
   };
 
   const list = alerts && alerts.length > 0 ? alerts : safetyMockData;

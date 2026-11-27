@@ -6,7 +6,7 @@ module.exports = defineConfig([
   expoConfig,
   {
     // CuratedPlans.js uses `import ... with { type: "json" }`, which the parser cannot read.
-    ignores: ['dist/*', 'components/utils/CuratedPlans.js'],
+    ignores: ['dist/*', 'Components/utils/CuratedPlans.js', 'components/utils/CuratedPlans.js'],
   },
   {
     // Jest globals for test files.

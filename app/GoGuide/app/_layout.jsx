@@ -66,6 +66,8 @@ function AppContent() {
         <Stack.Screen name="beaches" options={{ headerShown: false }} />
         <Stack.Screen name="mountains" options={{ headerShown: false }} />
         <Stack.Screen name="forest" options={{ headerShown: false }} />
+        <Stack.Screen name="camping" options={{ headerShown: false }} />
+        <Stack.Screen name="safety-alerts" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
         <Stack.Screen name="trip" options={{ headerShown: false }} />

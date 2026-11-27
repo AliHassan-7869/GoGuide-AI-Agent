@@ -15,7 +15,9 @@ export function useKeyboardOverlap(containerRef, { enabled = Platform.OS === "an
   const keyboardTopRef = useRef(null);
   const timersRef = useRef([]);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const measure = useCallback(() => {
     const node = containerRef.current;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View, Linking } from "react-native";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -169,11 +169,12 @@ export default function OfflineVaultModal({
     }
   };
 
-  const handleCall = (phoneNumber) => {
+  const handleCall = async (phoneNumber) => {
     triggerHaptic();
-    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+    const opened = await openExternalUrl(`tel:${phoneNumber}`, { allowContact: true });
+    if (!opened) {
       Alert.alert("Emergency Dial", `Number: ${phoneNumber}`);
-    });
+    }
   };
 
   return (

@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "@/Components/constants/constants";
 import PolicyModal from "../../../Components/PolicyModal";
 import { auth } from "@/Configs/FirebaseConfig";

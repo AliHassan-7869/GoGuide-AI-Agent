@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { openExternalUrl } from "../Components/utils/openExternalUrl";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../Components/constants/constants";
 import { Palette, Radius, Spacing, Typography, useTheme } from "../Components/constants/theme";
@@ -91,7 +92,7 @@ export default function EmergencyInfo() {
 
   const callContact = (phone) => {
     const link = telLink(phone);
-    if (link) Linking.openURL(link).catch(() => {});
+    if (link) openExternalUrl(link, { allowContact: true });
   };
 
   const inputStyle = [styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }];
