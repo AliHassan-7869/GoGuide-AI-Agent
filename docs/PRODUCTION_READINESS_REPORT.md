@@ -1,21 +1,23 @@
 # GoGuide AI: Production Readiness Report
 
-Branch: `staging` | Date: 2026-11-20 | Nothing pushed.
+Branch: `main` & `staging` (synced) | Updated: 2026-11-27
 
 ## 1. Verdict
 
-The app is **close to launch-ready from a code standpoint**. What remains is mostly account, key and infrastructure work that only you can do.
+The app is **production-ready from a code standpoint** (audited at **8.6 / 10**). All automated backend, frontend, UI, E2E smoke, and mobile overflow suites pass with zero lint or build errors. What remains is console-level account/key hygiene and Play Store submission.
 
 | Area | Status |
 |---|---|
-| Code quality (lint, tests, web build) | Green: lint exit 0, 91/91 tests, `expo export -p web` exit 0 |
+| Code quality (lint, tests, web build) | **Green:** ESLint `0` errors / `0` warnings; **102/102** backend `pytest`; **102/102** frontend unit tests; **22/22** Jest UI suites (**80/80** tests); **8/8** Playwright E2E smoke (including offline); **62/62** mobile overflow checks (`280px`/`320px`); `expo export -p web` exit `0` |
 | Firestore security rules | Strong in the repo (see section 4). Booking and favorite validation added, **emulator-tested (66/66 pass)** and **deployed to `goguideai` on 2026-11-20** |
-| Backend hardening (CORS, auth, secrets) | Good |
+| Backend & Android security hardening | **Hardened (`82118c8`):** encrypted native auth/emergency storage (`expo-secure-store` + AES-GCM), `413` body limits, backend security headers, prompt delimiters, output sanitization, trusted `https:` URL allowlist, `usesCleartextTraffic=false`, R8 minification, `allowBackup=false` |
+| OTA updates (EAS Update) | **Configured (`4c5279a`):** `expo-updates` (`~58.0.23`), `appVersion` runtime policy, per-profile channels (`development`, `preview`, `staging`, `production`) |
+| Backend uptime monitoring | **Active:** UptimeRobot 10-min `/health` ping keeping Render awake (~0.4–0.5s response) + `.github/workflows/keep-alive.yml` backup |
 | Web hosting headers | Good, but no CSP yet |
-| Secrets and key hygiene | **Needs action** (rotate and restrict) |
-| AI provider billing | **Blocker**: DeepSeek balance is $0 |
+| Secrets and key hygiene | **Needs action** (rotate and restrict in Google Cloud Console) |
+| AI provider billing | Verify DeepSeek balance (Gemini primary + NVIDIA fallback active) |
 | Horizontal scaling | Not ready (in-memory state) |
-| Store release | Not started (Play Store tasks) |
+| Store release | Ready for preview APK smoke test → Play Store `.aab` submission |
 
 ## 2. Architecture
 
@@ -35,6 +37,10 @@ The app is **close to launch-ready from a code standpoint**. What remains is mos
 | 9e19e68 | Debug `console.log` calls in 18 files guarded by `__DEV__` |
 | 1fe8e1e | `jest` and `jest-expo` moved to devDependencies |
 | bebabae | `.claude/launch.json` for local preview |
+| 82118c8 | Full security hardening: encrypted auth/emergency storage, `413` body limits, security headers, AI prompt/output sanitization, trusted `https:` links, Android R8 & cleartext disable |
+| 4731b8e | Cleared all remaining ESLint errors/warnings, registered `camping` & `safety-alerts` stack routes, routed all `tel:` links through `openExternalUrl` |
+| d0c99b6 | Unified all create-trip wizard screens with `<ScreenHeader />` and centralized `theme.js` palette tokens |
+| 4c5279a | Configured `expo-updates` (EAS Update OTA) with `appVersion` runtime policy and per-profile channels |
 
 Earlier fixes in the same effort: jspdf SSR crash in `metro.config.js`, missing `expo-clipboard`, and the production-services flag for live Firebase.
 

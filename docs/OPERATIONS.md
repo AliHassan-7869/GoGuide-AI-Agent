@@ -8,11 +8,10 @@ What is watched, who finds out, how to get data back, and how to undo a bad rele
 ## 1. Monitoring and alerts
 
 ### What the code already does (in the repo)
-- **Uptime:** `.github/workflows/keep-alive.yml` checks `/health` every 12 minutes with retries and
-  **fails the run** if the backend is down. GitHub emails Actions failures to the repository's
-  notification recipients. It also keeps the free-tier Render service awake.
-  - In public repositories GitHub disables scheduled workflows after 60 days with no activity. If the check goes
-    quiet, re-enable it under the Actions tab.
+- **Uptime & Keep-Alive:**
+  - **Primary (external):** UptimeRobot pings `https://goguide-ai-agent.onrender.com/health` every **10 minutes**, reliably preventing Render's 15-minute idle sleep (verified live response ~0.4–0.5s).
+  - **Backup (CI):** `.github/workflows/keep-alive.yml` checks `/health` on a 12-minute cron with retries and **fails the run** if the backend is down (GitHub emails outage alerts). Note that GitHub free cron triggers can be delayed 15–45 min under load, so UptimeRobot is the primary keep-alive.
+  - In public repositories GitHub disables scheduled workflows after 60 days with no activity. If the check goes quiet, re-enable it under the Actions tab.
 - **Render health check:** `render.yaml` sets `healthCheckPath: /health`, so Render restarts an
   instance that stops answering.
 - **Which release is live:** `GET /health` returns `{"status":"ok","release":"<7-char commit>"}`.
@@ -78,7 +77,8 @@ the app at it blindly. Also keep `firestore.rules` and `firestore.indexes.json` 
 | Web (Vercel) | push to the connected branch | Vercel > Deployments > pick the last good one > **Promote to Production** (or `vercel rollback`) |
 | Backend (Render) | push to the connected branch | Render > service > Events/Deploys > pick the last good deploy > **Rollback** |
 | Firestore rules | manual: `firebase deploy --only firestore:rules` | `git checkout <good-commit> -- firestore.rules app/GoGuide/firestore.rules` then redeploy. Check `firebase use` first. |
-| Mobile apps (EAS) | manual: `eas build --profile production` | Submit the previous build; store releases cannot be un-shipped, only superseded |
+| Mobile apps (EAS Build) | manual: `eas build -p android --profile preview\|production` | Submit the previous build; store releases cannot be un-shipped, only superseded |
+| Mobile JS/UI hotfixes (EAS Update OTA) | manual: `eas update --channel preview\|production --message "..."` | `eas update:republish --group <previous-group-id>` to roll back an OTA bundle instantly |
 
 **Order that avoids breakage for changes touching both sides:** deploy Firestore rules *after* the app
 release that no longer needs the old access, and deploy the backend *after* the app that understands its

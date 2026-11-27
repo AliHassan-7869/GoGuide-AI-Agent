@@ -77,12 +77,12 @@ The app finds the backend by itself. It uses the same computer address that Expo
 
 ```bash
 cd "app/GoGuide"
-npm start
+npx expo start --go -c
 ```
 
 Scan the QR code with Expo Go. Then sign in. AI features need a signed in user.
 
-No Expo account is needed. The project is not linked to an EAS project, so Expo never asks you to log in.
+> **Local Expo Go with Production Services:** In development mode, `Configs/env.js` blocks production Firebase by default to prevent accidental writes. Add `EXPO_PUBLIC_USE_PRODUCTION_SERVICES=true` to `app/GoGuide/.env.local` (gitignored) to test locally against live Firebase/Render. For full machine tools, VS Code extensions, and dependency versions, see [`docs/MACHINE_EXTENSIONS_AND_DEPENDENCIES.md`](./docs/MACHINE_EXTENSIONS_AND_DEPENDENCIES.md).
 
 **iPhone:** since September 2026, Expo Go on a real iPhone only opens dev projects when you are logged in to the same Expo account on both Expo CLI (`npx expo login`) and Expo Go. Android, emulators and the web do not need an account. If you are logged in: scan the QR with the **Camera** app, tap "Open in Expo Go", and allow Settings > Privacy & Security > Local Network > **Expo Go**.
 

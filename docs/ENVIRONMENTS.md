@@ -24,8 +24,9 @@ any built app or site is `production`. Code: `app/GoGuide/Configs/env.js`.
 
 ## Day-to-day (development)
 
-1. `cp app/GoGuide/.env.example app/GoGuide/.env.local` and fill it in (see below for a staging project).
-2. Start the app: `npm start`. The console shows which backend and Firebase project are in use.
+1. `cp app/GoGuide/.env.example app/GoGuide/.env.local` and fill it in (or set `EXPO_PUBLIC_USE_PRODUCTION_SERVICES=true` in `app/GoGuide/.env.local` to run Expo Go directly against production Firebase/Render).
+2. Start the app: `cd app/GoGuide && npx expo start --go -c`. The console shows which backend and Firebase project are in use.
+3. For a full list of installed machine tools, VS Code extensions, and frontend/backend dependencies, see [`docs/MACHINE_EXTENSIONS_AND_DEPENDENCIES.md`](./MACHINE_EXTENSIONS_AND_DEPENDENCIES.md).
 
 ## One-time setup you must do yourself (not done by the code)
 
