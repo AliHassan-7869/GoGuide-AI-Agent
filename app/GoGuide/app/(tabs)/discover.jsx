@@ -728,7 +728,10 @@ export default function Discover() {
       setAiLoading(false);
       if (err?.statusCode === 402 || err?.errorCode === "QUOTA_EXCEEDED") {
         refreshEntitlements?.();
-        if (err?.quota?.is_anonymous && err?.quota?.reason === "guest_limit_reached") {
+        if (
+          (err?.quota?.is_anonymous && err?.quota?.reason === "guest_limit_reached") ||
+          err?.quota?.reason === "email_verification_required"
+        ) {
           setShowLinkModal(true);
           return;
         }

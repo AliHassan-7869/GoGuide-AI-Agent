@@ -3,11 +3,16 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, S
 import { Ionicons } from "@expo/vector-icons";
 import { Palette, Radius, Spacing, Typography, useTheme } from "./constants/theme";
 import { TouchableOpacity } from "./ui/Touchable";
-import { linkAnonymousWithEmail } from "./utils/AccountLinkingService";
+import {
+  linkAnonymousWithEmail,
+  refreshEmailVerificationAndSync,
+  resendAccountVerificationEmail,
+} from "./utils/AccountLinkingService";
 
 /**
  * Shown when an anonymous guest hits their 2-trip limit (or taps "Unlock 8 More Free Trips").
- * Links the anonymous Firebase UID via `linkWithCredential()` and syncs `free_trips_limit` 2 -> 10.
+ * Links the anonymous Firebase UID via `linkWithCredential()` and requires email verification
+ * before upgrading `free_trips_limit` 2 -> 10 so fake/disposable emails cannot farm free trips.
  */
 export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed = 2 }) {
   const theme = useTheme();
@@ -16,19 +21,78 @@ export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+
+  const resetAndClose = () => {
+    setError("");
+    setInfo("");
+    setAwaitingVerification(false);
+    onClose?.();
+  };
 
   const handleLink = async () => {
     setError("");
+    setInfo("");
     setLoading(true);
     try {
-      const { entitlements } = await linkAnonymousWithEmail({ email, password, fullName });
+      const { entitlements, needsEmailVerification } = await linkAnonymousWithEmail({
+        email,
+        password,
+        fullName,
+      });
+      if (needsEmailVerification && (entitlements?.free_trips_limit ?? 2) < 10) {
+        setPendingEmail(email.trim());
+        setAwaitingVerification(true);
+        setInfo("Verification link sent! Open your inbox, tap the link, then tap 'I've Verified My Email'.");
+        return;
+      }
       setEmail("");
       setPassword("");
       setFullName("");
+      setAwaitingVerification(false);
       onLinked?.(entitlements);
       onClose?.();
     } catch (e) {
       setError(e?.message || "Could not link your account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckVerified = async () => {
+    setError("");
+    setInfo("");
+    setLoading(true);
+    try {
+      const { verified, entitlements } = await refreshEmailVerificationAndSync();
+      if (!verified) {
+        setError("Email not verified yet. Please click the link we sent to your inbox and try again.");
+        return;
+      }
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setAwaitingVerification(false);
+      onLinked?.(entitlements);
+      onClose?.();
+    } catch (e) {
+      setError(e?.message || "Could not check verification status right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setInfo("");
+    setLoading(true);
+    try {
+      await resendAccountVerificationEmail();
+      setInfo("Verification email resent! Please check your inbox (and spam folder).");
+    } catch (e) {
+      setError(e?.message || "Could not resend verification email. Please wait a moment and try again.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +104,7 @@ export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={resetAndClose}
     >
       <KeyboardAvoidingView
         style={styles.backdrop}
@@ -49,13 +113,13 @@ export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed
         <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.topRow}>
             <View style={[styles.badge, { backgroundColor: theme.badgeBg }]}>
-              <Ionicons name="gift-outline" size={16} color={theme.primary} />
+              <Ionicons name={awaitingVerification ? "mail-outline" : "gift-outline"} size={16} color={theme.primary} />
               <Text style={[styles.badgeText, { color: theme.primary }]} maxFontSizeMultiplier={1.3}>
-                +8 FREE TRIPS
+                {awaitingVerification ? "VERIFY EMAIL" : "+8 FREE TRIPS"}
               </Text>
             </View>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={resetAndClose}
               accessibilityRole="button"
               accessibilityLabel="Close account link dialog"
               style={styles.closeBtn}
@@ -66,11 +130,21 @@ export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={[styles.title, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
-              Unlock 8 More Free Trips
+              {awaitingVerification ? "Verify Your Email to Unlock +8 Trips" : "Unlock 8 More Free Trips"}
             </Text>
             <Text style={[styles.subtitle, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>
-              You have used {tripsUsed} of 2 guest trips. Link a free account to keep your saved trips and immediately unlock 10 total free AI itineraries.
+              {awaitingVerification
+                ? `We sent a verification link to ${pendingEmail || "your email"}. Verify your real inbox to unlock 10 total free AI itineraries.`
+                : `You have used ${tripsUsed} of 2 guest trips. Link and verify a real email account to keep your saved trips and unlock 10 total free AI itineraries.`}
             </Text>
+
+            {info ? (
+              <View style={[styles.infoBox, { backgroundColor: theme.badgeBg, borderColor: theme.primary }]}>
+                <Text style={[styles.infoText, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                  {info}
+                </Text>
+              </View>
+            ) : null}
 
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.isDark ? Palette.dangerBgDark : Palette.dangerBgLight, borderColor: theme.isDark ? Palette.dangerBorderDark : Palette.dangerBorderLight }]}>
@@ -80,50 +154,84 @@ export default function AccountLinkModal({ visible, onClose, onLinked, tripsUsed
               </View>
             ) : null}
 
-            <TextInput
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Your name (optional)"
-              placeholderTextColor={theme.subtext}
-              style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
-              returnKeyType="next"
-            />
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email address"
-              placeholderTextColor={theme.subtext}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
-              returnKeyType="next"
-            />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Create a password (min 6 chars)"
-              placeholderTextColor={theme.subtext}
-              secureTextEntry
-              style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
-              returnKeyType="done"
-              onSubmitEditing={handleLink}
-            />
+            {awaitingVerification ? (
+              <>
+                <TouchableOpacity
+                  onPress={handleCheckVerified}
+                  disabled={loading}
+                  style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="I have verified my email"
+                >
+                  {loading ? (
+                    <ActivityIndicator color={Palette.white} />
+                  ) : (
+                    <Text style={styles.primaryBtnText} maxFontSizeMultiplier={1.3}>
+                      I&apos;ve Verified My Email
+                    </Text>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleLink}
-              disabled={loading}
-              style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
-              accessibilityRole="button"
-              accessibilityLabel="Link account and unlock 8 free trips"
-            >
-              {loading ? (
-                <ActivityIndicator color={Palette.white} />
-              ) : (
-                <Text style={styles.primaryBtnText} maxFontSizeMultiplier={1.3}>
-                  Unlock 8 More Free Trips
-                </Text>
-              )}
-            </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleResend}
+                  disabled={loading}
+                  style={[styles.secondaryBtn, { borderColor: theme.border }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Resend verification email"
+                >
+                  <Text style={[styles.secondaryBtnText, { color: theme.primary }]} maxFontSizeMultiplier={1.3}>
+                    Resend Verification Email
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Your name (optional)"
+                  placeholderTextColor={theme.subtext}
+                  style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email address"
+                  placeholderTextColor={theme.subtext}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Create a password (min 6 chars)"
+                  placeholderTextColor={theme.subtext}
+                  secureTextEntry
+                  style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.inputText }]}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLink}
+                />
+
+                <TouchableOpacity
+                  onPress={handleLink}
+                  disabled={loading}
+                  style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Link account and unlock 8 free trips"
+                >
+                  {loading ? (
+                    <ActivityIndicator color={Palette.white} />
+                  ) : (
+                    <Text style={styles.primaryBtnText} maxFontSizeMultiplier={1.3}>
+                      Link &amp; Verify Email
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -211,6 +319,30 @@ const styles = StyleSheet.create({
     color: Palette.white,
     fontSize: Typography.sizeBase,
     fontFamily: Typography.fontBold,
+  },
+  infoBox: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  infoText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontMedium,
+    lineHeight: 19,
+  },
+  secondaryBtn: {
+    minHeight: 48,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  secondaryBtnText: {
+    fontSize: Typography.sizeMd,
+    fontFamily: Typography.fontSemiBold,
   },
 });
 

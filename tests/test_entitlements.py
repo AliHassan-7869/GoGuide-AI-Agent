@@ -197,3 +197,69 @@ def test_revenuecat_webhook_auth_and_lifecycle(client, providers):
     ent_pack = client.get("/api/users/entitlements", headers=USER_HEADERS).json()["data"]
     assert ent_pack["pack_credits"] == 10
 
+
+def test_unverified_email_stays_at_2_trips_until_verified(client, app, monkeypatch, providers):
+    _setup_ok_plan(providers)
+    unverified_headers = {"Authorization": "Bearer unverified-password-token"}
+
+    # Unverified email/password user stays at 2 free trips (cannot farm +8 with fake email)
+    r_sync = client.post("/api/users/sync", headers=unverified_headers)
+    assert r_sync.status_code == 200
+    ent = r_sync.json()["data"]
+    assert ent["is_anonymous"] is False
+    assert ent["free_trips_limit"] == 2
+    assert ent["verification_required"] is True
+
+    # Uses 2 trips -> 3rd trip blocked with email_verification_required
+    assert client.post("/plan", json=BASE_PLAN_REQ, headers=unverified_headers).status_code == 200
+    assert client.post("/plan", json={**BASE_PLAN_REQ, "destination": "Osaka"}, headers=unverified_headers).status_code == 200
+    r3 = client.post("/plan", json={**BASE_PLAN_REQ, "destination": "Nara"}, headers=unverified_headers)
+    assert r3.status_code == 402
+    assert r3.json()["reason"] == "email_verification_required"
+
+    # Once the same uid verifies their real inbox, sync upgrades limit 2 -> 10 preserving trips_used=2
+    orig_verify = app.id_token.verify_firebase_token
+
+    def verify_now_confirmed(token, req, audience):
+        if token == "user-3-verified":
+            return {
+                "sub": "user-3",
+                "iss": f"https://securetoken.google.com/{audience}",
+                "email": "real@gmail.com",
+                "email_verified": True,
+                "firebase": {"sign_in_provider": "password"},
+            }
+        return orig_verify(token, req, audience)
+
+    monkeypatch.setattr(app.id_token, "verify_firebase_token", verify_now_confirmed)
+    r_after = client.post("/api/users/sync", headers={"Authorization": "Bearer user-3-verified"})
+    assert r_after.status_code == 200
+    ent_after = r_after.json()["data"]
+    assert ent_after["free_trips_limit"] == 10
+    assert ent_after["trips_used"] == 2
+    assert ent_after["remaining_free_trips"] == 8
+    assert ent_after["verification_required"] is False
+
+
+def test_disposable_email_domain_does_not_unlock_10_trips(client, app, monkeypatch):
+    orig_verify = app.id_token.verify_firebase_token
+
+    def verify_disposable(token, req, audience):
+        if token == "disposable-token":
+            return {
+                "sub": "user-disp",
+                "iss": f"https://securetoken.google.com/{audience}",
+                "email": "burner@mailinator.com",
+                "email_verified": True,
+                "firebase": {"sign_in_provider": "password"},
+            }
+        return orig_verify(token, req, audience)
+
+    monkeypatch.setattr(app.id_token, "verify_firebase_token", verify_disposable)
+    r = client.post("/api/users/sync", headers={"Authorization": "Bearer disposable-token"})
+    assert r.status_code == 200
+    ent = r.json()["data"]
+    assert ent["free_trips_limit"] == 2
+    assert ent["verification_required"] is True
+
+

@@ -215,7 +215,13 @@ class EntitlementsStore:
             "updated_at": d["updated_at"],
         }
 
-    def _ensure_user_in_tx(self, cur: Any, uid: str, is_anonymous: bool | None) -> dict[str, Any]:
+    def _ensure_user_in_tx(
+        self,
+        cur: Any,
+        uid: str,
+        is_anonymous: bool | None,
+        email_verified: bool = True,
+    ) -> dict[str, Any]:
         p = self._ph()
         cur.execute(
             f"SELECT uid, is_anonymous, free_trips_limit, trips_used, plan_type, pro_expires_at, pack_credits, updated_at "
@@ -224,9 +230,10 @@ class EntitlementsStore:
         )
         row = cur.fetchone()
         now = _iso_now()
+        can_unlock_signed_in_bonus = (is_anonymous is False) and bool(email_verified)
         if row is None:
             anon_flag = True if is_anonymous is None else bool(is_anonymous)
-            limit = FREE_GUEST_LIMIT if anon_flag else FREE_SIGNED_IN_LIMIT
+            limit = FREE_SIGNED_IN_LIMIT if (not anon_flag and bool(email_verified)) else FREE_GUEST_LIMIT
             cur.execute(
                 f"INSERT INTO user_entitlements (uid, is_anonymous, free_trips_limit, trips_used, plan_type, pro_expires_at, pack_credits, updated_at) "
                 f"VALUES ({p}, {p}, {p}, 0, 'free', NULL, 0, {p})",
@@ -240,11 +247,11 @@ class EntitlementsStore:
             row = cur.fetchone()
         elif is_anonymous is False:
             current = self._row_to_dict(row)
-            if current["is_anonymous"] or current["free_trips_limit"] < FREE_SIGNED_IN_LIMIT:
-                new_limit = max(current["free_trips_limit"], FREE_SIGNED_IN_LIMIT)
+            target_limit = max(current["free_trips_limit"], FREE_SIGNED_IN_LIMIT) if can_unlock_signed_in_bonus else current["free_trips_limit"]
+            if current["is_anonymous"] or target_limit > current["free_trips_limit"]:
                 cur.execute(
                     f"UPDATE user_entitlements SET is_anonymous = 0, free_trips_limit = {p}, updated_at = {p} WHERE uid = {p}",
-                    (new_limit, now, uid),
+                    (target_limit, now, uid),
                 )
                 cur.execute(
                     f"SELECT uid, is_anonymous, free_trips_limit, trips_used, plan_type, pro_expires_at, pack_credits, updated_at "
@@ -252,7 +259,14 @@ class EntitlementsStore:
                     (uid,),
                 )
                 row = cur.fetchone()
-        return self._row_to_dict(row)
+        result = self._row_to_dict(row)
+        result["email_verified"] = bool(email_verified) if not result["is_anonymous"] else False
+        result["verification_required"] = (
+            (not result["is_anonymous"])
+            and (not bool(email_verified))
+            and result["free_trips_limit"] < FREE_SIGNED_IN_LIMIT
+        )
+        return result
 
     def _run_tx(self, fn):
         with self._lock:
@@ -273,13 +287,13 @@ class EntitlementsStore:
                     cur.execute("ROLLBACK")
                     raise
 
-    def sync_user(self, uid: str, is_anonymous: bool) -> dict[str, Any]:
-        """Create user record if new, or upgrade anonymous -> signed-in (limit 2 -> 10, keeping trips_used)."""
-        return self._run_tx(lambda cur: self._ensure_user_in_tx(cur, uid, is_anonymous))
+    def sync_user(self, uid: str, is_anonymous: bool, email_verified: bool = True) -> dict[str, Any]:
+        """Create user record if new, or upgrade anonymous -> verified signed-in (limit 2 -> 10, keeping trips_used)."""
+        return self._run_tx(lambda cur: self._ensure_user_in_tx(cur, uid, is_anonymous, email_verified=email_verified))
 
-    def get_entitlements(self, uid: str, is_anonymous: bool | None = None) -> dict[str, Any]:
+    def get_entitlements(self, uid: str, is_anonymous: bool | None = None, email_verified: bool = True) -> dict[str, Any]:
         """Return current entitlements for uid (auto-creating/syncing if needed)."""
-        return self._run_tx(lambda cur: self._ensure_user_in_tx(cur, uid, is_anonymous))
+        return self._run_tx(lambda cur: self._ensure_user_in_tx(cur, uid, is_anonymous, email_verified=email_verified))
 
     def check_trip_entitlement(
         self,
@@ -289,6 +303,7 @@ class EntitlementsStore:
         cities_count: int = 1,
         is_minor_edit: bool = False,
         trip_id: str | None = None,
+        email_verified: bool = True,
     ) -> tuple[str, dict[str, Any]]:
         """
         Verify quota & tier scope BEFORE running the multi-agent pipeline.
@@ -297,7 +312,7 @@ class EntitlementsStore:
         Raises `QuotaExceededError` (mapped to HTTP 402) if blocked.
         """
         def _check(cur):
-            ent = self._ensure_user_in_tx(cur, uid, is_anonymous)
+            ent = self._ensure_user_in_tx(cur, uid, is_anonymous, email_verified=email_verified)
             p = self._ph()
 
             # 1. Minor edits on an existing trip: up to 2 free edits per trip_id
@@ -347,19 +362,26 @@ class EntitlementsStore:
             if ent["pack_credits"] > 0:
                 return ("pack", ent)
 
+            if ent["is_anonymous"]:
+                reason = "guest_limit_reached"
+                detail = "You've used your 2 free guest trips. Sign in to unlock 8 more free trips!"
+            elif ent.get("verification_required"):
+                reason = "email_verification_required"
+                detail = "Please verify your email address to unlock 8 more free trips!"
+            else:
+                reason = "free_limit_reached"
+                detail = "You've used all 10 free trips. Upgrade to GoGuide Pro for unlimited itineraries!"
+
             raise QuotaExceededError({
                 "error_code": "QUOTA_EXCEEDED",
-                "reason": "guest_limit_reached" if ent["is_anonymous"] else "free_limit_reached",
-                "detail": (
-                    "You've used your 2 free guest trips. Sign in to unlock 8 more free trips!"
-                    if ent["is_anonymous"]
-                    else "You've used all 10 free trips. Upgrade to GoGuide Pro for unlimited itineraries!"
-                ),
+                "reason": reason,
+                "detail": detail,
                 "trips_used": ent["trips_used"],
                 "free_trips_limit": ent["free_trips_limit"],
                 "remaining_free_trips": 0,
                 "pack_credits": ent["pack_credits"],
                 "is_anonymous": ent["is_anonymous"],
+                "verification_required": bool(ent.get("verification_required")),
             })
 
         return self._run_tx(_check)

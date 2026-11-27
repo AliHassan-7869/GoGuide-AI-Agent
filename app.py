@@ -254,6 +254,33 @@ def check_ip_rate_limit(request: Request, bucket: str = "ip", limit: int | None 
     check_rate_limit(f"{bucket}:{get_client_ip(request)}", IP_RATE_LIMIT_PER_HOUR if limit is None else limit)
 
 
+DISPOSABLE_EMAIL_DOMAINS = frozenset({
+    "mailinator.com", "guerrillamail.com", "guerrillamail.net", "sharklasers.com",
+    "tempmail.com", "temp-mail.org", "10minutemail.com", "10minutemail.net",
+    "yopmail.com", "throwawaymail.com", "trashmail.com", "fakeinbox.com",
+    "getnada.com", "dispostable.com", "maildrop.cc", "mintemail.com",
+})
+
+
+def _claims_entitlement_flags(claims: dict) -> tuple[bool, bool]:
+    """Return (is_anonymous, email_verified_for_bonus).
+    - Anonymous users get 2 trips.
+    - Email/password users only unlock the +8 free trips bonus once `email_verified` is True
+      and their domain is not a known disposable/throwaway provider.
+    """
+    provider = (claims.get("firebase") or {}).get("sign_in_provider") or ""
+    is_anon = provider == "anonymous"
+    if is_anon:
+        return True, False
+    email = str(claims.get("email") or "").strip().lower()
+    domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+    if domain in DISPOSABLE_EMAIL_DOMAINS:
+        return False, False
+    if provider == "password":
+        return False, bool(claims.get("email_verified"))
+    return False, True
+
+
 def require_client(
     request: Request,
     authorization: str | None = Header(default=None),
@@ -266,14 +293,16 @@ def require_client(
     if authorization and authorization.startswith("Bearer "):
         claims = verify_firebase_claims(authorization[len('Bearer '):].strip())
         client_id = f"user:{claims['sub']}"
-        anonymous = (claims.get("firebase") or {}).get("sign_in_provider") == "anonymous"
+        anonymous, email_verified = _claims_entitlement_flags(claims)
         request.state.uid = claims["sub"]
         request.state.is_anonymous = anonymous
+        request.state.email_verified = email_verified
     elif x_api_key is not None and ALLOW_API_KEY_AUTH:
         verify_api_key(x_api_key)
         client_id = f"key:{get_client_ip(request)}"
         request.state.uid = None
         request.state.is_anonymous = False
+        request.state.email_verified = True
     else:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -639,6 +668,7 @@ def generate_plan(request: TravelRequest, http_request: Request, client_id: str 
 
     uid = getattr(http_request.state, "uid", None)
     is_anon = getattr(http_request.state, "is_anonymous", False)
+    email_verified = getattr(http_request.state, "email_verified", True)
     cost_type = None
     if uid:
         cost_type, _ = entitlements_store.check_trip_entitlement(
@@ -648,6 +678,7 @@ def generate_plan(request: TravelRequest, http_request: Request, client_id: str 
             cities_count=request.cities_count,
             is_minor_edit=request.is_minor_edit,
             trip_id=request.trip_id,
+            email_verified=email_verified,
         )
 
     destination = sanitize_input(request.destination, 100)
@@ -989,6 +1020,7 @@ def create_deep_plan(request: TravelRequest, http_request: Request, background_t
 
     uid = getattr(http_request.state, "uid", None)
     is_anon = getattr(http_request.state, "is_anonymous", False)
+    email_verified = getattr(http_request.state, "email_verified", True)
     cost_type = None
     if uid:
         cost_type, _ = entitlements_store.check_trip_entitlement(
@@ -998,6 +1030,7 @@ def create_deep_plan(request: TravelRequest, http_request: Request, background_t
             cities_count=request.cities_count,
             is_minor_edit=request.is_minor_edit,
             trip_id=request.trip_id,
+            email_verified=email_verified,
         )
 
     job_id = secrets.token_urlsafe(16)
@@ -1087,6 +1120,7 @@ def generate_orchestrated_plan(request: TravelRequest, http_request: Request, cl
 
     uid = getattr(http_request.state, "uid", None)
     is_anon = getattr(http_request.state, "is_anonymous", False)
+    email_verified = getattr(http_request.state, "email_verified", True)
 
     destination = sanitize_input(request.destination, 100)
     budget = sanitize_input(request.budget, 50)
@@ -1107,6 +1141,7 @@ def generate_orchestrated_plan(request: TravelRequest, http_request: Request, cl
                 cities_count=request.cities_count,
                 is_minor_edit=request.is_minor_edit,
                 trip_id=request.trip_id,
+                email_verified=email_verified,
             )
         try:
             logger.info("Executing Stack 5 LangGraph orchestration (%s days)", request.days)
@@ -1382,30 +1417,30 @@ def destination_safety(request: DestinationRequest, client_id: str = Depends(req
     return response
 
 # -------------------- MONETIZATION: ENTITLEMENTS & REVENUECAT WEBHOOK --------------------
-def _require_bearer_identity(request: Request, authorization: str | None) -> tuple[str, bool]:
-    """Verify Firebase Bearer token and return (uid, is_anonymous)."""
+def _require_bearer_identity(request: Request, authorization: str | None) -> tuple[str, bool, bool]:
+    """Verify Firebase Bearer token and return (uid, is_anonymous, email_verified)."""
     check_ip_rate_limit(request)
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
     claims = verify_firebase_claims(authorization[len("Bearer "):].strip())
     uid = claims["sub"]
-    is_anon = (claims.get("firebase") or {}).get("sign_in_provider") == "anonymous"
-    return uid, is_anon
+    is_anon, email_verified = _claims_entitlement_flags(claims)
+    return uid, is_anon, email_verified
 
 
 @app.post("/api/users/sync")
 def sync_user_entitlements(request: Request, authorization: str | None = Header(default=None)):
-    """Create entitlement record if new, or upgrade anonymous -> signed-in (2 -> 10 trips, preserving usage)."""
-    uid, is_anon = _require_bearer_identity(request, authorization)
-    ent = entitlements_store.sync_user(uid, is_anon)
+    """Create entitlement record if new, or upgrade anonymous -> verified signed-in (2 -> 10 trips, preserving usage)."""
+    uid, is_anon, email_verified = _require_bearer_identity(request, authorization)
+    ent = entitlements_store.sync_user(uid, is_anon, email_verified=email_verified)
     return {"status": "success", "data": ent}
 
 
 @app.get("/api/users/entitlements")
 def get_user_entitlements(request: Request, authorization: str | None = Header(default=None)):
     """Return current user's plan, quota usage, remaining trips, pack credits, and Pro status."""
-    uid, is_anon = _require_bearer_identity(request, authorization)
-    ent = entitlements_store.get_entitlements(uid, is_anon)
+    uid, is_anon, email_verified = _require_bearer_identity(request, authorization)
+    ent = entitlements_store.get_entitlements(uid, is_anon, email_verified=email_verified)
     return {"status": "success", "data": ent}
 
 

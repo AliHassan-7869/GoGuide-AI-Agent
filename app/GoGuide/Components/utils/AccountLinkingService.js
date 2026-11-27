@@ -2,6 +2,8 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   linkWithCredential,
+  reload,
+  sendEmailVerification,
   signInAnonymously,
   signInWithCredential,
   signInWithEmailAndPassword,
@@ -10,6 +12,30 @@ import {
 import { auth } from "../../Configs/FirebaseConfig";
 import { syncUserEntitlements } from "../../Configs/AiModel";
 import { identifyBillingUser } from "./BillingService";
+
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  "mailinator.com",
+  "guerrillamail.com",
+  "guerrillamail.net",
+  "sharklasers.com",
+  "tempmail.com",
+  "temp-mail.org",
+  "10minutemail.com",
+  "10minutemail.net",
+  "yopmail.com",
+  "throwawaymail.com",
+  "trashmail.com",
+  "fakeinbox.com",
+  "getnada.com",
+  "dispostable.com",
+  "maildrop.cc",
+  "mintemail.com",
+]);
+
+function isDisposableEmail(email) {
+  const domain = String(email || "").trim().toLowerCase().split("@")[1] || "";
+  return DISPOSABLE_EMAIL_DOMAINS.has(domain);
+}
 
 /**
  * Start a Guest session via Firebase Anonymous Auth (`signInAnonymously`),
@@ -37,6 +63,9 @@ export async function linkAnonymousWithEmail({ email, password, fullName }) {
   const cleanPass = String(password || "");
   if (!cleanEmail || !cleanEmail.includes("@")) {
     throw new Error("Please enter a valid email address.");
+  }
+  if (isDisposableEmail(cleanEmail)) {
+    throw new Error("Please use a real email address (temporary/disposable email domains are not supported).");
   }
   if (cleanPass.length < 6) {
     throw new Error("Password must be at least 6 characters.");
@@ -67,13 +96,52 @@ export async function linkAnonymousWithEmail({ email, password, fullName }) {
     }
   }
 
-  // Force a fresh ID token so the backend sees the non-anonymous sign_in_provider immediately
+  // Send verification email for newly linked email/password accounts so fake emails cannot claim +8 free trips
+  let verificationSent = false;
+  if (user && !user.emailVerified && typeof sendEmailVerification === "function") {
+    try {
+      await sendEmailVerification(user);
+      verificationSent = true;
+    } catch {}
+  }
+
+  // Force a fresh ID token so the backend sees the updated provider & email_verified status
   if (user?.getIdToken) {
     await user.getIdToken(true).catch(() => {});
   }
   await identifyBillingUser(user?.uid);
   const entitlements = await syncUserEntitlements().catch(() => null);
-  return { user, entitlements };
+  return {
+    user,
+    entitlements,
+    needsEmailVerification: Boolean(user && !user.emailVerified),
+    verificationSent,
+  };
+}
+
+/**
+ * Reloads the current Firebase user after they click the inbox verification link,
+ * refreshes their ID token, and re-syncs backend entitlements (unlocking 2 -> 10 free trips).
+ */
+export async function refreshEmailVerificationAndSync() {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No active session found.");
+  if (typeof reload === "function") {
+    await reload(user);
+  }
+  if (user.getIdToken) {
+    await user.getIdToken(true).catch(() => {});
+  }
+  const entitlements = await syncUserEntitlements().catch(() => null);
+  return { verified: Boolean(user.emailVerified), entitlements };
+}
+
+export async function resendAccountVerificationEmail() {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No active session found.");
+  if (typeof sendEmailVerification === "function") {
+    await sendEmailVerification(user);
+  }
 }
 
 /**
