@@ -104,6 +104,11 @@ def test_failed_generation_does_not_deduct_credit(client, providers):
 
 def test_free_tier_caps_days_at_5_and_cities_at_2(client, providers):
     _setup_ok_plan(providers)
+    r_short = client.post("/plan", json={**BASE_PLAN_REQ, "days": 2}, headers=USER_HEADERS)
+    assert r_short.status_code == 402
+    assert r_short.json()["error_code"] == "QUOTA_EXCEEDED"
+    assert r_short.json()["reason"] == "free_days_limit"
+
     r_days = client.post("/plan", json={**BASE_PLAN_REQ, "days": 7}, headers=USER_HEADERS)
     assert r_days.status_code == 402
     assert r_days.json()["error_code"] == "QUOTA_EXCEEDED"

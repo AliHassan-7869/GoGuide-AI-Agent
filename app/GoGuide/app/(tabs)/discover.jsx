@@ -628,10 +628,16 @@ export default function Discover() {
       const { robustParseJson, normalizeTrip } = require("../../Components/utils/TripNormalizer");
       const { buildCuratedPlan } = require("../../Components/utils/CuratedPlans");
 
+      const multiCityParts = String(cleanDest || "")
+        .split(/\s*(?:,|&|\+|→|->|\band\b)\s*/i)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 2);
+      const citiesCount = Math.max(1, Math.min(10, multiCityParts.length));
+
       let parsedData = null;
       // Verified itinerary bundled in the app (same data the backend serves for these cities):
-      // instant, free, and works with no network. Only the other cities need the AI.
-      const curated = buildCuratedPlan(cleanDest, days, budget);
+      // instant, free, and works with no network. Only single-city curated trips use the shortcut.
+      const curated = citiesCount === 1 ? buildCuratedPlan(cleanDest, days, budget) : null;
       if (curated) {
         parsedData = curated;
       } else {
@@ -639,6 +645,7 @@ export default function Discover() {
           {
             destination: cleanDest,
             days: days,
+            cities_count: citiesCount,
             budget: budget,
             interests: origin ? `Traveler flying from ${cleanOrigin} to ${cleanDest} for ${days} days` : undefined,
           },

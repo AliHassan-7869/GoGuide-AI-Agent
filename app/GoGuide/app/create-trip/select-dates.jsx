@@ -467,18 +467,19 @@ export default function SelectDates() {
     }
 
     const hasExtendedDaysAccess = Boolean(entitlements?.is_pro_active || (entitlements?.pack_credits || 0) > 0);
-    if (entitlements && !hasExtendedDaysAccess && finalDays > 5) {
+    if (entitlements && !hasExtendedDaysAccess && (finalDays < 3 || finalDays > 5)) {
+      const clampedDays = Math.min(5, Math.max(3, finalDays));
       if (Platform.OS === "web") {
         router.push({ pathname: "/paywall", params: { reason: "free_days_limit" } });
       } else {
         Alert.alert(
-          "7+ Day Trips Require Pro",
-          "Free plans include trips up to 5 days. Upgrade to GoGuide Pro for 6–30 day itineraries, or switch to 5 days.",
+          "Free Plan: 3–5 Days Only",
+          "Free plans support 3 to 5 day itineraries. Upgrade to GoGuide Pro for any trip length (1–30 days), or adjust your trip.",
           [
             {
-              text: "Keep 5 Days",
+              text: `Use ${clampedDays} Days`,
               style: "cancel",
-              onPress: () => applyDuration(5),
+              onPress: () => applyDuration(clampedDays),
             },
             {
               text: "Upgrade to Pro",

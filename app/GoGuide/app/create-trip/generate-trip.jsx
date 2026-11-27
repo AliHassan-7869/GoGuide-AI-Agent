@@ -253,15 +253,21 @@ export default function GenerateTrip() {
       if (!destinationName || destinationName.length < 2) {
         throw new Error("Please go back and select a valid destination city to generate your trip.");
       }
+      const extraStops = Array.isArray(tripData?.destinations)
+        ? tripData.destinations.map((s) => String(s || "").trim()).filter(Boolean)
+        : [];
+      const destinationsList = extraStops.length > 0 ? extraStops : [destinationName];
+      const citiesCount = Math.max(1, destinationsList.length);
+      const effectiveDestination = citiesCount > 1 ? destinationsList.join(", ") : destinationName;
       const budgetName = tripData?.budget || "Moderate";
-      const wantsCustomPlan = Boolean(interestNames || categoriesStr);
+      const wantsCustomPlan = Boolean(interestNames || categoriesStr || citiesCount > 1);
       let plan = null;
       let apiError = null;
       let usedOfflineFallback = false;
 
       // 1. Instant path: verified itinerary bundled in the app. No network, no AI, no waiting.
-      //    Only when the user did not ask for specific interests/themes (those need the AI).
-      if (forceInstant === true || (!tripData?.isDeepPlan && !wantsCustomPlan)) {
+      //    Only when the user did not ask for specific interests/themes/multi-city (those need the AI).
+      if (citiesCount === 1 && (forceInstant === true || (!tripData?.isDeepPlan && !wantsCustomPlan))) {
         const curated = buildCuratedPlan(destinationName, totalDays, budgetName);
         if (curated) plan = normalizeTrip(curated);
       }
@@ -282,10 +288,11 @@ export default function GenerateTrip() {
         } else if (tripData?.isDeepPlan) {
           result = await generateDeepTripPlan(
             {
-              destination: destinationName,
+              destination: effectiveDestination,
               origin: originName,
               traveler: travelerName,
               days: totalDays,
+              cities_count: citiesCount,
               budget: tripData?.budget || "Moderate",
               interests: interestNames || undefined,
               categories: categoriesStr,
@@ -303,10 +310,11 @@ export default function GenerateTrip() {
         } else {
           result = await generateTripWithAgent(
             {
-              destination: destinationName,
+              destination: effectiveDestination,
               origin: originName,
               traveler: travelerName,
               days: totalDays,
+              cities_count: citiesCount,
               budget: tripData?.budget || "Moderate",
               interests: interestNames || undefined,
               categories: categoriesStr,

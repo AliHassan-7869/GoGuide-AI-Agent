@@ -6,7 +6,7 @@ import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInpu
 
 import { Colors } from "../../Components/constants/constants";
 import { getDestinationImage } from "../../Components/constants/Destinations";
-import { useTheme, Palette } from "../../Components/constants/theme";
+import { useTheme, Palette, Radius, Spacing, Typography } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
 import ScreenHeader from "../../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../../context/CreateTripContext";
@@ -68,12 +68,21 @@ const POPULAR_DESTINATIONS = [
 export default function SearchPlace() {
   const router = useRouter();
   const theme = useTheme();
-  const { tripData, setTripData } = useContext(CreateTripContext);
+  const { tripData, setTripData, entitlements } = useContext(CreateTripContext);
 
   const [fromQuery, setFromQuery] = useState(tripData?.fromLocation?.name || "");
   const [toQuery, setToQuery] = useState(tripData?.toLocation?.name || "");
+  const [extraCities, setExtraCities] = useState(
+    Array.isArray(tripData?.destinations) ? tripData.destinations.slice(1) : []
+  );
+  const [extraCityInput, setExtraCityInput] = useState("");
+  const [addingCity, setAddingCity] = useState(false);
   const [results, setResults] = useState([]);
   const [activeField, setActiveField] = useState("to");
+
+  const hasProScope = Boolean(entitlements?.is_pro_active || (entitlements?.pack_credits || 0) > 0);
+  const maxCities = hasProScope ? 6 : 2;
+  const totalSelectedCities = (toQuery.trim() ? 1 : 0) + extraCities.length;
 
   const timeoutRef = useRef(null);
   const searchAbortRef = useRef(null);
@@ -104,6 +113,9 @@ export default function SearchPlace() {
     if (type === "from") {
       setFromQuery(text);
       setActiveField("from");
+    } else if (type === "extra") {
+      setExtraCityInput(text);
+      setActiveField("extra");
     } else {
       setToQuery(text);
       setActiveField("to");
@@ -161,6 +173,8 @@ export default function SearchPlace() {
         ...prev,
         fromLocation: place,
       }));
+    } else if (activeField === "extra") {
+      addExtraCity(item.display_name);
     } else {
       setToQuery(item.display_name);
       const destinationImage = getDestinationImage(item.display_name);
@@ -172,6 +186,45 @@ export default function SearchPlace() {
     }
 
     setResults([]);
+  };
+
+  const addExtraCity = (rawName) => {
+    const clean = String(rawName || "").trim();
+    if (clean.length < 2) return;
+    if (1 + extraCities.length >= maxCities) {
+      if (!hasProScope) {
+        router.push({ pathname: "/paywall", params: { reason: "free_cities_limit" } });
+      }
+      return;
+    }
+    const shortName = clean.split(",")[0].trim();
+    const exists =
+      toQuery.trim().toLowerCase().startsWith(shortName.toLowerCase()) ||
+      extraCities.some((c) => c.toLowerCase() === clean.toLowerCase());
+    if (!exists) {
+      setExtraCities((prev) => [...prev, clean]);
+    }
+    setExtraCityInput("");
+    setAddingCity(false);
+    setResults([]);
+  };
+
+  const handleOpenAddCity = () => {
+    triggerHaptic();
+    if (!toQuery.trim()) {
+      Alert.alert("Select First City", "Please choose your first destination city before adding another stop.");
+      return;
+    }
+    if (1 + extraCities.length >= maxCities) {
+      if (!hasProScope) {
+        router.push({ pathname: "/paywall", params: { reason: "free_cities_limit" } });
+      } else {
+        Alert.alert("City Limit", `You can include up to ${maxCities} cities per itinerary.`);
+      }
+      return;
+    }
+    setAddingCity(true);
+    setActiveField("extra");
   };
 
   const handleQuickDestination = (dest) => {
@@ -337,6 +390,7 @@ export default function SearchPlace() {
         cleanTo.toLowerCase().includes(d.name.toLowerCase())
     );
 
+    const allDestinations = [cleanTo, ...extraCities.filter((c) => c && c.toLowerCase() !== cleanTo.toLowerCase())];
     const sameDest =
       String(tripData?.toLocation?.name || "").trim().toLowerCase() === cleanTo.toLowerCase();
     setTripData((prev) => ({
@@ -352,6 +406,8 @@ export default function SearchPlace() {
               name: cleanTo,
               coordinates: (sameDest ? prev?.toLocation?.coordinates : null) || matchedDest?.coordinates || null,
             },
+      destinations: allDestinations,
+      citiesCount: allDestinations.length,
       locationInfo: {
         ...(prev?.locationInfo || {}),
         name: cleanTo,
@@ -456,6 +512,77 @@ export default function SearchPlace() {
               />
             </View>
           </View>
+
+          {/* MULTI-CITY STOPS */}
+          {extraCities.length > 0 && (
+            <View style={styles.extraStopsWrap}>
+              {extraCities.map((city, idx) => (
+                <View
+                  key={`${city}-${idx}`}
+                  style={[styles.extraStopChip, { backgroundColor: theme.badgeBg, borderColor: activeAccent }]}
+                >
+                  <Ionicons name="navigate-outline" size={13} color={activeAccent} />
+                  <Text style={[styles.extraStopText, { color: theme.text }]} numberOfLines={1}>
+                    Stop {idx + 2}: {city.split(",")[0]}
+                  </Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${city}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => {
+                      triggerHaptic();
+                      setExtraCities((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={16} color={theme.subtext} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {addingCity ? (
+            <View style={[styles.addCityInputRow, { borderTopColor: theme.border }]}>
+              <TextInput
+                placeholder="Add another city (e.g. Kyoto)"
+                placeholderTextColor={theme.isDark ? Palette.slate500 : Palette.slate400}
+                value={extraCityInput}
+                autoFocus
+                onFocus={() => setActiveField("extra")}
+                onChangeText={(text) => searchPlace(text, "extra")}
+                onSubmitEditing={() => addExtraCity(extraCityInput)}
+                returnKeyType="done"
+                selectionColor={activeAccent}
+                style={[styles.textInput, { flex: 1, color: theme.isDark ? Palette.white : Palette.slate900 }]}
+              />
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Add city stop"
+                onPress={() => addExtraCity(extraCityInput)}
+                style={[styles.addStopConfirmBtn, { backgroundColor: activeAccent }]}
+              >
+                <Text style={styles.addStopConfirmText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Add another city stop"
+              onPress={handleOpenAddCity}
+              style={[styles.addCityBtn, { borderTopColor: theme.border }]}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={activeAccent} />
+              <Text style={[styles.addCityBtnText, { color: activeAccent }]}>
+                Add Another City ({totalSelectedCities}/{maxCities})
+              </Text>
+              {!hasProScope && 1 + extraCities.length >= 2 ? (
+                <View style={[styles.proMiniTag, { backgroundColor: Palette.warning }]}>
+                  <Text style={styles.proMiniTagText}>PRO</Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* SEARCH SUGGESTIONS LIST (rendered directly inside ScrollView — no nested FlatList) */}
@@ -730,5 +857,72 @@ const styles = StyleSheet.create({
     color: Palette.white,
     fontSize: 16,
     fontFamily: "Outfit-Bold",
+  },
+  extraStopsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  extraStopChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    maxWidth: "100%",
+  },
+  extraStopText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontSemiBold,
+    flexShrink: 1,
+  },
+  addCityBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    minHeight: 44,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  addCityBtnText: {
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontSemiBold,
+  },
+  proMiniTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+    marginLeft: "auto",
+  },
+  proMiniTagText: {
+    color: Palette.white,
+    fontSize: 10,
+    fontFamily: Typography.fontBold,
+    letterSpacing: 0.5,
+  },
+  addCityInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  addStopConfirmBtn: {
+    paddingHorizontal: Spacing.md,
+    minHeight: 38,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addStopConfirmText: {
+    color: Palette.white,
+    fontSize: Typography.sizeSm,
+    fontFamily: Typography.fontBold,
   },
 });

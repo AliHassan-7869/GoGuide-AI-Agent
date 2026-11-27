@@ -12,8 +12,8 @@ export const FALLBACK_PLANS = [
   {
     id: PRODUCT_IDS.PRO_YEARLY,
     title: "Pro Annual",
-    subtitle: "Best value — save 40%",
-    priceString: "$59.99 / year",
+    subtitle: "Best value — save 17% vs monthly",
+    priceString: "$99.99 / year",
     badge: "BEST VALUE",
     type: "subscription",
     rcPackage: null,
@@ -21,8 +21,8 @@ export const FALLBACK_PLANS = [
   {
     id: PRODUCT_IDS.PRO_MONTHLY,
     title: "Pro Monthly",
-    subtitle: "Cancel anytime",
-    priceString: "$7.99 / month",
+    subtitle: "Unlimited trips & any duration — cancel anytime",
+    priceString: "$9.99 / month",
     badge: null,
     type: "subscription",
     rcPackage: null,
@@ -30,8 +30,8 @@ export const FALLBACK_PLANS = [
   {
     id: PRODUCT_IDS.TRIP_PACK_10,
     title: "10-Trip Pack",
-    subtitle: "One-time top-up, never expires",
-    priceString: "$9.99",
+    subtitle: "Perfect for one-time travelers — never expires",
+    priceString: "$4.99",
     badge: "ONE-TIME",
     type: "pack",
     rcPackage: null,

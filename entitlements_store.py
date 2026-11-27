@@ -29,8 +29,10 @@ logger = logging.getLogger("goguide.entitlements")
 
 FREE_GUEST_LIMIT = 2
 FREE_SIGNED_IN_LIMIT = 10
+FREE_MIN_DAYS = 3
 FREE_MAX_DAYS = 5
 FREE_MAX_CITIES = 2
+PRO_MIN_DAYS = 1
 PRO_MAX_DAYS = 30
 PRO_MAX_CITIES = 10
 FREE_MINOR_EDITS_PER_TRIP = 2
@@ -210,6 +212,7 @@ class EntitlementsStore:
             "pro_expires_at": d.get("pro_expires_at"),
             "pack_credits": pack_credits,
             "is_pro_active": is_pro_active,
+            "min_days": PRO_MIN_DAYS if has_pro_scope else FREE_MIN_DAYS,
             "max_days": PRO_MAX_DAYS if has_pro_scope else FREE_MAX_DAYS,
             "max_cities": PRO_MAX_CITIES if has_pro_scope else FREE_MAX_CITIES,
             "updated_at": d["updated_at"],
@@ -326,19 +329,20 @@ class EntitlementsStore:
                 if edits_used < FREE_MINOR_EDITS_PER_TRIP:
                     return ("minor_edit", ent)
 
-            # 2. Scope check: Free tier capped at 5 days and 2 cities; Pro / Pack unlocks 7+ days & multi-city
+            # 2. Scope check: Free tier is 3–5 days and max 2 cities; Pro / Pack unlocks any 1–30 days & multi-city
             has_pro_scope = ent["is_pro_active"] or ent["pack_credits"] > 0
             if not has_pro_scope:
-                if days > FREE_MAX_DAYS:
+                if days < FREE_MIN_DAYS or days > FREE_MAX_DAYS:
                     raise QuotaExceededError({
                         "error_code": "QUOTA_EXCEEDED",
                         "reason": "free_days_limit",
-                        "detail": f"Free plans support up to {FREE_MAX_DAYS} days. Upgrade to Pro for 7+ day itineraries.",
+                        "detail": f"Free plans support {FREE_MIN_DAYS} to {FREE_MAX_DAYS} day itineraries. Upgrade to Pro for any trip length (1–{PRO_MAX_DAYS} days).",
                         "trips_used": ent["trips_used"],
                         "free_trips_limit": ent["free_trips_limit"],
                         "remaining_free_trips": ent["remaining_free_trips"],
                         "pack_credits": ent["pack_credits"],
                         "is_anonymous": ent["is_anonymous"],
+                        "min_days": FREE_MIN_DAYS,
                         "max_days": FREE_MAX_DAYS,
                     })
                 if cities_count > FREE_MAX_CITIES:

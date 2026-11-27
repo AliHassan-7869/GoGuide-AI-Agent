@@ -226,6 +226,10 @@ export const generateTripWithAgent = async (params, { signal = null } = {}) => {
   if (params.categories) {
     payload.categories = String(params.categories).slice(0, 300);
   }
+  const citiesCount = parseInt(params.cities_count ?? params.citiesCount, 10);
+  if (Number.isFinite(citiesCount) && citiesCount > 1) {
+    payload.cities_count = Math.min(10, citiesCount);
+  }
   const data = await withRetry(() => callBackend("/plan", payload, "POST", REQUEST_TIMEOUT_MS, signal), [3000, 7000], signal);
 
   const plan = data.plan;
@@ -298,6 +302,10 @@ export const generateDeepTripPlan = async (params, onProgress, { signal = null }
   if (params.traveler) payload.traveler = String(params.traveler).slice(0, 50);
   if (params.interests) payload.interests = String(params.interests).slice(0, 500);
   if (params.categories) payload.categories = String(params.categories).slice(0, 300);
+  const citiesCount = parseInt(params.cities_count ?? params.citiesCount, 10);
+  if (Number.isFinite(citiesCount) && citiesCount > 1) {
+    payload.cities_count = Math.min(10, citiesCount);
+  }
 
   // 1. Kick off background task
   const initData = await callBackend("/plan-deep", payload, "POST", REQUEST_TIMEOUT_MS, signal);
