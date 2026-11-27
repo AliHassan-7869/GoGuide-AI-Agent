@@ -3,11 +3,12 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, TextInput, Modal, FlatList } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
+import ScreenHeader from "../../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { SelectTravelerList } from "../../Components/constants/Option";
 import {
@@ -146,26 +147,17 @@ export default function SelectBudget() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.bg }]}
-      edges={["top", "left", "right"]}
-    >
+    <View style={[styles.safeArea, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* HEADER BAR */}
-      <View style={[styles.headerBar, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            goBack(router);
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Travellers & Budget</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader
+        title="Travellers & Budget"
+        onBack={() => {
+          triggerHaptic();
+          goBack(router);
+        }}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
@@ -221,8 +213,8 @@ export default function SelectBudget() {
           style={[
             styles.currencyBadge,
             {
-              backgroundColor: theme.isDark ? "#064E3B" : Palette.mintLight,
-              borderColor: theme.isDark ? "#059669" : Palette.mint,
+              backgroundColor: theme.isDark ? Palette.successBgDark : Palette.mintLight,
+              borderColor: theme.isDark ? Palette.emerald : Palette.mint,
             },
           ]}
         >
@@ -231,7 +223,7 @@ export default function SelectBudget() {
             <Text
               style={[
                 styles.currencyBadgeTitle,
-                { color: theme.isDark ? Palette.mint : "#065F46" },
+                { color: theme.isDark ? Palette.mint : Palette.successTextDark },
               ]}
             >
               {originCity} ({homeCurrency}) ➔ {destCity} ({destCurrency})
@@ -239,7 +231,7 @@ export default function SelectBudget() {
             <Text
               style={[
                 styles.currencyBadgeSub,
-                { color: theme.isDark ? "#6EE7B7" : "#047857" },
+                { color: theme.isDark ? Palette.emeraldLight : Palette.successDark },
               ]}
             >
               {destCurrency !== homeCurrency
@@ -338,22 +330,22 @@ export default function SelectBudget() {
                         style={[
                           styles.rangePill,
                           {
-                            backgroundColor: theme.isDark ? "#064E3B30" : Palette.mintLight,
-                            borderColor: theme.isDark ? "#05966960" : Palette.mint,
+                            backgroundColor: theme.isDark ? Palette.successTintDark : Palette.mintLight,
+                            borderColor: theme.isDark ? Palette.successBorderSoftDark : Palette.mint,
                           },
                         ]}
                       >
                         <Ionicons
                           name="home-outline"
                           size={13}
-                          color={theme.isDark ? Palette.successLight : "#059669"}
+                          color={theme.isDark ? Palette.successLight : Palette.emerald}
                           style={{ marginRight: 5 }}
                         />
                         <Text
                           style={[
                             styles.rangeText,
                             {
-                              color: theme.isDark ? Palette.successLight : "#065F46",
+                              color: theme.isDark ? Palette.successLight : Palette.successTextDark,
                               fontSize: 12,
                             },
                           ]}
@@ -617,7 +609,7 @@ export default function SelectBudget() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

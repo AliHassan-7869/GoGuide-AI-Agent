@@ -474,7 +474,7 @@ export default function GenerateTrip() {
         </View>
 
         {/* Animated Progress Bar */}
-        <View style={[styles.progressBarTrack, { backgroundColor: isDark ? "#2C2C3A" : Palette.slate200 }]}>
+        <View style={[styles.progressBarTrack, { backgroundColor: isDark ? Palette.surfaceDarkTrack : Palette.slate200 }]}>
           <Animated.View
             style={[
               styles.progressBarFill,
@@ -510,17 +510,17 @@ export default function GenerateTrip() {
 
         {/* Polished Error & Fallback Card */}
         {error && (
-          <View style={[styles.errorCard, { backgroundColor: isDark ? "#2A1818" : "#FEF2F2", borderColor: isDark ? "#4C2424" : "#FECACA" }]}>
+          <View style={[styles.errorCard, { backgroundColor: isDark ? Palette.dangerBgDark : Palette.dangerBgLight, borderColor: isDark ? Palette.dangerBorderDark : Palette.dangerBorderLight }]}>
             <View style={styles.errorHeaderRow}>
               <Ionicons name="alert-circle-outline" size={20} color={Palette.danger} style={{ marginRight: 8 }} />
               <Text style={styles.errorTitle}>Server Notice</Text>
             </View>
-            <Text style={[styles.errorMessage, { color: isDark ? "#FCA5A5" : "#991B1B" }]}>
+            <Text style={[styles.errorMessage, { color: isDark ? Palette.dangerTextDark : Palette.dangerTextLight }]}>
               {error.message}
             </Text>
 
             {!error.isAuthError && !canUseInstant && (
-              <Text style={[styles.errorMessage, { color: isDark ? "#FCA5A5" : "#991B1B", marginTop: 6 }]}>
+              <Text style={[styles.errorMessage, { color: isDark ? Palette.dangerTextDark : Palette.dangerTextLight, marginTop: 6 }]}>
                 Instant plans (no AI needed) are available for {CURATED_CITIES_HINT}.
               </Text>
             )}

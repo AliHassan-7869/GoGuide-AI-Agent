@@ -3,12 +3,12 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
 import { getDestinationImage } from "../../Components/constants/Destinations";
 import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
+import ScreenHeader from "../../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
@@ -363,24 +363,18 @@ export default function SearchPlace() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header & Back Button */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            goBack(router);
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Plan Your Route</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader
+        title="Plan Your Route"
+        onBack={() => {
+          triggerHaptic();
+          goBack(router);
+        }}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -550,7 +544,7 @@ export default function SearchPlace() {
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

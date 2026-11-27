@@ -43,6 +43,26 @@ export const Palette = {
   slate700: "#334155",
   slate800: "#1E293B",
   slate900: "#0F172A",
+  // Semantic status & dark-surface tokens
+  emerald: "#059669",
+  emeraldLight: "#6EE7B7",
+  successBgDark: "#064E3B",
+  successTintDark: "#064E3B30",
+  successTintSubtleDark: "#064E3B20",
+  successBorderSoftDark: "#05966960",
+  successTextDark: "#065F46",
+  greenTintLight: "#F0FDF4",
+  dangerBgDark: "#2A1818",
+  dangerBgLight: "#FEF2F2",
+  dangerBorderDark: "#4C2424",
+  dangerBorderLight: "#FECACA",
+  dangerTextDark: "#FCA5A5",
+  dangerTextLight: "#991B1B",
+  surfaceDark: "#242436",
+  surfaceDarkAlt: "#283042",
+  surfaceDarkMid: "#2E384D",
+  surfaceDarkTrack: "#2C2C3A",
+  surfaceDarkChip: "#252538",
 };
 
 export const Spacing = {

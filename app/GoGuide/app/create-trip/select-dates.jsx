@@ -3,11 +3,11 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import React, { useContext, useMemo, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "../../Components/constants/constants";
 import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
+import ScreenHeader from "../../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../../context/CreateTripContext";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
@@ -126,7 +126,7 @@ function CustomCalendarView({
           style={{
             padding: 8,
             borderRadius: 8,
-            backgroundColor: theme.isDark ? "#242436" : Palette.slate100,
+            backgroundColor: theme.isDark ? Palette.surfaceDark : Palette.slate100,
           }}
         >
           <Ionicons name="chevron-back" size={18} color={activeAccent} />
@@ -141,7 +141,7 @@ function CustomCalendarView({
           style={{
             padding: 8,
             borderRadius: 8,
-            backgroundColor: theme.isDark ? "#242436" : Palette.slate100,
+            backgroundColor: theme.isDark ? Palette.surfaceDark : Palette.slate100,
           }}
         >
           <Ionicons name="chevron-forward" size={18} color={activeAccent} />
@@ -184,7 +184,7 @@ function CustomCalendarView({
             bgColor = activeAccent + "22";
             textColor = activeAccent;
           } else if (cell.isToday) {
-            bgColor = theme.isDark ? "#2E384D" : Palette.slate200;
+            bgColor = theme.isDark ? Palette.surfaceDarkMid : Palette.slate200;
           }
 
           return (
@@ -477,24 +477,18 @@ export default function SelectDates() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            goBack(router);
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Dates & Duration</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader
+        title="Dates & Duration"
+        onBack={() => {
+          triggerHaptic();
+          goBack(router);
+        }}
+      />
 
       <ScrollView keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -620,7 +614,7 @@ export default function SelectDates() {
               onPress={() => handleStepDays(-1)}
               style={[
                 styles.stepperBtn,
-                { backgroundColor: theme.isDark ? "#283042" : Palette.slate100 },
+                { backgroundColor: theme.isDark ? Palette.surfaceDarkAlt : Palette.slate100 },
               ]}
               activeOpacity={0.7}
             >
@@ -655,7 +649,7 @@ export default function SelectDates() {
               onPress={() => handleStepDays(1)}
               style={[
                 styles.stepperBtn,
-                { backgroundColor: theme.isDark ? "#283042" : Palette.slate100 },
+                { backgroundColor: theme.isDark ? Palette.surfaceDarkAlt : Palette.slate100 },
               ]}
               activeOpacity={0.7}
             >
@@ -706,7 +700,7 @@ export default function SelectDates() {
                         backgroundColor: isSelected
                           ? activeAccent + "18"
                           : theme.isDark
-                          ? "#252538"
+                          ? Palette.surfaceDarkChip
                           : Palette.slate100,
                       },
                     ]}
@@ -782,7 +776,7 @@ export default function SelectDates() {
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -4,7 +4,6 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import moment from "moment";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "../../Configs/FirebaseConfig";
 import { needsEmailVerification, refreshEmailVerification } from "../../Components/utils/emailVerification";
@@ -14,6 +13,7 @@ import { Colors } from "../../Components/constants/constants";
 import { detectCurrencyFromLocation, detectUserHomeCurrency, convertAmount, formatCurrencyAmount, CURRENCY_RATES } from "../../Components/constants/Currency";
 import { useTheme, Palette } from "../../Components/constants/theme";
 import StepProgressBar from "../../Components/CreateTrip/StepProgressBar";
+import ScreenHeader from "../../Components/ui/ScreenHeader";
 import { CreateTripContext } from "../../context/CreateTripContext";
 import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
 
@@ -247,23 +247,17 @@ export default function ReviewTrip() {
   }, [destLat, destLng]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back"
-          onPress={() => {
-            triggerHaptic();
-            goBack(router);
-          }}
-          style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Final Review</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader
+        title="Final Review"
+        onBack={() => {
+          triggerHaptic();
+          goBack(router);
+        }}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -520,7 +514,7 @@ export default function ReviewTrip() {
                   styles.currencyHomeRow,
                   {
                     borderTopColor: theme.isDark ? Palette.slate800 : Palette.slate200,
-                    backgroundColor: theme.isDark ? "#064E3B20" : Palette.mintLight,
+                    backgroundColor: theme.isDark ? Palette.successTintSubtleDark : Palette.mintLight,
                   },
                 ]}
               >
@@ -529,7 +523,7 @@ export default function ReviewTrip() {
                   <Text
                     style={[
                       styles.currencyHomeLabel,
-                      { color: theme.isDark ? Palette.mint : "#065F46" },
+                      { color: theme.isDark ? Palette.mint : Palette.successTextDark },
                     ]}
                   >
                     In your currency ({homeCurrency}):
@@ -538,7 +532,7 @@ export default function ReviewTrip() {
                 <Text
                   style={[
                     styles.currencyHomeAmount,
-                    { color: theme.isDark ? Palette.successLight : "#059669" },
+                    { color: theme.isDark ? Palette.successLight : Palette.emerald },
                   ]}
                 >
                   ≈ {formattedHomeTotal}
@@ -572,7 +566,7 @@ export default function ReviewTrip() {
             styles.modeCard,
             {
               backgroundColor: isDeepPlan
-                ? theme.isDark ? Palette.slate800 : "#F0FDF4"
+                ? theme.isDark ? Palette.slate800 : Palette.greenTintLight
                 : theme.isDark ? Palette.slate900 : Palette.slate50,
               borderColor: isDeepPlan ? Palette.success : (theme.border || Palette.slate200),
             },
@@ -680,7 +674,7 @@ export default function ReviewTrip() {
           </TouchableOpacity>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
