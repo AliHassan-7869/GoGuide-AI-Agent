@@ -662,6 +662,19 @@ def repair_json_content(raw_text: str):
     except json.JSONDecodeError:
         return None
 
+def _multi_city_prompt_guidance(destination: str, cities_count: int) -> str:
+    if cities_count <= 1:
+        return ""
+    return (
+        f"\nMULTI-CITY ROUTE REQUIREMENTS ({cities_count} stops in '{destination}'):\n"
+        "- Divide the days sequentially across EVERY city stop in order (Stop 1, Stop 2, etc.).\n"
+        "- Prefix each day's `theme` with the stop number and city name (e.g. 'Stop 1: Paris — Historic Icons', 'Stop 2: Rome — Transfer & Ancient Wonders').\n"
+        "- On each transition day into a new city, make the FIRST activity a clear inter-city transfer guide (best train/flight/bus, travel time, station/airport tip, and hotel check-in).\n"
+        "- Include at least 1 well-rated hotel per city stop in `hotels`, with the city clearly written in `address` and accurate coordinates.\n"
+        "- Provide accurate real-world lat/lng coordinates for every activity in its respective city so map routing works stop-by-stop.\n"
+    )
+
+
 @app.post("/plan")
 def generate_plan(request: TravelRequest, http_request: Request, client_id: str = Depends(require_plan_client)):
     reject_injection(request, "/plan")
@@ -709,8 +722,9 @@ def generate_plan(request: TravelRequest, http_request: Request, client_id: str 
     trip_input = user_data_block(
         {"destination": destination, "budget": budget, "themes": categories, "requested_places": interests}
     )
+    multi_city_note = _multi_city_prompt_guidance(destination, request.cities_count)
     prompt = f"""Plan a {request.days}-day trip for the destination and budget in user_data.
-If themes are given, focus heavily on them. If requested_places are given, include them in the itinerary.
+If themes are given, focus heavily on them. If requested_places are given, include them in the itinerary.{multi_city_note}
 {trip_input}
 Return ONLY valid JSON with this structure:
 {{
@@ -898,8 +912,9 @@ def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
     trip_input = user_data_block(
         {"destination": destination, "budget": budget, "themes": categories, "requested_places": interests}
     )
+    multi_city_note = _multi_city_prompt_guidance(destination, int(payload.get("cities_count") or 1))
     prompt = f"""Generate a deeply comprehensive, premium {days}-day travel guide and itinerary for the destination and budget in user_data.
-If themes are given, focus heavily on them. If requested_places are given, include them in the itinerary.
+If themes are given, focus heavily on them. If requested_places are given, include them in the itinerary.{multi_city_note}
 {trip_input}
 Return ONLY valid JSON matching this exact structure:
 {{
@@ -1048,6 +1063,7 @@ def create_deep_plan(request: TravelRequest, http_request: Request, background_t
     payload = {
         "destination": dest_clean,
         "days": request.days,
+        "cities_count": request.cities_count,
         "budget": sanitize_input(request.budget, 50),
         "origin": sanitize_input(request.origin or "Current Location", 100),
         "traveler": sanitize_input(request.traveler or "Solo", 50),

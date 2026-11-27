@@ -114,7 +114,7 @@ def test_free_tier_caps_days_at_5_and_cities_at_2(client, providers):
     assert r_days.json()["error_code"] == "QUOTA_EXCEEDED"
     assert r_days.json()["reason"] == "free_days_limit"
 
-    r_cities = client.post("/plan", json={**BASE_PLAN_REQ, "cities_count": 3}, headers=USER_HEADERS)
+    r_cities = client.post("/plan", json={**BASE_PLAN_REQ, "cities_count": 2}, headers=USER_HEADERS)
     assert r_cities.status_code == 402
     assert r_cities.json()["reason"] == "free_cities_limit"
 

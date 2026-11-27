@@ -81,7 +81,7 @@ export default function SearchPlace() {
   const [activeField, setActiveField] = useState("to");
 
   const hasProScope = Boolean(entitlements?.is_pro_active || (entitlements?.pack_credits || 0) > 0);
-  const maxCities = hasProScope ? 6 : 2;
+  const maxCities = hasProScope ? 6 : 1;
   const totalSelectedCities = (toQuery.trim() ? 1 : 0) + extraCities.length;
 
   const timeoutRef = useRef(null);
@@ -574,9 +574,11 @@ export default function SearchPlace() {
             >
               <Ionicons name="add-circle-outline" size={18} color={activeAccent} />
               <Text style={[styles.addCityBtnText, { color: activeAccent }]}>
-                Add Another City ({totalSelectedCities}/{maxCities})
+                {hasProScope
+                  ? `Add Another City (${totalSelectedCities}/${maxCities})`
+                  : "Add Another City (Multi-City)"}
               </Text>
-              {!hasProScope && 1 + extraCities.length >= 2 ? (
+              {!hasProScope ? (
                 <View style={[styles.proMiniTag, { backgroundColor: Palette.warning }]}>
                   <Text style={styles.proMiniTagText}>PRO</Text>
                 </View>

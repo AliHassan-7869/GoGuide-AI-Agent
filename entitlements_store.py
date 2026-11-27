@@ -31,7 +31,7 @@ FREE_GUEST_LIMIT = 2
 FREE_SIGNED_IN_LIMIT = 10
 FREE_MIN_DAYS = 3
 FREE_MAX_DAYS = 5
-FREE_MAX_CITIES = 2
+FREE_MAX_CITIES = 1
 PRO_MIN_DAYS = 1
 PRO_MAX_DAYS = 30
 PRO_MAX_CITIES = 10
@@ -349,7 +349,7 @@ class EntitlementsStore:
                     raise QuotaExceededError({
                         "error_code": "QUOTA_EXCEEDED",
                         "reason": "free_cities_limit",
-                        "detail": f"Free plans support up to {FREE_MAX_CITIES} cities. Upgrade to Pro for multi-city routes.",
+                        "detail": "Free plans support 1 city per trip. Upgrade to Pro for multi-city routes.",
                         "trips_used": ent["trips_used"],
                         "free_trips_limit": ent["free_trips_limit"],
                         "remaining_free_trips": ent["remaining_free_trips"],
