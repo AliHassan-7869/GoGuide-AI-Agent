@@ -29,6 +29,8 @@ _TEST_ENV = {
     "SENTRY_ENVIRONMENT": "test",
     "SENTRY_TRACES_SAMPLE_RATE": "0",
     "ENVIRONMENT": "test",
+    "ENTITLEMENTS_DB_PATH": ":memory:",
+    "REVENUECAT_WEBHOOK_SECRET": "test-rc-secret",
 }
 os.environ.update(_TEST_ENV)
 # Make sure the "keep-alive" thread (only started on Render) can never start during tests.
@@ -141,7 +143,9 @@ def isolate(monkeypatch):
     monkeypatch.setattr(app_module, "RATE_LIMIT_PER_HOUR", 30)
     monkeypatch.setattr(app_module, "IP_RATE_LIMIT_PER_HOUR", 1000)
     monkeypatch.setattr(app_module, "ALLOW_API_KEY_AUTH", True)
+    monkeypatch.setattr(app_module, "REVENUECAT_WEBHOOK_SECRET", "test-rc-secret")
     monkeypatch.setattr(app_module, "get_curated_plan", lambda *a, **kw: None)
+    app_module.entitlements_store.reset_for_tests()
     app_module._request_log.clear()
     app_module._PLAN_CACHE.clear()
     yield

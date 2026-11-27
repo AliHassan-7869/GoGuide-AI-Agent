@@ -1,17 +1,40 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useMemo } from 'react';
-import { Animated, Image, Platform, StyleSheet, Text, View } from "react-native";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Animated, Image, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "./constants/constants";
 
 import { TouchableOpacity } from "./ui/Touchable";
-import { Palette } from "./constants/theme";
+import { Palette, Typography, Spacing, Radius } from "./constants/theme";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { CreateTripContext } from "../context/CreateTripContext";
+import { continueAsGuest } from "./utils/AccountLinkingService";
 export default function Login() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  const { setEntitlements } = useContext(CreateTripContext) || {};
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const handleGuestContinue = async () => {
+    if (guestLoading) return;
+    setGuestLoading(true);
+    try {
+      const { entitlements } = await continueAsGuest();
+      if (entitlements) setEntitlements?.(entitlements);
+      router.replace("/(tabs)/discover");
+    } catch (err) {
+      const msg = err?.message || "Could not start a guest session right now. Please try again.";
+      if (Platform.OS === "web" && typeof window !== "undefined" && window.alert) {
+        window.alert(msg);
+      } else {
+        Alert.alert("Guest Sign-In", msg);
+      }
+    } finally {
+      setGuestLoading(false);
+    }
+  };
 
   // Animation values for a premium entrance effect
   const fadeAnim = useMemo(() => new Animated.Value(reduceMotion ? 1 : 0), [reduceMotion]);
@@ -83,9 +106,26 @@ export default function Login() {
           accessibilityLabel="Get Started"
           style={styles.buttonContainer}
           activeOpacity={0.8}
+          disabled={guestLoading}
           onPress={() => router.push("/auth/sign-in")}
         >
           <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
+
+        {/* Continue as Guest (2 Free Trips) */}
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Continue as Guest (2 Free Trips)"
+          style={styles.guestButton}
+          activeOpacity={0.8}
+          disabled={guestLoading}
+          onPress={handleGuestContinue}
+        >
+          {guestLoading ? (
+            <ActivityIndicator size="small" color={Palette.white} />
+          ) : (
+            <Text style={styles.guestButtonText}>Continue as Guest (2 Free Trips)</Text>
+          )}
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -131,7 +171,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 60,
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: Spacing.md,
 
     // Soft white glow
     shadowColor: Colors.WHITE || Palette.white,
@@ -139,6 +179,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 15,
     elevation: 8,
+  },
+  guestButton: {
+    width: "100%",
+    minHeight: 50,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+  },
+  guestButtonText: {
+    color: Palette.white,
+    fontSize: Typography.sizeMd,
+    fontFamily: Typography.fontSemiBold,
+    letterSpacing: 0.3,
   },
   buttonText: {
     color: Colors.PRIMARY || Palette.brand, // App theme color for text

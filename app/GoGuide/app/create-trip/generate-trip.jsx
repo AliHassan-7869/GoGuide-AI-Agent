@@ -19,6 +19,7 @@ import { hasCuratedPlan } from "../../Components/utils/CuratedPlans";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { TouchableOpacity } from "../../Components/ui/Touchable";
 import { goBack } from "../../Components/utils/navigation";
+import AccountLinkModal from "../../Components/AccountLinkModal";
 
 const CURATED_CITIES_HINT = "Tokyo, Dubai, Paris, Istanbul, London and Lahore";
 
@@ -32,13 +33,14 @@ const GENERATION_STEPS = [
 const STEP_INTERVAL_MS = 2600;
 
 export default function GenerateTrip() {
-  const { tripData, setTripData, preferences, userData } = useContext(CreateTripContext);
+  const { tripData, setTripData, preferences, userData, setEntitlements, refreshEntitlements } = useContext(CreateTripContext);
   const theme = useTheme();
   const isDark = theme.isDark;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const router = useRouter();
   const hasGenerated = useRef(false);
   const cancelledRef = useRef(false);
@@ -197,6 +199,7 @@ export default function GenerateTrip() {
       console.warn("Could not cache draft trip:", localErr);
     }
 
+    refreshEntitlements?.();
     setLoading(false);
     // Navigate directly to the primary, beautiful My Trips tab that the user loves!
     router.replace({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
@@ -324,6 +327,9 @@ export default function GenerateTrip() {
         }
       } catch (apiErr) {
         if (cancelledRef.current || apiErr?.name === "AbortError") return;
+        if (apiErr?.statusCode === 402 || apiErr?.errorCode === "QUOTA_EXCEEDED") {
+          throw apiErr;
+        }
         apiError = apiErr;
         console.warn("[GenerateTrip] Backend AI call note:", apiErr?.message);
       }
@@ -368,6 +374,19 @@ export default function GenerateTrip() {
       if (cancelledRef.current) return;
       setLoading(false);
       console.error("[GenerateTrip] Error:", err.message);
+
+      if (err?.statusCode === 402 || err?.errorCode === "QUOTA_EXCEEDED") {
+        refreshEntitlements?.();
+        if (err?.quota?.is_anonymous && err?.quota?.reason === "guest_limit_reached") {
+          setShowLinkModal(true);
+          return;
+        }
+        router.replace({
+          pathname: "/paywall",
+          params: { reason: err?.quota?.reason || "free_limit_reached" },
+        });
+        return;
+      }
 
       const isEmailUnverified = isEmailVerificationError(err);
       const isAuthError = !isEmailUnverified && err.message?.toLowerCase().includes("sign in");
@@ -582,6 +601,19 @@ export default function GenerateTrip() {
           </View>
         )}
       </View>
+
+      <AccountLinkModal
+        visible={showLinkModal}
+        onClose={() => {
+          setShowLinkModal(false);
+          goBack(router);
+        }}
+        onLinked={(updated) => {
+          if (updated) setEntitlements?.(updated);
+          setShowLinkModal(false);
+          GenerateAiTrip(false);
+        }}
+      />
     </ScrollView>
   );
 }

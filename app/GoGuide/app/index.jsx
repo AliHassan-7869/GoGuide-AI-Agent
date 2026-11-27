@@ -31,9 +31,15 @@ export default function Index() {
     );
   }
 
+  const isAuthenticated = Boolean(user); // Treats user.isAnonymous === true as an authenticated guest session
+
   return (
     <View style={{ flex: 1 }}>
-      {user ? <Redirect href="/(tabs)/mytrip" /> : <Login />}
+      {isAuthenticated ? (
+        <Redirect href={user?.isAnonymous ? "/(tabs)/discover" : "/(tabs)/mytrip"} />
+      ) : (
+        <Login />
+      )}
     </View>
   );
 }

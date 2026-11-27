@@ -19,6 +19,10 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REVENUECAT_WEBHOOK_SECRET
+        sync: false
       - key: ENVIRONMENT
         value: production
       - key: FIREBASE_PROJECT_ID

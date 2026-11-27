@@ -31,6 +31,7 @@ from ai_safety import (
     validate_plan,
 )
 from curated_destinations import get_curated_plan
+from entitlements_store import EntitlementsStore, QuotaExceededError
 from http_hardening import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from travel_essentials import (
     get_visa_guidelines,
@@ -139,7 +140,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
 API_KEY = os.getenv("API_KEY")
+REVENUECAT_WEBHOOK_SECRET = os.getenv("REVENUECAT_WEBHOOK_SECRET", "")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "goguideai")
+entitlements_store = EntitlementsStore()
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
 IP_RATE_LIMIT_PER_HOUR = int(os.getenv("IP_RATE_LIMIT_PER_HOUR", "120"))
 # Trip generation is the most expensive call, so it has its own lower ceiling.
@@ -264,9 +267,13 @@ def require_client(
         claims = verify_firebase_claims(authorization[len('Bearer '):].strip())
         client_id = f"user:{claims['sub']}"
         anonymous = (claims.get("firebase") or {}).get("sign_in_provider") == "anonymous"
+        request.state.uid = claims["sub"]
+        request.state.is_anonymous = anonymous
     elif x_api_key is not None and ALLOW_API_KEY_AUTH:
         verify_api_key(x_api_key)
         client_id = f"key:{get_client_ip(request)}"
+        request.state.uid = None
+        request.state.is_anonymous = False
     else:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -505,6 +512,9 @@ class TravelRequest(BaseModel):
     traveler: str | None = Field(default="Solo", max_length=50)
     interests: str | None = Field(default=None, max_length=500)
     categories: str | None = Field(default=None, max_length=300)
+    cities_count: int = Field(default=1, ge=1, le=20)
+    is_minor_edit: bool = Field(default=False)
+    trip_id: str | None = Field(default=None, max_length=120)
 
 
 class ChatMessage(BaseModel):
@@ -624,8 +634,21 @@ def repair_json_content(raw_text: str):
         return None
 
 @app.post("/plan")
-def generate_plan(request: TravelRequest, client_id: str = Depends(require_plan_client)):
+def generate_plan(request: TravelRequest, http_request: Request, client_id: str = Depends(require_plan_client)):
     reject_injection(request, "/plan")
+
+    uid = getattr(http_request.state, "uid", None)
+    is_anon = getattr(http_request.state, "is_anonymous", False)
+    cost_type = None
+    if uid:
+        cost_type, _ = entitlements_store.check_trip_entitlement(
+            uid=uid,
+            is_anonymous=is_anon,
+            days=request.days,
+            cities_count=request.cities_count,
+            is_minor_edit=request.is_minor_edit,
+            trip_id=request.trip_id,
+        )
 
     destination = sanitize_input(request.destination, 100)
     budget = sanitize_input(request.budget, 50)
@@ -637,6 +660,8 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_plan_
     cached_response = _cached(plan_key)
     if cached_response:
         logger.info("Serving cached itinerary (%s days)", request.days)
+        if uid and cost_type:
+            entitlements_store.commit_trip_usage(uid, cost_type, request.trip_id)
         return cached_response
 
     # Check pre-computed curated catalog (Zero-token instantaneous response!)
@@ -646,6 +671,8 @@ def generate_plan(request: TravelRequest, client_id: str = Depends(require_plan_
         if curated_response:
             logger.info("Serving instant curated plan (0 tokens used)")
             _cache_put(plan_key, curated_response)
+            if uid and cost_type:
+                entitlements_store.commit_trip_usage(uid, cost_type, request.trip_id)
             return curated_response
 
     trip_input = user_data_block(
@@ -751,6 +778,8 @@ Return ONLY valid JSON with this structure:
     }
 
     _cache_put(plan_key, response_payload)
+    if uid and cost_type:
+        entitlements_store.commit_trip_usage(uid, cost_type, request.trip_id)
 
     return response_payload
 
@@ -828,6 +857,8 @@ def run_deep_plan_background(job_id: str, payload: dict, owner: str = ""):
                         "orchestrated": True,
                     }
                 }
+            if payload.get("uid") and payload.get("cost_type"):
+                entitlements_store.commit_trip_usage(payload["uid"], payload["cost_type"], payload.get("trip_id"))
             logger.info("Deep plan job %s completed via LangGraph Orchestrator", job_id)
             return
         except Exception as e:
@@ -936,6 +967,8 @@ Return ONLY valid JSON matching this exact structure:
                     "isDeepPlan": True,
                 }
             }
+        if payload.get("uid") and payload.get("cost_type"):
+            entitlements_store.commit_trip_usage(payload["uid"], payload["cost_type"], payload.get("trip_id"))
         logger.info("Deep plan job %s completed successfully", job_id)
     except Exception as e:
         logger.exception("Deep plan job %s failed: %s", job_id, e)
@@ -951,8 +984,21 @@ Return ONLY valid JSON matching this exact structure:
 
 # -------------------- POST /plan-deep (Premium Async Plan) --------------------
 @app.post("/plan-deep")
-def create_deep_plan(request: TravelRequest, background_tasks: BackgroundTasks, client_id: str = Depends(require_plan_client)):
+def create_deep_plan(request: TravelRequest, http_request: Request, background_tasks: BackgroundTasks, client_id: str = Depends(require_plan_client)):
     reject_injection(request, "/plan-deep")
+
+    uid = getattr(http_request.state, "uid", None)
+    is_anon = getattr(http_request.state, "is_anonymous", False)
+    cost_type = None
+    if uid:
+        cost_type, _ = entitlements_store.check_trip_entitlement(
+            uid=uid,
+            is_anonymous=is_anon,
+            days=request.days,
+            cities_count=request.cities_count,
+            is_minor_edit=request.is_minor_edit,
+            trip_id=request.trip_id,
+        )
 
     job_id = secrets.token_urlsafe(16)
     dest_clean = sanitize_input(request.destination, 100)
@@ -974,6 +1020,9 @@ def create_deep_plan(request: TravelRequest, background_tasks: BackgroundTasks, 
         "traveler": sanitize_input(request.traveler or "Solo", 50),
         "interests": sanitize_input(request.interests, 500),
         "categories": sanitize_input(request.categories, 300),
+        "uid": uid,
+        "cost_type": cost_type,
+        "trip_id": request.trip_id,
     }
 
     background_tasks.add_task(run_deep_plan_background, job_id, payload, client_id)
@@ -1028,13 +1077,16 @@ def get_deep_plan_status(job_id: str, client_id: str = Depends(require_client_po
 
 # -------------------- POST /plan/orchestrate (Stack 5 Master Orchestrator) --------------------
 @app.post("/plan/orchestrate")
-def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(require_plan_client)):
+def generate_orchestrated_plan(request: TravelRequest, http_request: Request, client_id: str = Depends(require_plan_client)):
     """
     Stack 5 Master Travel Orchestrator endpoint:
     Powered by LangGraph (Stateful Multi-Agent Supervisor Pattern), TypeSafe AI Jev (Sub-200ms Noul Confidence Gating),
     and Local Curated Grounding.
     """
     reject_injection(request, "/plan/orchestrate")
+
+    uid = getattr(http_request.state, "uid", None)
+    is_anon = getattr(http_request.state, "is_anonymous", False)
 
     destination = sanitize_input(request.destination, 100)
     budget = sanitize_input(request.budget, 50)
@@ -1046,6 +1098,16 @@ def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(
     interests_list = [i.strip() for i in re.split(r"[,;]+", raw_interests) if i.strip()] or ["Sightseeing", "Culture"]
 
     if execute_trip_orchestration and not interests_clean and not categories_clean and get_curated_plan(destination, request.days, budget):
+        cost_type = None
+        if uid:
+            cost_type, _ = entitlements_store.check_trip_entitlement(
+                uid=uid,
+                is_anonymous=is_anon,
+                days=request.days,
+                cities_count=request.cities_count,
+                is_minor_edit=request.is_minor_edit,
+                trip_id=request.trip_id,
+            )
         try:
             logger.info("Executing Stack 5 LangGraph orchestration (%s days)", request.days)
             orchestrated_plan = execute_trip_orchestration(
@@ -1056,6 +1118,8 @@ def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(
                 traveler_type=traveler,
                 interests=interests_list,
             )
+            if uid and cost_type:
+                entitlements_store.commit_trip_usage(uid, cost_type, request.trip_id)
             return {
                 "status": "success",
                 "data": {
@@ -1069,7 +1133,7 @@ def generate_orchestrated_plan(request: TravelRequest, client_id: str = Depends(
         except Exception as e:
             logger.exception("LangGraph orchestration failed: %s, falling back to standard plan", e)
 
-    return generate_plan(request, client_id)
+    return generate_plan(request, http_request, client_id)
 
 
 # -------------------- GET /tools/destination-info (100% Free Travel Info) --------------------
@@ -1317,7 +1381,69 @@ def destination_safety(request: DestinationRequest, client_id: str = Depends(req
     _cache_put(key, response)
     return response
 
+# -------------------- MONETIZATION: ENTITLEMENTS & REVENUECAT WEBHOOK --------------------
+def _require_bearer_identity(request: Request, authorization: str | None) -> tuple[str, bool]:
+    """Verify Firebase Bearer token and return (uid, is_anonymous)."""
+    check_ip_rate_limit(request)
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    claims = verify_firebase_claims(authorization[len("Bearer "):].strip())
+    uid = claims["sub"]
+    is_anon = (claims.get("firebase") or {}).get("sign_in_provider") == "anonymous"
+    return uid, is_anon
+
+
+@app.post("/api/users/sync")
+def sync_user_entitlements(request: Request, authorization: str | None = Header(default=None)):
+    """Create entitlement record if new, or upgrade anonymous -> signed-in (2 -> 10 trips, preserving usage)."""
+    uid, is_anon = _require_bearer_identity(request, authorization)
+    ent = entitlements_store.sync_user(uid, is_anon)
+    return {"status": "success", "data": ent}
+
+
+@app.get("/api/users/entitlements")
+def get_user_entitlements(request: Request, authorization: str | None = Header(default=None)):
+    """Return current user's plan, quota usage, remaining trips, pack credits, and Pro status."""
+    uid, is_anon = _require_bearer_identity(request, authorization)
+    ent = entitlements_store.get_entitlements(uid, is_anon)
+    return {"status": "success", "data": ent}
+
+
+@app.post("/api/webhooks/revenuecat")
+async def revenuecat_webhook(request: Request, authorization: str | None = Header(default=None)):
+    """Verify RevenueCat webhook secret and update user Pro subscription or trip pack credits."""
+    expected = (REVENUECAT_WEBHOOK_SECRET or "").strip()
+    if not expected:
+        logger.error("REVENUECAT_WEBHOOK_SECRET is not configured")
+        raise HTTPException(status_code=503, detail="Webhook not configured")
+    raw_auth = (authorization or "").strip()
+    provided = raw_auth[len("Bearer "):].strip() if raw_auth.startswith("Bearer ") else raw_auth
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized webhook")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event = body.get("event") if isinstance(body, dict) else None
+    if not isinstance(event, dict):
+        raise HTTPException(status_code=400, detail="Missing event object")
+
+    try:
+        result = entitlements_store.apply_revenuecat_event(event)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success", "data": result}
+
+
 # -------------------- GLOBAL EXCEPTION HANDLER --------------------
+@app.exception_handler(QuotaExceededError)
+async def quota_exceeded_handler(request: Request, exc: QuotaExceededError):
+    return JSONResponse(status_code=402, content={"status": "error", **exc.payload})
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     # Same shape as FastAPI's default, minus the submitted input and internal context.

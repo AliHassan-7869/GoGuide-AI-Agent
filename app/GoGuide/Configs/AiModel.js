@@ -113,6 +113,18 @@ async function callBackend(path, body = null, method = "POST", timeoutMs = REQUE
     console.warn(`[Backend] ${path} failed:`, response.status, detail);
     const err = new Error(detail);
     err.statusCode = response.status;
+    if (data?.error_code) {
+      err.errorCode = data.error_code;
+      err.quota = {
+        error_code: data.error_code,
+        reason: data.reason,
+        trips_used: data.trips_used,
+        free_trips_limit: data.free_trips_limit,
+        remaining_free_trips: data.remaining_free_trips,
+        pack_credits: data.pack_credits,
+        is_anonymous: data.is_anonymous,
+      };
+    }
     if (data?.retryable === false) {
       err.retryable = false;
     }
@@ -183,6 +195,14 @@ export const warmUpBackend = () => {
 export const fetchDestinationInterests = async (destination) => {
   const data = await callBackend("/destination/interests", { destination: String(destination || "").slice(0, 100) }, "POST", 30000);
   return { interests: data.interests || [], transports: data.transports || [] };
+};
+
+export const syncUserEntitlements = async () => {
+  return callBackend("/api/users/sync", {}, "POST", 15000);
+};
+
+export const fetchUserEntitlements = async () => {
+  return callBackend("/api/users/entitlements", null, "GET", 15000);
 };
 
 export const generateTripWithAgent = async (params, { signal = null } = {}) => {

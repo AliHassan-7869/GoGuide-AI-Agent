@@ -231,7 +231,7 @@ function CustomCalendarView({
 export default function SelectDates() {
   const router = useRouter();
   const theme = useTheme();
-  const { tripData, setTripData } = useContext(CreateTripContext);
+  const { tripData, setTripData, entitlements } = useContext(CreateTripContext);
 
   const initialDays = tripData?.totalNoOfDays || 5;
   const [selectedDuration, setSelectedDuration] = useState(initialDays);
@@ -463,6 +463,30 @@ export default function SelectDates() {
         "Trip Duration",
         "Please select a trip duration between 1 and 30 days to continue."
       );
+      return;
+    }
+
+    const hasExtendedDaysAccess = Boolean(entitlements?.is_pro_active || (entitlements?.pack_credits || 0) > 0);
+    if (entitlements && !hasExtendedDaysAccess && finalDays > 5) {
+      if (Platform.OS === "web") {
+        router.push({ pathname: "/paywall", params: { reason: "free_days_limit" } });
+      } else {
+        Alert.alert(
+          "7+ Day Trips Require Pro",
+          "Free plans include trips up to 5 days. Upgrade to GoGuide Pro for 6–30 day itineraries, or switch to 5 days.",
+          [
+            {
+              text: "Keep 5 Days",
+              style: "cancel",
+              onPress: () => applyDuration(5),
+            },
+            {
+              text: "Upgrade to Pro",
+              onPress: () => router.push({ pathname: "/paywall", params: { reason: "free_days_limit" } }),
+            },
+          ]
+        );
+      }
       return;
     }
 

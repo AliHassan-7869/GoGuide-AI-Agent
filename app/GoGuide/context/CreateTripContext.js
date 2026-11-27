@@ -1,8 +1,10 @@
-import { createContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { auth, db } from "../Configs/FirebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fetchUserEntitlements, syncUserEntitlements } from "../Configs/AiModel";
+import { clearBillingUser, identifyBillingUser, initBilling } from "../Components/utils/BillingService";
 
 export const CreateTripContext = createContext(null);
 
@@ -14,6 +16,22 @@ export const CreateTripProvider = ({ children }) => {
   const [tripData, setTripData] = useState({});
   const [uid, setUid] = useState(null);
   const [userData, setUserData] = useState(GUEST_USER);
+  const [entitlements, setEntitlements] = useState(null);
+
+  const refreshEntitlements = useCallback(async () => {
+    if (!auth.currentUser) return null;
+    try {
+      const ent = await fetchUserEntitlements();
+      if (ent) setEntitlements(ent);
+      return ent || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    initBilling();
+  }, []);
 
   const [preferences, setPreferences] = useState({
     notifications: true,
@@ -58,8 +76,12 @@ export const CreateTripProvider = ({ children }) => {
         // Anonymous guests (used for AI access) have no profile document; keep them local-only.
         setUid(user.uid);
         setUserData(GUEST_USER);
+        identifyBillingUser(user.uid).catch(() => {});
+        syncUserEntitlements().then((ent) => { if (active && ent) setEntitlements(ent); }).catch(() => {});
       } else if (user) {
         setUid(user.uid);
+        identifyBillingUser(user.uid).catch(() => {});
+        syncUserEntitlements().then((ent) => { if (active && ent) setEntitlements(ent); }).catch(() => {});
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
@@ -83,6 +105,8 @@ export const CreateTripProvider = ({ children }) => {
       } else {
         setUid(null);
         setUserData(GUEST_USER);
+        setEntitlements(null);
+        clearBillingUser().catch(() => {});
         // Clear the trip only on a real sign-out. The first "nobody signed in" event at app start must not
         // wipe a trip that was just restored from storage (a guest reloading the page would lose their plan).
         if (hadUserRef.current) {
@@ -181,7 +205,7 @@ export const CreateTripProvider = ({ children }) => {
 
   return (
     <CreateTripContext.Provider
-      value={{ tripData, setTripData, userData, setUserData, uid, preferences, setPreferences }}
+      value={{ tripData, setTripData, userData, setUserData, uid, preferences, setPreferences, entitlements, setEntitlements, refreshEntitlements }}
     >
       {children}
     </CreateTripContext.Provider>

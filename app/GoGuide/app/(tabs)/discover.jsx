@@ -25,6 +25,8 @@ import { TouchableOpacity } from "../../Components/ui/Touchable";
 import EmptyState from "../../Components/ui/EmptyState";
 import FadeInView from "../../Components/ui/FadeInView";
 import { Skeleton } from "../../Components/ui/Skeleton";
+import QuotaBadge from "../../Components/ui/QuotaBadge";
+import AccountLinkModal from "../../Components/AccountLinkModal";
 import { Radius, Spacing, Typography, useTheme, useHydrated, Palette } from "../../Components/constants/theme";
 
 // Fixed overlay colours for text on photos (always white on a dark scrim, independent of theme)
@@ -147,7 +149,9 @@ const FEED_FILTER_CHIPS = [
 export default function Discover() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { preferences, setTripData } = useContext(CreateTripContext);
+  const { preferences, setTripData, entitlements, setEntitlements, refreshEntitlements } = useContext(CreateTripContext);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const pendingAiArgsRef = useRef(null);
   const theme = useTheme();
   // The date range depends on today's date; show it only after hydration (the static page is built on another day).
   const hydrated = useHydrated();
@@ -584,6 +588,7 @@ export default function Discover() {
     customStartDate = null
   ) => {
     if (aiLoading) return;
+    pendingAiArgsRef.current = [destination, days, budget, fallbackImage, origin, customStartDate];
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     aiCancelledRef.current = false;
     clearAiTimers();
@@ -710,6 +715,8 @@ export default function Discover() {
       clearAiTimers();
       aiAbortRef.current = null;
       setAiLoading(false);
+      pendingAiArgsRef.current = null;
+      refreshEntitlements?.();
       router.push({ pathname: "/(tabs)/mytrip", params: { view: "plan" } });
     } catch (err) {
       clearAiTimers();
@@ -719,6 +726,18 @@ export default function Discover() {
       }
       console.error("[AI-Copilot] Generation error:", err);
       setAiLoading(false);
+      if (err?.statusCode === 402 || err?.errorCode === "QUOTA_EXCEEDED") {
+        refreshEntitlements?.();
+        if (err?.quota?.is_anonymous && err?.quota?.reason === "guest_limit_reached") {
+          setShowLinkModal(true);
+          return;
+        }
+        router.push({
+          pathname: "/paywall",
+          params: { reason: err?.quota?.reason || "free_limit_reached" },
+        });
+        return;
+      }
       setAiError(err.message || "Failed to generate AI trip. Please try again.");
     }
   };
@@ -897,9 +916,22 @@ export default function Discover() {
                 <Ionicons name="sparkles" size={14} color={AI_ACCENT} />
                 <Text style={[styles.aiGlowBadgeText, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>Generate with AI</Text>
               </View>
-              <View style={[styles.aiTinyBadge, { backgroundColor: AI_ACCENT + "26" }]}>
-                <Text style={styles.aiTinyBadgeText} maxFontSizeMultiplier={1.3}>AI</Text>
-              </View>
+              {entitlements ? (
+                <QuotaBadge
+                  entitlements={entitlements}
+                  onPress={() => {
+                    if (entitlements.is_anonymous && (entitlements.remaining_free_trips ?? 0) <= 0) {
+                      setShowLinkModal(true);
+                    } else {
+                      router.push("/paywall");
+                    }
+                  }}
+                />
+              ) : (
+                <View style={[styles.aiTinyBadge, { backgroundColor: AI_ACCENT + "26" }]}>
+                  <Text style={styles.aiTinyBadgeText} maxFontSizeMultiplier={1.3}>AI</Text>
+                </View>
+              )}
             </View>
 
             <Text style={[styles.aiHeroTitle, { color: themeStyles.textColor }]} maxFontSizeMultiplier={1.3}>
@@ -1455,6 +1487,20 @@ export default function Discover() {
           </View>
         </Modal>
       )}
+
+      <AccountLinkModal
+        visible={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        onLinked={(updated) => {
+          if (updated) setEntitlements?.(updated);
+          setShowLinkModal(false);
+          if (Array.isArray(pendingAiArgsRef.current)) {
+            const args = pendingAiArgsRef.current;
+            pendingAiArgsRef.current = null;
+            executeAiTrip(...args);
+          }
+        }}
+      />
     </View>
   );
 }

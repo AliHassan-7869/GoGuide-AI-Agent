@@ -6,23 +6,27 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TouchableOpacity } from "../../../Components/ui/Touchable";
 import { getAuthInputProps, getAuthInputStyle } from "../../../Components/constants/authInput";
-import { Palette, useTheme } from "../../../Components/constants/theme";
+import { Palette, Radius, Spacing, Typography, useTheme } from "../../../Components/constants/theme";
 import { purgeLegacyLoginData } from "../../../Components/utils/legacyLoginCleanup";
 import { resetOutcome, validateResetEmail } from "../../../Components/utils/passwordReset";
+import { continueAsGuest } from "../../../Components/utils/AccountLinkingService";
+import { CreateTripContext } from "../../../context/CreateTripContext";
 export default function SignIn() {
   const navigation = useNavigation();
   const router = useRouter();
   const theme = useTheme();
+  const { setEntitlements } = useContext(CreateTripContext) || {};
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
@@ -111,6 +115,26 @@ export default function SignIn() {
     // Firebase Auth keeps the session itself. Never copy the credential into app storage.
     await purgeLegacyLoginData(AsyncStorage);
     router.replace("/mytrip");
+  };
+
+  const handleGuestSignIn = async () => {
+    if (guestLoading || loading) return;
+    setErrorMessage("");
+    setErrorTitle("");
+    setErrorField(null);
+    setGuestLoading(true);
+    try {
+      const { entitlements } = await continueAsGuest();
+      if (entitlements) setEntitlements?.(entitlements);
+      await purgeLegacyLoginData(AsyncStorage);
+      router.replace("/(tabs)/discover");
+    } catch (error) {
+      __DEV__ && console.log("Guest sign-in error:", error?.code, error?.message);
+      setErrorTitle("Guest Sign-In Unavailable");
+      setErrorMessage(error?.message || "Could not start a guest session right now. Please try again.");
+    } finally {
+      setGuestLoading(false);
+    }
   };
 
   const handleSignIn = async () => {
@@ -326,6 +350,33 @@ export default function SignIn() {
               </Text>
             </TouchableOpacity>
 
+            {/* Continue as Guest (2 Free Trips) */}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Continue as Guest (2 Free Trips)"
+              style={[
+                styles.guestBtn,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : theme.bg,
+                },
+              ]}
+              onPress={handleGuestSignIn}
+              disabled={guestLoading || loading}
+              activeOpacity={0.85}
+            >
+              {guestLoading ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <>
+                  <Ionicons name="sparkles-outline" size={18} color={theme.primary} style={{ marginRight: Spacing.sm }} />
+                  <Text style={[styles.guestText, { color: theme.text }]}>
+                    Continue as Guest (2 Free Trips)
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
             {/* Terms of Service & Privacy Legal Disclaimer */}
             <Text style={styles.legalDisclaimer}>
               By signing in, you agree to GoGuide&apos;s{" "}
@@ -510,6 +561,21 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     fontFamily: "Outfit-Bold",
     fontSize: 14,
+  },
+  guestBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  guestText: {
+    fontFamily: Typography.fontSemiBold,
+    fontSize: Typography.sizeMd,
   },
   legalDisclaimer: {
     textAlign: "center",

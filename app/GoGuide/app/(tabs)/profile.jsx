@@ -21,10 +21,13 @@ import { APP_SHARE_MESSAGE, APP_SHARE_URL } from "../../Components/constants/app
 import { clearSessionLocalData } from "../../Components/utils/AccountService";
 
 import { TouchableOpacity } from "../../Components/ui/Touchable";
+import QuotaBadge from "../../Components/ui/QuotaBadge";
+import AccountLinkModal from "../../Components/AccountLinkModal";
 export default function Profile() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { setTripData, userData, setUserData, preferences, setPreferences, uid } = useContext(CreateTripContext);
+  const { setTripData, userData, setUserData, preferences, setPreferences, uid, entitlements, setEntitlements } = useContext(CreateTripContext);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // Guests (signed out, or anonymous AI-only sessions) have no email; they get a Sign In prompt instead of Sign Out.
@@ -711,6 +714,21 @@ export default function Profile() {
             </Text>
           </View>
 
+          {entitlements ? (
+            <View style={{ marginTop: 10 }}>
+              <QuotaBadge
+                entitlements={entitlements}
+                onPress={() => {
+                  if (entitlements.is_anonymous) {
+                    setShowLinkModal(true);
+                  } else {
+                    router.push("/paywall");
+                  }
+                }}
+              />
+            </View>
+          ) : null}
+
           {/* Progress to the next explorer tier */}
           <View style={styles.tierProgressWrap} accessible accessibilityLabel={`${tierCaption(tierInfo)}`} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(tierInfo.progress * 100) }}>
             <View style={[styles.tierTrack, { backgroundColor: theme.border }]}>
@@ -722,22 +740,30 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Guests: sign in is the first thing to see, because it is what unlocks saving and syncing */}
+        {/* Guests: sign in / link account to unlock +8 free trips and sync across devices */}
         {isGuest ? (
           <TouchableOpacity
             style={[styles.guestCard, { backgroundColor: theme.card, borderColor: Colors.PRIMARY }]}
-            onPress={() => router.push("/auth/sign-in")}
+            onPress={() => {
+              if (auth.currentUser?.isAnonymous || entitlements?.is_anonymous) {
+                setShowLinkModal(true);
+              } else {
+                router.push("/auth/sign-in");
+              }
+            }}
             accessibilityRole="button"
-            accessibilityLabel="Sign in or create an account to save your trips"
+            accessibilityLabel="Sign in or link account to claim 8 more free trips and save your trips"
             activeOpacity={0.8}
           >
             <View style={[styles.menuIconContainer, { backgroundColor: "rgba(10, 126, 164, 0.12)", borderColor: "rgba(10, 126, 164, 0.3)" }]}>
               <Ionicons name="log-in-outline" size={20} color={Colors.PRIMARY} />
             </View>
             <View style={styles.menuTextContainer}>
-              <Text style={[styles.menuTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>Sign in to save your trips</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
+                Sign In / Link Account
+              </Text>
               <Text style={[styles.menuSubtitle, { color: theme.subtext }]} maxFontSizeMultiplier={1.3}>
-                Keep trips, favourites and bookings safe across devices
+                Claim +8 free trips &amp; keep trips, favourites and bookings synced
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
@@ -1121,6 +1147,15 @@ export default function Profile() {
         visible={policyModal.visible}
         type={policyModal.type}
         onClose={() => setPolicyModal({ visible: false, type: "terms" })}
+      />
+
+      <AccountLinkModal
+        visible={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        onLinked={(updated) => {
+          if (updated) setEntitlements?.(updated);
+          setShowLinkModal(false);
+        }}
       />
     </SafeAreaView>
   );
