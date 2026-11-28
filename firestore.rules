@@ -101,19 +101,19 @@ service cloud.firestore {
 
     // 1. User Trips: Private to the trip creator (by email or UID)
     match /UserTrips/{docId} {
-      allow read, delete: if isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
+      allow read, delete: if isOwnerByVerifiedEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId);
 
       // A trip is always stamped with the signed-in user's own email (the app never writes userId),
       // so nobody can plant a trip into another account or create trips without an email identity.
       // Only the fields the app writes are accepted.
-      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+      allow create: if isOwnerByVerifiedEmail(request.resource.data.userEmail)
         && request.resource.data.keys().hasOnly(['userEmail', 'tripData', 'createdAt', 'updatedAt'])
         && request.resource.data.tripData is map
         && optString(request.resource.data, 'createdAt', 64)
         && optString(request.resource.data, 'updatedAt', 64);
 
       // Owners may change only the trip content. Ownership fields (userEmail, userId) are immutable.
-      allow update: if (isOwnerByEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
+      allow update: if (isOwnerByVerifiedEmail(resource.data.userEmail) || isOwnerByUid(resource.data.userId))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tripData', 'updatedAt'])
         && request.resource.data.tripData is map
         && optString(request.resource.data, 'updatedAt', 64);
@@ -136,19 +136,19 @@ service cloud.firestore {
 
     // 3. User Bookings: Private to the booking owner
     match /UserBookings/{bookingId} {
-      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+      allow read, delete: if isOwnerByVerifiedEmail(resource.data.userEmail);
+      allow create: if isOwnerByVerifiedEmail(request.resource.data.userEmail)
         && validBooking(request.resource.data);
-      allow update: if isOwnerByEmail(resource.data.userEmail)
+      allow update: if isOwnerByVerifiedEmail(resource.data.userEmail)
         && request.resource.data.userEmail == resource.data.userEmail
         && validBooking(request.resource.data);
     }
 
     match /Bookings/{bookingId} {
-      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+      allow read, delete: if isOwnerByVerifiedEmail(resource.data.userEmail);
+      allow create: if isOwnerByVerifiedEmail(request.resource.data.userEmail)
         && validBooking(request.resource.data);
-      allow update: if isOwnerByEmail(resource.data.userEmail)
+      allow update: if isOwnerByVerifiedEmail(resource.data.userEmail)
         && request.resource.data.userEmail == resource.data.userEmail
         && validBooking(request.resource.data);
     }
@@ -197,10 +197,10 @@ service cloud.firestore {
 
     // 5b. Favorites: private to the owner (synced by email, matching existing documents)
     match /UserFavorites/{favId} {
-      allow read, delete: if isOwnerByEmail(resource.data.userEmail);
-      allow create: if isOwnerByEmail(request.resource.data.userEmail)
+      allow read, delete: if isOwnerByVerifiedEmail(resource.data.userEmail);
+      allow create: if isOwnerByVerifiedEmail(request.resource.data.userEmail)
         && validFavorite(request.resource.data);
-      allow update: if isOwnerByEmail(resource.data.userEmail)
+      allow update: if isOwnerByVerifiedEmail(resource.data.userEmail)
         && request.resource.data.userEmail == resource.data.userEmail
         && validFavorite(request.resource.data);
     }

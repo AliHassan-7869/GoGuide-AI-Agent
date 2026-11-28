@@ -1,7 +1,6 @@
 import React from "react";
 import { Alert } from "react-native";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
-import TripSummer from "../app/create-trip/trip-summer";
 import ReviewTrip from "../app/create-trip/review-trip";
 import StartNewTripCard from "../Components/MyTrips/StartNewTripCard";
 import { CreateTripContext } from "../context/CreateTripContext";

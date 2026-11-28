@@ -3,7 +3,6 @@ import { Alert } from "react-native";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import TripSummer from "../app/create-trip/trip-summer";
 import ReviewTrip from "../app/create-trip/review-trip";
-import StartNewTripCard from "../Components/MyTrips/StartNewTripCard";
 import { CreateTripContext } from "../context/CreateTripContext";
 
 const mockPush = jest.fn();
@@ -41,13 +40,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// Destination cards are buttons labelled "Select <city>, <country> itinerary, ..."
-const tokyoCard = () =>
-  screen.queryAllByRole("button").find((b) => /^Select Tokyo, Japan itinerary/.test(b.props.accessibilityLabel || ""));
-const findTokyoCard = async () => {
-  await waitFor(() => expect(tokyoCard()).toBeTruthy());
-  return tokyoCard();
-};
 const alertTitles = () => Alert.alert.mock.calls.map((c) => c[0]);
 
 describe("Quick plan entry points lead to a valid review screen", () => {

@@ -235,8 +235,41 @@ _MAX_TRACKED_CLIENTS = 50000
 _DAY = 86400
 
 
+UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").rstrip("/")
+UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+
+
+def _redis_rate_limit(client_id: str, limit: int, window: int) -> bool | None:
+    """Shared fixed-window counter in Upstash Redis.
+
+    Returns True if allowed, False if over the limit, None if Redis is unconfigured/unavailable
+    (caller then falls back to the in-memory limiter).
+    """
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return None
+    key = f"rl:{client_id}:{int(time.time() // window)}"
+    try:
+        resp = requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/pipeline",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            json=[["INCR", key], ["EXPIRE", key, window + 5]],
+            timeout=2,
+        )
+        resp.raise_for_status()
+        count = int(resp.json()[0]["result"])
+        return count <= limit
+    except Exception as exc:  # noqa: BLE001 - never let the limiter take the API down
+        logger.warning("Redis rate limiter unavailable, using in-memory fallback: %s", type(exc).__name__)
+        return None
+
+
 def check_rate_limit(client_id: str, limit: int | None = None, window: int = 3600):
     limit = RATE_LIMIT_PER_HOUR if limit is None else limit
+    allowed = _redis_rate_limit(client_id, limit, window)
+    if allowed is False:
+        raise HTTPException(status_code=429, detail="Too many requests, please try again later")
+    if allowed is True:
+        return
     now = time.monotonic()
     with _rate_lock:
         if len(_request_log) > _MAX_TRACKED_CLIENTS:
@@ -1484,7 +1517,8 @@ async def revenuecat_webhook(request: Request, authorization: str | None = Heade
     try:
         result = entitlements_store.apply_revenuecat_event(event)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning("RevenueCat webhook rejected: %s", e)
+        raise HTTPException(status_code=400, detail="Invalid event")
 
     return {"status": "success", "data": result}
 
